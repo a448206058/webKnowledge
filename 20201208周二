@@ -1,0 +1,244 @@
+// 1． 第一个记忆周期：5分钟
+// 2． 第二个记忆周期：30分钟 20201207 19:30
+// 3． 第三个记忆周期：12小时 20201208 07:00
+// 4． 第四个记忆周期：1天 20201208 19:00
+// 5． 第五个记忆周期：2天 20201209 19:00
+// 6． 第六个记忆周期：4天 20201211 19:00
+// 7． 第七个记忆周期：7天 20201214 19:00
+// 8． 第八个记忆周期：15天 20201223
+
+
+//实现深拷贝和浅拷贝  --1-- 20201208 11:10 --2-- 11:45
+//实现浅拷贝
+//1.es6 object.assign()
+var a = {name: "hello"};
+var b = Object.assign({}, a);
+b.name = "hi";
+console.log(a);
+//2. 展开运算符
+var a = {name: 'hello'};
+var b = { ...a}; //扩展运算符用三个点号表示，功能是把数组或类数组对象展开成一系列用逗号隔开的值
+b.name = "hi";
+console.log(a);
+//for in
+var a = {name: 'hello'};
+var b = copy(a);
+b.name = 'hi';
+console.log(a);
+function copy(obj) {
+    var result = {};
+    for (var attr in obj) {
+        result [attr] = obj[attr];
+    }
+    return result;
+}
+//深拷贝
+//1层的
+var obj = JSON.parse(JSON.stringify(objs));
+//递归实现
+function deepCopy ( source ){
+    var target = Array.prototype.isArray(source) ? [] : {};
+    for ( var k in target){
+        if(typeof source[k] === 'object'){
+            target[k] = deepCopy(source[k]);
+        }else{
+            target[k] = source[k];
+        }
+    }
+    return target;
+}
+
+//promise的实现
+var promise = new Promise((resolve, reject)=>{
+    if(true){
+        resolve(value)
+    }else{
+        reject(error);
+    }
+})
+promise.then(function(value){
+
+},function(value){
+
+})
+
+//--1-- 20201208 13:30 --2-- 13:58
+function myPromise(constructor){
+    var self = this;
+    self.status = "pending";
+    self.value = undefined;
+    self.reason = undefined;
+    function resolve(res){
+        if(self.status === "pending"){
+            res.status = "resolved";
+            res.value = res;
+        }
+    }
+    function reject(res){
+        if(self.status === "pending"){
+            res.status = "rejected";
+            res.reason = res;
+        }
+    }
+    try {
+        constructor(resolve, reject);
+    }catch(e){
+        reject(e);
+    }
+}
+myPromise.prototype.then = function(onFullfilled, onRejected){
+    var self = this;
+    switch(self.status){
+        case "resolved":
+            onFullfilled(self);
+            break;
+        case "rejected":
+            onRejected(self);
+            break;
+        default:
+    }
+}
+
+//手写call2  --1-- 20201208 14:10  --2-- 16:17
+//fun.call(thisArg,arg1,arg2,...)，调用一个函数, 其具有一个指定的this值和分别地提供的参数(参数的列表)。
+//call核心：
+// 将函数设为对象的属性
+// 执行&删除这个函数
+// 指定 this到函数并传入给定参数执行函数
+// 如果不传入参数，默认指向为 window
+Function.prototype.call2 = function(context){
+    var context = context || window;
+    context.fn = this;
+    var args = [];
+    for(let i = 1;i < arguments.length;i++){
+        args.push('arguments['+i+']');
+    }
+    var result = eval('context.fn('+args+')');
+    delete context.fn;
+    return result;
+}
+
+//手写apply --1-- 20201208 17:41 --2-- 18:18
+Function.prototype.apply2 = function(context, arr){
+    var context = Object(context) || window;
+    context.fn = this;
+    var result;
+    var args = [];
+    if(!arr){
+        result = context.fn();
+    }else{
+        for(let i = 0;i < arr.length;i++){
+            args.push('arr['+i+']');
+        }
+        result = eval('context.fn('+arr+')')
+    }
+    delete context.fn;
+    return result;
+}
+
+
+/*
+    vue知识
+    说说你对MVVM的理解： --1-- 20201208 13:50  --2-- 16:28
+    model view viewmodel
+    模型指的是后端传递的数据 视图指的是页面 视图模型和mvvm的核心 主要有俩个方向
+    第一个方向是把模型转换为视图 实现方式是数据绑定
+    第二个方向是把视图转换为模型 实现方式是DOM事件监听
+    这俩个方向都实现的 我们称之为数据的双向绑定
+    总结：模型和视图是通过视图模型建立通信，通常viewmodel 要实现一个observe观察者，
+    当数据发生变化时，viewmodel能够监听到这种变化，然后通知数据做改动，这实际上就实现了数据的双向绑定
+    viewmodel可以互相通信。
+
+   vue2.x响应式数据/双向绑定原理  --1-- 20201208 17:28 --2-- 18:31
+
+        通过observe监听自己的model数据变化，通过compile来解析编译模板指令，最终利用watcher搭起observer和compile之间的通信桥梁
+        达到数据变化 -> 视图更新
+        视图交互变化 -> 数据model变更的双向绑定的效果
+
+        监听器observer:对数据对象进行遍历，包括子属性对象的属性，object.defineProperty()对属性都加上setter和getter
+        这样的话，给这个对象的某个值赋值，就会触发setter，那么就能监听到数据变化
+
+        解析器compile:解析vue模板指令，将模板中的变量都替换成数据，然后初始化渲染页面视图，并将每个指令对应的节点绑定更新函数，添加监听数据的订阅者。
+        一旦数据有变动，收到通知，调用更新函数进行数据更新。
+
+        订阅者watcher:watcher订阅者是observer和compile之间通信的桥梁，主要的任务是订阅observer中的属性值变化的消息
+        当收到属性值变化的消息时，触发解析器compile中对应的更新函数。每个组件实例都有相应的watcher实例对象，它会在组件渲染的过程中把属性记录为依赖
+        之后当依赖项的setter被调用时，会通知watcher重新计算，从而致使它关联的组件得以更新-这是一个典型的观察者模式
+
+        订阅器Dep:订阅器采用 发布-订阅 设计模式，用来收集订阅者Watcher，对监听器Observer和订阅者Watcher进行统一管理。
+ */
+
+/*
+    算法
+        前端进阶算法1：如何分析、统计算法的执行效率和资源消耗？  --1-- 20201208 19:33
+        一、为什么引入复杂度分析
+            通过计算机运行会受外部影响随机性
+        二、如何表示复杂度
+            具体来讲就是代码执行的时间、执行消耗的存储空间
+        三、时间复杂度 T(n) = O(n)
+            仅仅关注代码执行次数最多的那段就可以了
+            常量阶：O(1)；当算法中不存在循环语句、递归语句、即使有成千上万行代码，其时间复杂度也是O(1)
+            对数阶：O(logn)
+                let i = 1;
+                while(i <= n){
+                    i = i * 2;
+                }
+                O(log2n)
+            线性阶：O(n)
+            线性对数阶:O(nlogn)
+            非多项式量阶：
+            指数阶：O(2^n)
+            阶乘阶：O(n!)
+        四、空间复杂度
+            即i及数组a占用的储存空间 O(n)
+
+        从chrome v8源码看javascript数组
+        数组、链表、栈、队列都是线性表，它表示的结构都是一段线性的结构
+ */
+
+
+/*
+    typescript 对象 --1-- 20201208 09:54 --2-- 10:26
+    对象是包含一组键值对的实例。值可以是标量、函数、数组、对象等。
+    对象实例
+    typescript类型模板
+    鸭子类型 是动态类型的一种风格，是多态的一种形式
+    一个对象有效的语义，不是由继承自特定的类或实现特定的接口，而是由"当前方法和属性的集合"决定
+
+    typescript命名空间 --1-- 20201208 09:55 --2-- 10:27
+        命名空间一个最明确的目的就是解决重名问题
+        使用namespace来定义
+        namespace SomeNameSpaceName {
+            export interface ISomeInterfaceName { }
+            export class SomeClassName { }
+        }
+        以上定义了一个命名空间somenamespacename,如果我们需要在外部可以调用someNamespace和接口，则需要在类和接口添加export关键字
+        嵌套命名空间
+            命名空间支持嵌套，即你可以将命名空间定义在另外一个命名空间里头。
+            namespace namespace_name1 {
+                export namespace namespace_name2 {
+                    export class class_name { }
+                }
+            }
+
+    typescript模块 --1-- 20201208 10：10 --2-- 10:27
+        typescript模块的设计理念是可以更换的组织代码。
+        模块是在其自身的作用域里执行，并不是在全局作用域，这意味着定义在模块里面的变量、函数和类等在模块外部是不可见的，
+        除非明确地使用export导出它们。类似地，我们必须通过import导入其他模块导出的变量、函数、类等。
+        俩个模块之间的关系是通过在文件级别上使用import和export建立的。
+        模块使用模块加载器去导入其它的模块。
+
+        模块导出使用关键字export关键字
+        export interface SomeInterface {
+        }
+        要在另外一个文件使用该模块就需要使用import关键字来导入
+        import someInterfaceRef = require("./SomeInterface");
+
+    typescript声明文件 --1-- 20201208 10:10 --2-- 10:28
+        引用javascript的库需要将这些库里的函数和方法体去掉后只保留导出类型声明，而产生了一个描述javascript库和模块信息的声明文件。
+        通过引用这个声明文件，就可以借用typescript的各种特性来使用库文件了。
+        声明文件
+        declare var jQuery: (selector: string) => any;
+        jQuery('#foo');
+        declare定义的类型只会用于编译时的检查，编译结果中会被删除
+*/
