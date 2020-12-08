@@ -166,6 +166,27 @@ Function.prototype.apply2 = function(context, arr){
         之后当依赖项的setter被调用时，会通知watcher重新计算，从而致使它关联的组件得以更新-这是一个典型的观察者模式
 
         订阅器Dep:订阅器采用 发布-订阅 设计模式，用来收集订阅者Watcher，对监听器Observer和订阅者Watcher进行统一管理。
+
+    vue3.x响应式数据原理
+        vue3.x改用proxy替代object.definePrototype
+        因为proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
+        proxy只会代理对象的第一层，vue3是怎样处理这个问题
+        判断当前Reflect.get的返回值是否为object，如果是则再通过reactive方法做代理，这样就实现了深度观测。
+        监测数组的时候可能触发多次get/set，那么如何防止触发多次呢？我们可以判断key是否被代理对象target自身属性，也可以判断旧值与新值是否相等，只有满足以上俩个条件时，
+        才有可能执行trigger。
+
+    proxy与object.defineProperty优劣对比
+        Proxy的优势如下：
+            proxy可以直接监听对象而非属性;
+            proxy可以直接监听数组的变化
+            proxy有多达13种拦截方法，不限于apply、ownKeys、deleteProperty、has等等是Object.defineProperty不具备的;
+            proxy返回的是一个新对象，我们可以只操作新的对象达到目的，而object.defineProperty只能遍历对象属性直接修改；
+            proxy作为新标准将受到浏览器厂商重点持续的性能优化。
+        object.defineProperty有事如下：
+            兼容性好，支持IE9，而proxy的存在浏览器兼容性问题，而且无法用Polyfill磨平
+
+
+
  */
 
 /*
@@ -193,7 +214,8 @@ Function.prototype.apply2 = function(context, arr){
             即i及数组a占用的储存空间 O(n)
 
         从chrome v8源码看javascript数组
-        数组、链表、栈、队列都是线性表，它表示的结构都是一段线性的结构
+        数组、链表、栈、队列都是线性表，它表示的结构都是一段线性的结构，与之对应的就是非线性表
+        例如树、图、堆等，它表示的结构都是非线性。
  */
 
 
