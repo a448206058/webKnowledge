@@ -167,7 +167,7 @@ Function.prototype.apply2 = function(context, arr){
 
         订阅器Dep:订阅器采用 发布-订阅 设计模式，用来收集订阅者Watcher，对监听器Observer和订阅者Watcher进行统一管理。
 
-    vue3.x响应式数据原理
+    vue3.x响应式数据原理  --1-- 202012078 11:37
         vue3.x改用proxy替代object.definePrototype
         因为proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
         proxy只会代理对象的第一层，vue3是怎样处理这个问题
@@ -188,10 +188,104 @@ Function.prototype.apply2 = function(context, arr){
 
 
  */
+ 
+ /*
+    vue 3.0
+        vue2.x生命周期回顾  --1-- 20201208 10:39  --2-- 11:09
+        1.beforeCreate 在实例初始化之后，数据观测(data observer)和event/watcher事件配置之前被调用。
+        2.created 在实例创建完成之后立即调用。在这一步，实例已完成以下的配置：数据观测（data observer)，属性和方法的运算，watch/
+        event事件回调。然而，挂载阶段还没开始，$el属性目前尚不可用。
+        3.beforeMount，在挂载开始之前被调用：相关的render函数首次被调用。
+        4.mounted，实例被挂载后调用，这时el被新创建的vm.$el替换类。如果根实例挂载到了一个文档内的元素上
+        5.beforeUpdate 数据更新时调用
+        6.updated 由于数据更改导致的虚拟DOM重新渲染和打布丁
+        7.activated 被keep-alive缓存的组件激活时调用
+        8.deactivated 被keep-alive 缓存的组件停用时激活、
+        9.beforeDestroy 实例销毁之前调用
+        10.destoryed
+        11.errorCaptured
+   
+   vue3.x生命周期变化 --1-- 20201208 10:48  --2-- 11:12
+       被替换
+           1.beforeCreate -> setup()
+           2.created -> setup()
+       重命名
+           1.beforeMount -> onBeforeMount
+           2.mounted -> onMounted
+           3.beforeUpdate -> onBeforeUpdate
+           4.updated -> onUpdated
+           5.beforeDestroy -> onBeforeUnmount
+           6.destroyed -> onUnmounted
+           7.errorCaptured -> onErrorCaptured
+       新增的
+           debug回调钩子
+           1.onRenderRracked
+           2.onRenderTriggered
+           
+    composition api 核心语法 --1-- 20201208 11:13 --2-- 11:33
+        setup 主执行函数
+        setup是compisitionAPI的核心，可以说也是整个vue3.x的核心
+            setup将vue2.x的beforeCreate和created代替了，以一个setup函数的形式，可以灵活组织代码了
+            setup还可以return数据或者template，相当于把data和render也一并代替了
+            setup取消了this setup(props, context) 
+        reactive方法
+            被reactive方法包裹后的对象就变成了一个代理对象，相当于vue2.x中的vue.observable()。也就可以实现页面和
+            数据之间的双向绑定了。
+            这个包裹的方法是deep的，对所有嵌套的属性都生效。
+            const obj2 = reactive({
+                cnt: 1
+            })
+        ref方法
+            被ref方法包裹后的元素就变成了一个代理对象。元素指基本元素
+            ref一般适用于某个元素，而reactive适用于一个对象
+            setup(){
+                const count = ref(100)
+                
+                const count = reactive({
+                    value: 100
+                })
+                
+                console.log(count.value)
+            }
+            在template上使用时，会自动打开unwrap，不需要再加.value
+        isRef方法
+            判断一个对象是否ref代理对象。
+            const unwrapped = isRef(foo ? foo.value : foo)
+        toRefs方法
+            将一个reactive代理对象打平，转换为ref代理对象，使得对象的属性可以直接在template上使用
+        computed函数
+            与vue2.x中的作用类似，获取一个计算结果。不仅支持取值get，还支持赋值set。
+            注意：结果是一个ref代理对象，js中取值需要.value
+            const plusone = computed({
+                get: () => count.value + 100,
+                set: val => { count.value = val - 1}
+            })
+        readonly函数
+            使用readonly函数，可以把普通object对象、reactive对象、ref对象返回一个只读对象
+            
+    vue3.x新特性 --1-- 20201208 11:35  --2-- 12:00
+        1.compostion api 合成api
+        2.取消vue全局变量
+            取消了全局变量vue，改为实例函数createApp()创建实例对象。
+        3.自定义指令directives api调整
+        4 component组件支持v-model指令
+            子组件调用父组件的方法通过this.$emit()
+            数据双向绑定 .sync修饰符
+            vue3.x 直接v-model替代了.sync
+        5 fragments template支持有多个根节点
+        6 suspense template fallback 组件
+            <suspense>
+                <template #default>
+                </template>
+                <template #fallback>
+                </template>
+            </suspense>
+        7 teleport template dom占位传递组件
+ */
 
 /*
     算法
-        前端进阶算法1：如何分析、统计算法的执行效率和资源消耗？  --1-- 20201208 19:33
+        前端进阶算法1：如何分析、统计算法的执行效率和资源消耗？  --1-- 20201208 19:33 --2-- 11:35
         一、为什么引入复杂度分析
             通过计算机运行会受外部影响随机性
         二、如何表示复杂度
@@ -213,9 +307,34 @@ Function.prototype.apply2 = function(context, arr){
         四、空间复杂度
             即i及数组a占用的储存空间 O(n)
 
-        从chrome v8源码看javascript数组
+        从chrome v8源码看javascript数组  --1-- 20201208 11:58
         数组、链表、栈、队列都是线性表，它表示的结构都是一段线性的结构，与之对应的就是非线性表
         例如树、图、堆等，它表示的结构都是非线性。
+        一、数组
+            一种最基础的数据结构，代表一组连续的储存结构，用来储存同一种类型的数据
+            优点
+                随机访问：可以通过下标随机访问数组中的任意位置上的数据
+            缺点
+                对数据的删除和插入不是很友好
+            查找：根据下标随机访问的时间复杂度为O(1);
+            插入或删除：时间复杂度为O(n)
+       二、javascript中，数组可以保存不同类型值
+       三、javascript中，数组的存储
+       四、javascript中，数组的动态扩容与减容
+       五、总结
+           javascript中,jsarray继承自jsobject,数组是一个特殊的对象，内部是以key-value形式存储数据，所以javascript中的数组
+           可以存放不同类型的值。它有俩种存储方式，快数组与慢数组，初始化空数组时，使用快数组，快数组使用连续的内存空间，当数组长度达到最大时，
+           jsarray会进行动态的扩容，以存储更多的元素，相对慢数组，性能要好的多。当数组中hole太多时，会转变成慢数组，即以哈希表的
+           方式存储数据，以节省内存空间。
+           
+           //数组扁平化
+           var flatArr = arr.flat(4)
+           //去重
+           var disArr = Array.from(new Set(flatArr))
+           //排序
+           let result = disArr.sort(function(a, b){
+               return a - b
+           })
  */
 
 
