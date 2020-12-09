@@ -1,0 +1,128 @@
+问题描述：1.图片拉缩变形问题
+解决方案：object-fit: contain;
+
+问题描述：2.vue异步Props问题
+解决方案：要放到mounted里面而不是created里面
+
+问题描述：3.font-weight:600 在安卓上不生效
+解决方案：要用font-weight:bold 替代
+
+问题描述：4.canvas 针对某些安卓问题
+解决方案：.qrcode {
+  	    position: relative;
+  	    width: 100%;
+  	    height: 100%;
+ 	}
+	#qrcode canvas{ 
+    	    top: 0;
+    	    left: 0;
+    	    width: 100%;
+    	    height: 100%;
+    	    position: absolute;
+ 	}
+
+问题描述：5.IE下载文件问题
+解决方案：可以用download.js 解决ie浏览器下次文件功能
+
+问题描述：6.下拉箭头问题
+解决方案：.layui-table-cell.laytable-cell-1-0-6 {
+	    overflow： visible;
+	}
+
+问题描述：7.碰到背景从中间向俩边扩大问题
+解决方案：-webkit-transform: scale(1.25, 1.25);
+    	transform: scale(1.25, 1.25);
+    	transition: all 0.2s linear;
+
+问题描述：8.自定义输入框 contenteditable 设置为false就能整段删除
+
+箭头函数少用
+
+清理缓存：debugx5.qq.com
+
+http://idea.lanyus.com
+
+问题描述：vue dialog 插入一个video 标签 要等元素创建才能使用监听，但是插件js已经引用
+                使用 settimeout
+
+数组的重新封装
+     _this.tableData1 = rs.map(i => {
+                            let BeginDate = dateFormat(i.CreateTime, 'YYYY-MM-DD')
+                            let BeginTime = dateFormat(i.CreateTime, 'hh:mm:ss')
+                            let Sex = i.Sex == '2' ? '女' : '男';
+                            return {...i, BeginDate, BeginTime, Sex}
+                        });
+
+数组排序
+  let arr = res;
+  arr.sort(function(a, b) { //callback
+    if (a.index > b.index) { // a b 分别是Arr中的 56 21
+      return 1  //返回正数 ，b排列在a之前
+    } else {
+      return -1 //返回负数 ，a排列在b之前
+    }
+  });
+  return arr;
+
+经验描述 封装了一个常用的图片展示插件 根据dialog
+
+经验描述 通过watch deep 实现对对象的监听
+           watch: {
+		form{
+		  handler(newValue, oldValue){
+			},
+		deep: true
+		}
+}
+
+经验描述 router.push 传值 只能通过name跳转传参
+
+经验描述 根据el-table 封装了一个可以循环展开的table组件 
+
+限制触发一次
+通过指令
+import Vue from 'vue'
+import { Loading } from 'element-ui';
+Vue.directive('preventReClick',{
+  //当绑定元素插入到DOM中
+  inserted (el, binding) {
+    el.addEventListener('click', () => {
+      if (!el.disabled) {
+        el.disabled = true;
+        const options ={
+          lock: true,
+          text: '创建中',
+          spinner: 'el-icon-loading',
+          background: 'rgba(0, 0, 0, 0.7)'
+        }
+        let loadingInstance = Loading.service(options);
+        setTimeout(() => {
+          el.disabled = false
+          loadingInstance.close();
+        }, binding.value || 1000)
+      }
+    })
+  }
+})
+export {Vue}
+
+防抖：
+vue 头像设置的时候 需要加一个背景框 通过鼠标移入移出控制
+结果一直闪动
+因为onmouseover 一直触发
+通过防抖实现
+      let timeout = null; //创建一个标记用来存放定时器的返回值
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          _this.controlRemind = false;
+        }, 500);
+
+无限级展开
+
+动态图生成：
+https://www.jianshu.com/p/9e4430176664
+
+问题描述：watch 延迟
+
+激活码
+QYYBAC9D3J-eyJsaWNlbnNlSWQiOiJRWVlCQUM5RDNKIiwibGljZW5zZWVOYW1lIjoi6LaF57qnIOeoi+W6j+WRmCIsImFzc2lnbmVlTmFtZSI6IiIsImFzc2lnbmVlRW1haWwiOiIiLCJsaWNlbnNlUmVzdHJpY3Rpb24iOiIiLCJjaGVja0NvbmN1cnJlbnRVc2UiOmZhbHNlLCJwcm9kdWN0cyI6W3siY29kZSI6IklJIiwiZmFsbGJhY2tEYXRlIjoiMjAyMC0wMS0wNCIsInBhaWRVcFRvIjoiMjAyMS0wMS0wMyJ9LHsiY29kZSI6IkFDIiwiZmFsbGJhY2tEYXRlIjoiMjAyMC0wMS0wNCIsInBhaWRVcFRvIjoiMjAyMS0wMS0wMyJ9LHsiY29kZSI6IkRQTiIsImZhbGxiYWNrRGF0ZSI6IjIwMjAtMDEtMDQiLCJwYWlkVXBUbyI6IjIwMjEtMDEtMDMifSx7ImNvZGUiOiJQUyIsImZhbGxiYWNrRGF0ZSI6IjIwMjAtMDEtMDQiLCJwYWlkVXBUbyI6IjIwMjEtMDEtMDMifSx7ImNvZGUiOiJHTyIsImZhbGxiYWNrRGF0ZSI6IjIwMjAtMDEtMDQiLCJwYWlkVXBUbyI6IjIwMjEtMDEtMDMifSx7ImNvZGUiOiJETSIsImZhbGxiYWNrRGF0ZSI6IjIwMjAtMDEtMDQiLCJwYWlkVXBUbyI6IjIwMjEtMDEtMDMifSx7ImNvZGUiOiJDTCIsImZhbGxiYWNrRGF0ZSI6IjIwMjAtMDEtMDQiLCJwYWlkVXBUbyI6IjIwMjEtMDEtMDMifSx7ImNvZGUiOiJSUzAiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiUkMiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiUkQiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiUEMiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiUk0iLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiV1MiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiREIiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiREMiLCJmYWxsYmFja0RhdGUiOiIyMDIwLTAxLTA0IiwicGFpZFVwVG8iOiIyMDIxLTAxLTAzIn0seyJjb2RlIjoiUlNVIiwiZmFsbGJhY2tEYXRlIjoiMjAyMC0wMS0wNCIsInBhaWRVcFRvIjoiMjAyMS0wMS0wMyJ9XSwiaGFzaCI6IjE2MDgwOTA5LzAiLCJncmFjZVBlcmlvZERheXMiOjcsImF1dG9Qcm9sb25nYXRlZCI6ZmFsc2UsImlzQXV0b1Byb2xvbmdhdGVkIjpmYWxzZX0=-I7c5mu4hUCMxcldrwZEJMaT+qkrzrF1bjJi0i5QHcrRxk2LO0jqzUe2fBOUR4L+x+7n6kCwAoBBODm9wXst8dWLXdq179EtjU3rfJENr1wXGgtef//FNow+Id5iRufJ4W+p+3s5959GSFibl35YtbELELuCUH2IbCRly0PUBjitgA0r2y+9jV5YD/dmrd/p4C87MccC74NxtQfRdeUEGx87vnhsqTFH/sP4C2VljSo/F/Ft9JqsSlGfwSKjzU8BreYt1QleosdMnMK7a+fkfxh7n5zg4DskdVlNbfe6jvYgMVE16DMXd6F1Zhwq+lrmewJA2jPToc+H5304rcJfa9w==-MIIElTCCAn2gAwIBAgIBCTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDDA1KZXRQcm9maWxlIENBMB4XDTE4MTEwMTEyMjk0NloXDTIwMTEwMjEyMjk0NlowaDELMAkGA1UEBhMCQ1oxDjAMBgNVBAgMBU51c2xlMQ8wDQYDVQQHDAZQcmFndWUxGTAXBgNVBAoMEEpldEJyYWlucyBzLnIuby4xHTAbBgNVBAMMFHByb2QzeS1mcm9tLTIwMTgxMTAxMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxcQkq+zdxlR2mmRYBPzGbUNdMN6OaXiXzxIWtMEkrJMO/5oUfQJbLLuMSMK0QHFmaI37WShyxZcfRCidwXjot4zmNBKnlyHodDij/78TmVqFl8nOeD5+07B8VEaIu7c3E1N+e1doC6wht4I4+IEmtsPAdoaj5WCQVQbrI8KeT8M9VcBIWX7fD0fhexfg3ZRt0xqwMcXGNp3DdJHiO0rCdU+Itv7EmtnSVq9jBG1usMSFvMowR25mju2JcPFp1+I4ZI+FqgR8gyG8oiNDyNEoAbsR3lOpI7grUYSvkB/xVy/VoklPCK2h0f0GJxFjnye8NT1PAywoyl7RmiAVRE/EKwIDAQABo4GZMIGWMAkGA1UdEwQCMAAwHQYDVR0OBBYEFGEpG9oZGcfLMGNBkY7SgHiMGgTcMEgGA1UdIwRBMD+AFKOetkhnQhI2Qb1t4Lm0oFKLl/GzoRykGjAYMRYwFAYDVQQDDA1KZXRQcm9maWxlIENBggkA0myxg7KDeeEwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCwYDVR0PBAQDAgWgMA0GCSqGSIb3DQEBCwUAA4ICAQAF8uc+YJOHHwOFcPzmbjcxNDuGoOUIP+2h1R75Lecswb7ru2LWWSUMtXVKQzChLNPn/72W0k+oI056tgiwuG7M49LXp4zQVlQnFmWU1wwGvVhq5R63Rpjx1zjGUhcXgayu7+9zMUW596Lbomsg8qVve6euqsrFicYkIIuUu4zYPndJwfe0YkS5nY72SHnNdbPhEnN8wcB2Kz+OIG0lih3yz5EqFhld03bGp222ZQCIghCTVL6QBNadGsiN/lWLl4JdR3lJkZzlpFdiHijoVRdWeSWqM4y0t23c92HXKrgppoSV18XMxrWVdoSM3nuMHwxGhFyde05OdDtLpCv+jlWf5REAHHA201pAU6bJSZINyHDUTB+Beo28rRXSwSh3OUIvYwKNVeoBY+KwOJ7WnuTCUq1meE6GkKc4D/cXmgpOyW/1SmBz3XjVIi/zprZ0zf3qH5mkphtg6ksjKgKjmx1cXfZAAX6wcDBNaCL+Ortep1Dh8xDUbqbBVNBL4jbiL3i3xsfNiyJgaZ5sX7i8tmStEpLbPwvHcByuf59qJhV/bZOl8KqJBETCDJcY6O2aqhTUy+9x93ThKs1GKrRPePrWPluud7ttlgtRveit/pcBrnQcXOl1rHq7ByB8CFAxNotRUYL9IF5n3wJOgkPojMy6jetQA5Ogc8Sm7RG6vg1yow==
