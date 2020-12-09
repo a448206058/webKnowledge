@@ -1,0 +1,84 @@
+// 1． 第一个记忆周期：5分钟
+// 2． 第二个记忆周期：30分钟 20201207 19:30
+// 3． 第三个记忆周期：12小时 20201208 07:00
+// 4． 第四个记忆周期：1天 20201208 19:00
+// 5． 第五个记忆周期：2天 20201209 19:00
+// 6． 第六个记忆周期：4天 20201211 19:00
+// 7． 第七个记忆周期：7天 20201214 19:00
+// 8． 第八个记忆周期：15天 20201223
+
+// 手写Bind  --1-- 20201209 14:46 --2-- 15:56
+/*
+bind
+bind()方法会创建一个新函数。当这个新函数被调用时，bind()的第一个参数将作为它运行时的this,之后一系列参数将会在传递的
+实参前传入作为它的参数。
+    俩个特点：
+    1.返回一个函数
+2.可以传入参数
+ */
+Function.prototype.bind2 = function(context){
+    if(typeof this !== 'function'){
+        throw new Error("Function.prototype.bind - what is trying to be called a bound");
+    }
+    var self = this;
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var fNOP = function(){};
+    var fBound = function(){
+        var bindArgs = Array.prototype.slice.call(arguments);
+        return self.apply(this instanceof fNOP ? this : context, args.concat(bindArgs));
+    }
+    fNOP.prototype = self.prototype;
+    fBound.prototype = new fNOP();
+    return fBound;
+}
+
+//实现一个JS函数柯里化 --1-- 16:03 --2-- 16:29
+//在计算机科学中，柯里化是把接受多个参数的函数变换成接受一个单一参数（最初函数的第一个参数）的函数，并且返回
+//接受余下的参数且返回结果的新函数的技术。
+//函数柯里化的主要作用和特点就是参数复用、提前返回和延迟执行
+
+function curry(fn, curryArgs){
+    var args = [].slice.call(arguments);
+
+    if(curryArgs !== undefined){
+        args = args.concat(curryArgs);
+    }
+    if(args.length < fn.length){
+        return curry(fn, args);
+    }
+    return fn.apply(null, args);
+}
+
+//继承
+//继承的几种方式
+//6种 原型链继承、借用构造函数继承、原型链+借用构造函数的组合继承 组合继承1 组合继承2 es6class的继承 extends --1-- 20201209 16:31 --2-- 16:57
+
+/*
+    vue知识
+        vuex是什么？  --1-- 20201209 16:56 --2-- 17:24
+            vuex是一个专为vue.js应用程序开发的状态管理模式。每一个vuex应用核心就是store（仓库）。store就是一个容器，它包含着你的应用中大部分状态。
+            vuex的状态存储是响应式的。当vue组件从store中读取状态的时候，若store中的状态发生变化，那么响应的组件也会得到高效更新。
+            改变store中的状态的唯一途径就是显式地提交mutation。这样使得我们可以方便地跟踪每一个状态的变化。
+            主要包含了以下几个模块：
+            State：定义了应用状态的数据结构，可以在这里设置默认的初始状态。
+            Getter: 允许组件从store中获取数据，mapGetters辅助函数仅仅是将store中的getter映射到局部计算属性。
+            Mutation：是唯一更改store中状态的方法，且必须是同步函数
+            action: 用于提交mutation，而不是直接变更状态，可以包含任意异步操作
+            module:允许将单一的store拆分为多个store且同时保存在单一的状态树中
+
+        vuex和单纯的全局对象有什么区别？ --1-- 20201209 17:07 --2- 17:27
+            vuex的状态存储是是响应式的
+            当vue组件从store中读取状态的时候，若store中的状态发生变化，那么相应的组件也会得到高效更新
+            不能直接更改store中的状态，只能通过mutation
+
+        为什么vuex的mutation中不能做异步操作？ --1-- 20201209 17:22 --2-- 18:44
+            vuex中所有的状态更新的唯一途径都是mutation，异步操作通过action来提交实现。这样的话使得我们可以方便地跟踪每一个状态的变化，
+            每个mutation执行完成后都会对应到一个新的状态变更，这样devtools就可以打个快照，
+            如果mutation支持异步操作，就没有办法知道状态是何时更新的，无法很好的进行状态的追踪，给调试带来困难
+
+        vuex的action有返回值吗？返回的是什么？ --1-- 20201209 17:22 --2-- 18:44
+            store.dispatch可以处理被触发的action的处理函数返回的promise,并且store.dispatch仍旧返回promise
+            一个store.dispatch在不同模块中可以触发多个action函数。在这种情况下，只有触发函数完成后，返回的promise才会执行。
+ */
+
