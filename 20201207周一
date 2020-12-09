@@ -9,7 +9,8 @@
 
 //手写防抖函数
 //防抖函数的原理：事件触发n秒内，如果再次触发，则重新计算
-// 20201207 周一 --3-- 20201208 09:37 --4-- 20201208 18:42
+// 20201207 周一 --3-- 20201208 09:37 --4-- 20201208 18:42 --5-- 20201209 19:05
+
 function debounce(func, wait, immediate){
     var timeout, result;
 
@@ -39,7 +40,7 @@ function debounce(func, wait, immediate){
 
 //手写节流函数
 // 节流函数的原理，如果你持续触发事件，每隔一段时间，只触发一次
-// 20201207 周一  --3-- 20201208 09:37  --4-- 20201208 18:46
+// 20201207 周一  --3-- 20201208 09:37  --4-- 20201208 18:46  --5-- 20201209 19:08
 // 方案一：通过时间戳来解决
 function throttle(fn, wait){
     var pre = new Date();
@@ -68,7 +69,7 @@ function throttle(fn, wait){
     }
 }
 
-//实现一个new操作符  --3-- 20201208 09:37 --4-- 20201208 18:49
+//实现一个new操作符  --3-- 20201208 09:37 --4-- 20201208 18:49 --5-- 20201209 19:14
 // 1.用new Object()的方式新建了一个对象obj
 // 2.取出第一个参数，就是我们要传入的构造函数。此外因为shift会修改原数组，所以arguments会被去除第一个参数
 // 3.将obj的原型指向构造函数，这样obj就可以访问到构造函数原型中的属性
@@ -79,6 +80,7 @@ function throttle(fn, wait){
 //1.创建一个新对象
 //2.将obj的原型指向构造函数
 //3.改变this的指向为新建的对象
+
 function objectFactory() {
     var obj = new Object(), Constructor = [].shift.call(arguments);
     obj.__proto__ = Constructor.prototype;
@@ -87,7 +89,7 @@ function objectFactory() {
 }
 
 /*
-    typescript与javascript的区别  --2-- 20201207 19:30 --3-- 20201208 08:40 --4-- 20201208 18:49
+    typescript与javascript的区别  --2-- 20201207 19:30 --3-- 20201208 08:40 --4-- 20201208 18:49  --5-- 20201209 19:14
         typescript是javascript的超集，扩展了javascript的语法，因此现有的javascript代码可与typescript一起工作无需任何修改,typescript通过类型注解提供编译时的静态类型检查。
         typescript可处理已有的javascript代码，并只对其中的typescript代码进行编译
         typescript增加的功能有：
@@ -144,7 +146,7 @@ function objectFactory() {
        var obj = new Site();
        obj.name();
 
-    typescript基础类型    --2-- 20201207 20:00  --3-- 20201208 08:54
+    typescript基础类型    --2-- 20201207 20:00  --3-- 20201208 08:54 --5-- 20201209 19:17
         any 任意类型 声明为any的变量可以赋予任意类型的值
             let value: any
             常用于三种情况：
@@ -182,7 +184,7 @@ function objectFactory() {
         never never never是其他类型（包括null和undefined）的子类型，代表从不会出现的值。
         注意：Typescript和JavaScript没有整数类型。
 
-    typescript变量声明  --1-- 20201207 20:00 --2-- 20:23 --3-- 20201208 08:57
+    typescript变量声明  --1-- 20201207 20:00 --2-- 20:23 --3-- 20201208 08:57 --5-- 20201209 19:18
         变量是一种使用方便的占位符，用于引用计算机内存地址
         我们可以把变量看做存储数据的容器。
         typescript变量的命名规则：
@@ -220,7 +222,7 @@ function objectFactory() {
             类作用域 也可称为字段。类变量声明在一个类里头
             局部作用域
 
-    typescript运算符  --1-- 20201207 20:08 --2-- 20:30  --3-- 20201208 08:58
+    typescript运算符  --1-- 20201207 20:08 --2-- 20:30  --3-- 20201208 08:58 --5-- 20201209 19:19
         运算符用于执行程序代码运算，会针对一个以上操作数项目来进行运算。
         包含以下几种运算：
             算术运算符
@@ -235,7 +237,7 @@ function objectFactory() {
             其他运算符
                 -负号  +连接字符串
 
-    typescript条件语句  --1-- 20201207 20:12 --3-- 20201208 08:59
+    typescript条件语句  --1-- 20201207 20:12 --3-- 20201208 08:59 --5-- 20201209 19:19
         条件语句用于基于不同的条件来执行不同的动作。
         typescript条件语句是通过一条或多条语句的执行结果类决定执行的代码块。
         if else switch case
@@ -266,7 +268,7 @@ function objectFactory() {
         可选参数
         默认参数
 
-    typescript number —1— 20201207 09:54 —2— 10:30   --3-- 20201208 09:00
+    typescript number —1— 20201207 09:54 —2— 10:30   --3-- 20201208 09:00 --5-- 20201209 19:20
     number对象是原始数值的包装对象。
     对象属性
         MAX_VALUE MIN_VALUE NaN NEGATIVE_INFINITY 负无穷大
@@ -281,7 +283,7 @@ function objectFactory() {
 	    toString()
 	    valueOf()
 
-    Typescript string 20201207 10:09 —1— —2— 10:30   --3-- 20201209 09:01
+    Typescript string 20201207 10:09 —1— —2— 10:30   --3-- 20201209 09:01 --5-- 20201209 19:21
     string 对象用于处理文本
         对象属性
             constructor 对创建该对象的函数的引用
@@ -308,7 +310,7 @@ function objectFactory() {
 	        toUpperCase() 把字符串转换为大写
 	        valueOf() 返回指定字符串对象的原始值
 
-    typescript array —1—20201207 10:30 —2— 11:00  --3-- 20201208 08:59
+    typescript array —1—20201207 10:30 —2— 11:00  --3-- 20201208 08:59 --5-- 20201209 19:22
         数组对象是使用单独的变量名来存储一系列的值
         var sites: string[];
         var nums: number[]
@@ -345,7 +347,7 @@ function objectFactory() {
             toString() 把数组转换为字符串，并返回结果。
             unshift() 向数组的开头添加一个或更多元素，并返回新的长度。
 
-    typescript map对象 —1— 20201207 10:47 —2— 11:18  --3-- 20201208 09:06
+    typescript map对象 —1— 20201207 10:47 —2— 11:18  --3-- 20201208 09:06  --5-- 20201209 19:23
         Map 对象保存键值对，并且能够记住键的原始插入顺序。
         任何值（对象或者原始值）都可以作为一个键或一个值
         Map是ES6中引入的一种新的数据结构
@@ -363,7 +365,7 @@ function objectFactory() {
         迭代map map对象中元素是按顺序插入的，我们可以迭代map对象，每一次迭代返回[key, value]数组
         typescript使用for of来实现迭代
 
-    Typescript 元组. 20201207 10:54 —1— —2— 11:20  --3-- 20201208 08:59
+    Typescript 元组. 20201207 10:54 —1— —2— 11:20  --3-- 20201208 08:59 --5-- 20201209 19:23
         我们知道数组中元素的数据类型一般都是相同的（any[]类型的数组可以不同），如果存储的元素数据类型不同，则需要使用元组
         元组中允许存储不同类型的元素，元组可以作为参数传递给函数
         var tuple_name = [value1, value2, value3, …value n]
@@ -375,7 +377,7 @@ function objectFactory() {
         解构元组 v
             ar a = [10, “Runoob”] var [b, c] = a
 
-    typescript联合类型. —1— 20201207 11:18. —2— 11:41  --3-- 20201208 09:10
+    typescript联合类型. —1— 20201207 11:18. —2— 11:41  --3-- 20201208 09:10 --5-- 20201209 19:24
         联合类型（union types）可以通过管道将变量设置多种类型，赋值时可以根据设置的类型来赋值。
         注意：只能赋值指定的类型，如果赋值其它类型就会报错
             type1|type2|type3 var val:string|number val = 12
@@ -384,7 +386,7 @@ function objectFactory() {
             function disp(name: string | string[]){ }
         联合类型数组 我们也可以将数组声明为联合类型： var arr:number[] | string[]
 
-    Typescript接口. —1— 20201207 11:41  --3-- 20201208 09:12
+    Typescript接口. —1— 20201207 11:41  --3-- 20201208 09:12 --5-- 20201209 19:24
         接口是一系列抽象方法的声明，是一些方法特征的集合，这些方法都应该是抽象的，需要由具体的类去实现，然后第三方就可以通过这组抽象方法调用，让具体的类执行具体的方法。
             interface interface_name {
             }
@@ -427,7 +429,7 @@ function objectFactory() {
 	            }
 	            interface	Child extends IParent1, IParent2 {}
 
-    typescript类  --3-- 20201208 09:15
+    typescript类  --3-- 20201208 09:15 --5-- 20201209 19:25
         typescript是面向对象的javascript 类描述了所创建的对象共同的属性和方法。
         typescript支持面向对象的所有特性，比如类、接口等。
         typescript类定义方式如下：
