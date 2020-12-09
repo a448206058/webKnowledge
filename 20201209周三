@@ -55,6 +55,46 @@ function curry(fn, curryArgs){
 //6种 原型链继承、借用构造函数继承、原型链+借用构造函数的组合继承 组合继承1 组合继承2 es6class的继承 extends --1-- 20201209 16:31 --2-- 16:57
 
 /*
+    算法
+        从浏览器缓存淘汰策略和vue的keep-alive学习LRU算法  --1-- 20201209 11:25  --2-- 20201210 00:09
+        一、LRU缓存淘汰策略
+            常见的淘汰策略有FIFO（先进先出）、LFU（最少使用）、LRU（最近最少使用）
+            核心思想是如果数据最近被访问过，那么将来被访问的几率也更高，优先淘汰最近没有被访问到的数据
+        二、LRU在keep-alive(vue)上的实现
+            keep-alive在vue中用于实现组件的缓存，当组件切换时不会对当前组件进行卸载。
+            <keep-alive>
+                <component :is="view"></component>
+            </keep-alive>
+            最常见的俩个属性：include、exculde 用于组件进行有条件的缓存
+            在2.5.0中，keep-alive新增了max属性，运用了LRU算法
+       三、leetcode:LRU缓存机制
+           var LRUCache = function(capacity) {
+               this.cache = new Map()
+               this.capacity = capacity
+           }
+           
+           LRUCache.prototype.get = function(key) {
+               if (this.cache.has(key)) {
+                   let temp = this.cache.get(key)
+                   this.cache.delete(key)
+                   this.cache.set(key, temp)
+                   return temp
+               }
+               return -1
+           }
+           
+           LRUCache.prototype.put = function(key, value) {
+               if(this.cache.has(key)) {
+                   this.cache.delete(key)
+               } else if (this.cache.size >= this.capacity) {
+                   this.cache.delete(this.cache.keys().next().value)
+               }
+               this.cache.set(key, value)
+           }
+  
+*/
+
+/*
     vue知识
         vuex是什么？  --1-- 20201209 16:56 --2-- 17:24
             vuex是一个专为vue.js应用程序开发的状态管理模式。每一个vuex应用核心就是store（仓库）。store就是一个容器，它包含着你的应用中大部分状态。
@@ -80,5 +120,36 @@ function curry(fn, curryArgs){
         vuex的action有返回值吗？返回的是什么？ --1-- 20201209 17:22 --2-- 18:44
             store.dispatch可以处理被触发的action的处理函数返回的promise,并且store.dispatch仍旧返回promise
             一个store.dispatch在不同模块中可以触发多个action函数。在这种情况下，只有触发函数完成后，返回的promise才会执行。
+            
+        computed和watch的区别和运用的场景？--1-- 20201209 23：43
+            computed：是计算属性，依赖其他属性值，并且computed的值有缓存。
+            只有它依赖的属性值发生改变，下一次获取computed的值时才会重新计算computed的值
+            watch没有缓存性，每当监听的数据变化时都会执行回调进行后续操作
+            数值计算并且依赖于其他数据时，应该使用computed，因为可以利用computed的缓存特性，避免每次获取值时，都要
+            重新计算。
+            当我们需要在数据变化时执行异步或开销较大的操作时，应该使用watch。
+            使用watch选项允许我们执行异步操作，限制我们执行该操作的频率，并在我们得到最终结果前，设置中间状态。
+            这些都是计算属性无法做到的
+            
+       vue2.x组件通信有哪些方式？ --1-- 20201209 11:50 --2-- 20201210 00:10 
+           父子组件通信
+               父对子  props 子对父 $on、$emit
+               获取父子组件实例 $parent、$children
+               ref 获取实例的方法调用组件的属性或者方法
+               provide、inject
+          兄弟组件通信
+               eventBus vuex
+          跨级组件通信 
+               vuex $attrs $listeners provide inject
+      
+      说一下 v-if和v-show的区别？--1-- 20201209 11：58 --2-- 20201210 00:13
+          v-if不会渲染dom元素 v-show操作的是样式(display),切换当前DOM的显示和隐藏
+          v-if用在很少改变条件，不需要频繁切换条件的场景，v-show则相反
+          
+      为什么v-for和v-if不建议用在一起  --1-- 20201210 00:07  --2-- 20201210  00:13 
+          当v-for 和 v-if 处于同一个节点时，v-for的优先级比v-if更高，这意味着v-if将分别重复运行于每个v-for循环中
+          如果要遍历的数组很大，而真正要展示的数据很少时，这将造成很大的性能浪费。
+          这种场景建议使用computed，先对数据进行过滤
+        
  */
 
