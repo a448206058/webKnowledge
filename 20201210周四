@@ -162,7 +162,7 @@
         created 、beforeMount beforeMounted
         放到created中 能更快获取数据 减少loading时间
 
-     vue理由hash模式和history模式实现原理分别是什么？他们的区别是什么？
+     vue理由hash模式和history模式实现原理分别是什么？他们的区别是什么？ 20201210 23:33 --1-- 23:38  --2-- 11:53
         hash模式：
             #后面hash值的变化，不会导致浏览器向服务器发出请求，就不会刷新页面；
             通过监听hashchange事件可以知道hash发生了哪些变化，然后根据hash变化来实现更新页面部分内容的操作。
@@ -174,6 +174,107 @@
             刷新页面时，hash模式可以正常加载到hash值对应的页面，而history没有处理的话，会返回404，一般需要后端将所有
             页面都配置重定向到首页路由
             兼容性，hash可以支持低版本浏览器和IE
+            
+    路由懒加载是什么意思？如何实现路由懒加载？20201210 23:41 --1-- 23:47  --2-- 20201211 00:10       
+        路由懒加载：就是访问的时候才加载对应的组件 
+        vue异步组件 resolve require resolve
+        import
+        webpack require ensure
+    
+    vue-router导航守卫有哪些？20201210 23:49 --1-- 23:56  --2-- 00:18
+        全局前置/钩子：beforeEach、beforeResolve、afterEach
+        路由独享的守卫：beforeEnter
+        组件内的守卫：beforeRouteEnter、beforeRouteUpdate、beforeRouteLeave
+        
+    说说vue和react的异同  20201211 00:12 --1-- 00:19  --2-- 00:35
+        同：
+        使用virtual dom
+        提供了响应式reactive和组件化composable的视图组件
+        异：
+        在react应用中，当某个组件的状态发生变化时，它会以该组件为根，重新渲染整个组件子树
+        在vue应用中，组件的依赖是在渲染过程中自动追踪的，所以系统能精确知晓哪个组件确实需要被重渲染
+        在react中，一切都是javacript
+    
+    什么是mixin?  20201211 00:28 --1--  00:32 --2--
+        mixin使我们能够为vue组件编写可插拔和可重用的功能。
+        如果你希望在多个组件之间重用一组组件选项，例如生命周期hook、方法等，则可以将其编写为mixin，并在组件中简单的
+        引用它。
+        然后将mixin的内容合并到组件中。如果你要在mixin中定义生命周期hook，那么它在执行时将优化于组件自己的hook.
+   
+   在vue实例中编写生命周期hook或其他option/properties时，为什么不使用箭头函数？ 20201211 00:33 --1-- 38 
+       箭头函数自己没有定义this上下文。
+       当你在vue程序中使用箭头函数时，this关键字不会绑定到vue实例，因此会引发错误，所以强烈建议该用标准函数声明
+       
+   vue模版编译原理知道吗，简单说一下？20201211 00:53 
+       简单说，vue的编译过程就是将template转化为render函数的过程。会经历以下阶段（生成AST树/优化/codegen)
+       首先解析模版，生成AST语法树（一种用javascript对象的形式来描述整个模版）
+       使用大量的正则表达式对模版进行解析，遇到标签、文本的时候都会执行对应的钩子进行相关处理。
+       vue的数据是响应式的，但其实模版中并不是所有的数据都是响应式的。有一些数据首次渲染后就不会再变化，对应的
+       DOM也不会变化。
+       那么优化过程就是深度遍历AST树，按照相关条件对树节点进行标记。这些被标记的节点（静态节点）我们就可以跳过对它们的对比，
+       对运行时的模版起到很大的优化作用。
+ */
+ 
+ /*
+    算法
+        链表 20201210 10:00
+        链表相对于数组来说，要复杂的多，首先链表不需要连续的内存空间，它时由一组零散的内存块透过指针连接而成，所以，每一个块中必须包含当前节点内容以及
+        后续指针。最常见的链表类型有单链表双链表以及循环链表。
+        
+        确定解题的数据结构：单链表、双链表或循环链表等
+        确定解题思路：如何解决问题
+        画图实现：画图可以帮助我们发现思维中的漏洞
+        确定边界条件：思考解题中是否有边界问题以及如何解决
+        代码实现
+        
+        单链表结构：
+        function List() {
+            let Node = function(element){
+                this.element = element
+                this.next = null
+            }
+            let head = null
+            let length = 0
+            this.getList = function() { return head}
+            this.search = function(element) {
+                let p = head;
+                if(head){
+                    while(p.next){
+                        if(p.element === element){
+                            break;
+                        }
+                    }
+                }
+            }
+            this.append = function(element) {
+                let node = new Node(element),
+                p = head;
+                if(!p){
+                    return false;
+                }esle{
+                    while(p.next){
+                        if(p.element === element) return true
+                    }
+                }
+            }
+            this.insert = function(position, element){}
+            this.remove = function(element){}
+            this.isEmpty = function() {}
+            this.size = function() {}
+        }
+        
+        1.追加节点
+        //1.确定结构 单链表
+        //2.确定解题思路 将最后一个节点中next指向为要加入的节点 加入的节点next指向为null
+        //3.画图
+        //4.确定边界条件 1.没有节点时 head 为 2.有节点
+        //5.代码实现
+        
+        2.查找
+        //1.确定结构 单链表
+        //2.确定解题思路 遍历每个节点 看data是否相同
+        //3.画图
+        //4.确定边界条件 是否为空 next是否为null
  */
 
 
