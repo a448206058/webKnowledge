@@ -9,6 +9,7 @@
 
 
 //实现深拷贝和浅拷贝  --1-- 20201208 11:10 --2-- 11:45 --3-- 20201209 09:29 --4-- 20201209 19:27  --5-- 20201210 19:05
+// --6-- 20201212 19:57
 //实现浅拷贝
 //1.es6 object.assign()
 var a = {name: "hello"};
@@ -63,6 +64,7 @@ promise.then(function(value){
 })
 
 //--1-- 20201208 13:30 --2-- 13:58 --3-- 20201209 09:33  --4-- 20201209 19:37 --5-- 20201210 19:10
+//--6-- 20201212 20:09
 function myPromise(constructor){
     var self = this;
     self.status = "pending";
@@ -100,6 +102,7 @@ myPromise.prototype.then = function(onFullfilled, onRejected){
 }
 
 //手写call2  --1-- 20201208 14:10  --2-- 16:17 --3-- 20201209 09:43 --4-- 20201209 19:42 --5-- 20201210 19:20
+//--6-- 20201212 20:14
 //fun.call(thisArg,arg1,arg2,...)，调用一个函数, 其具有一个指定的this值和分别地提供的参数(参数的列表)。
 //call核心：
 // 将函数设为对象的属性
@@ -119,6 +122,7 @@ Function.prototype.call2 = function(context){
 }
 
 //手写apply --1-- 20201208 17:41 --2-- 18:18 --3-- 20201209 09:47 --4-- 20201209 19:50  -5-- 20201210 19:23
+//--6-- 20201212 20:22
 Function.prototype.apply2 = function(context, arr){
     var context = Object(context) || window;
     context.fn = this;
@@ -140,6 +144,7 @@ Function.prototype.apply2 = function(context, arr){
 /*
     vue知识
     说说你对MVVM的理解： --1-- 20201208 13:50  --2-- 16:28 --3-- 20201209 09:50 --4-- 20201209 19:51 --5-- 20201210 19:28
+    --6-- 20201212 20:28
     model view viewmodel
     模型指的是后端传递的数据 视图指的是页面 视图模型和mvvm的核心 主要有俩个方向
     第一个方向是把模型转换为视图 实现方式是数据绑定
@@ -150,6 +155,7 @@ Function.prototype.apply2 = function(context, arr){
     viewmodel可以互相通信。
 
    vue2.x响应式数据/双向绑定原理  --1-- 20201208 17:28 --2-- 18:31 --3-- 20201209 10:00 --4-- 20201209 19:55 --5-- 20201210 19:33
+        --6-- 20201212 20:31
         通过observe监听自己的model数据变化，通过compile来解析编译模板指令，最终利用watcher搭起observer和compile之间的通信桥梁
         达到数据变化 -> 视图更新
         视图交互变化 -> 数据model变更的双向绑定的效果
@@ -167,6 +173,7 @@ Function.prototype.apply2 = function(context, arr){
         订阅器Dep:订阅器采用 发布-订阅 设计模式，用来收集订阅者Watcher，对监听器Observer和订阅者Watcher进行统一管理。
 
     vue3.x响应式数据原理  --1-- 20201208 11:37 --3-- 20201209 10:13 --4-- 20201209 19:59 --5-- 20201210 19:37
+        --6-- 20201212 20:42
         vue3.x改用proxy替代object.definePrototype
         因为proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。并且作为新标准将受到浏览器厂商重点持续的性能优化。
         proxy只会代理对象的第一层，vue3是怎样处理这个问题
@@ -191,6 +198,7 @@ Function.prototype.apply2 = function(context, arr){
 /*
    vue 3.0
        vue2.x生命周期回顾  --1-- 20201208 10:39  --2-- 11:09 --3-- 20201209 10:14 --4-- 20201209 20:00 --5-- 20201210 19:38
+       --6-- 20201212 20:44
        1.beforeCreate 在实例初始化之后，数据观测(data observer)和event/watcher事件配置之前被调用。
        2.created 在实例创建完成之后立即调用。在这一步，实例已完成以下的配置：数据观测（data observer)，属性和方法的运算，watch/
        event事件回调。然而，挂载阶段还没开始，$el属性目前尚不可用。
@@ -222,6 +230,7 @@ Function.prototype.apply2 = function(context, arr){
           2.onRenderTriggered
 
    composition api 核心语法 --1-- 20201208 11:13 --2-- 11:33 --3-- 20201209 10:18 --4-- 20201209 20:01 --5-- 20201210 19:39
+       --6-- 20201212 20:45
        setup 主执行函数
        setup是compisitionAPI的核心，可以说也是整个vue3.x的核心
            setup将vue2.x的beforeCreate和created代替了，以一个setup函数的形式，可以灵活组织代码了
@@ -263,6 +272,7 @@ Function.prototype.apply2 = function(context, arr){
            使用readonly函数，可以把普通object对象、reactive对象、ref对象返回一个只读对象
 
    vue3.x新特性 --1-- 20201208 11:35  --2-- 12:00 --3-- 20201209 10:20 --5-- 20201210 19:40
+   --6-- 20201212 20:46
        1.compostion api 合成api
        2.取消vue全局变量
            取消了全局变量vue，改为实例函数createApp()创建实例对象。
@@ -285,6 +295,7 @@ Function.prototype.apply2 = function(context, arr){
 /*
     算法
         前端进阶算法1：如何分析、统计算法的执行效率和资源消耗？  --1-- 20201208 19:33 --2-- 11:35 --3-- 20201209 10:20 --4-- 20201209 20:03
+        --6-- 20201212 20:46
         一、为什么引入复杂度分析
             通过计算机运行会受外部影响随机性
         二、如何表示复杂度
