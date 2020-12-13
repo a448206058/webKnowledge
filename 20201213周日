@@ -279,7 +279,11 @@
       document.domain 二级域名相同的情况下
       postMessage+iframe
       
-   cookie
+   cookie与session 20201213 17:59
+      cookie保存在客户端；session保存在服务端；
+      session是由应用服务器维持的一个服务端的存储空间，用户在连接服务器时，会由服务器生成一个唯一的SessionID，用该SessionID
+      为标识符来存取服务端的Session存储空间
+        
       
  */
  /*
