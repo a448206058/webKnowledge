@@ -261,7 +261,7 @@
         last-modified是一个时间戳
         etag是由服务器为每个资源生成的唯一标识字符串
         
-   BOM对象模型  20201213 17:36 --1-- 17:41
+   BOM对象模型  20201213 17:36 --1-- 17:41  --2-- 19:09
       是浏览器对象模型
         window对象 表示浏览器打开的窗口
         screen 包含有关用户屏幕的信息
@@ -270,7 +270,7 @@
         document 
         history 包含浏览器的历史
         
-   如何实现跨域？ 20201213 17:52 
+   如何实现跨域？ 20201213 17:52 --2-- 19:09
       jsonp
       cors
       nginx 反向代理
@@ -279,13 +279,88 @@
       document.domain 二级域名相同的情况下
       postMessage+iframe
       
-   cookie与session 20201213 17:59
+   cookie与session 20201213 17:59 --2-- 19:10
       cookie保存在客户端；session保存在服务端；
       session是由应用服务器维持的一个服务端的存储空间，用户在连接服务器时，会由服务器生成一个唯一的SessionID，用该SessionID
       为标识符来存取服务端的Session存储空间
         
       
+   webpack的作用 20201213 22:12 --1-- 22：20  --2-- 22:40
+      1.代码转换
+      2.文件优化
+      3.代码分割
+      4.模块合并
+      5.自动刷新
+      6.代码校验
+      7.自动发布
+      
+   打包原理 20201213 22:23  --1-- 22:29 --2-- 22:50
+      1.初始化参数：从配置文件和shell语句中读取与合并参数，得到最终的参数；
+      2.开始编译：用上一步得到的参数初始化compiler对象，加载所有配置的插件，通过执行对象的run方法开始执行编译；
+      3.确定入口：根据配置中的entry找出所有入口文件
+      4.编译模块：从入口文件出发，调用所有配置的loader对模块进行翻译，再找出该模块依赖的模块，再递归本步骤直到所有入口依赖的文件都经过来本步骤的处理；
+      5.完成模块编译：在经过第4步使用loader翻译完所有模块后，得到来每个模块被翻译后的最终内容及它们之间的依赖关系；
+      6.输出资源：根据入口和模块之间的依赖关系，组装成一个个包含多个模块的chunk，再将每个chunk转换成一个单独的文件加入输出列表中，这是可以修改输出内容的最后机会。
+      7.输出完成：在确定好输出内容后，根据配置确定输出的路径和文件名，将文件的内容写入文件系统中；
+  
+  loader与plugin的区别  20201213 22:39  --1-- 22:44 --2-- 23:01
+      loader，它是一个转换器，文件内容进行翻译，比如将es6转换为es5，单纯的文件转换过程
+      plugin是一个扩展器，它丰富了webpack本身，针对是loader结束后，webpack打包的整个过程，它并不是直接操作文件，而是基于事件机制工作，会监听webpack打包过程中的某些节点，
+      并且执行相对应的任务
+  
+  happypack的原理 20201213 22:49 --1-- 22:56 
+      webpack中最耗时的就是loader的转换过程，转换的流程很长。haapypack的原理就是把这部分的任务拆解成多个子进程去并行处理，减少构建事件
+      通过new happypack()实例化，然后把任务交由实例统一调度分配。核心调度器会将一个个任务分配给空闲的子进程。处理完毕后发送给核心调度器。
+      
+  如何优化webpack配置 20201213 23:07
+      缩小文件查找范围
+        优化load
+        优化resolve.modules
+        优化resolve.mafinFields
+        优化resolve.alias
+        优化resolve.extensions
+        优化module.noPaese
+      使用DLLPlugin
+        基础模块抽离，打包到动态链接库
+        需要使用模块，直接去动态链接库查找
+      使用happypack 单线程变多线程
+      使用paralleIUglifyPlugin
+        开启多进程压缩代码，并行执行
+      使用CDN加速
+        静态资源放到cdn服务器上面
+      tree shaking
+        删除无用的代码
+      提取公共代码
+        防止相同资源重复加载
+        减少网络流量及服务器成本
+      使用prepack
+        编译代码时提前计算结果放到编译后的结果中，而不是在代码运行才求值
  */
  /*
-    算法 20201212 23:21 --3-- 20201213 08:54
- */
+    算法
+        排序算法
+            快速排序 nlogn 20201213 21:34 
+                基本思想就是分治法的思想，寻找中间点，并对其左右的序列递归进行排序，直到左右都排序完成
+                function quickSort(arr){
+    if(arr.length==0){
+        return arr
+    }
+    var pirotIndex=Math.floor(arr.length/2)
+    var pirot = arr.splice(pirotIndex,1)[0]
+    var left=[],right=[]
+    for(var i=0;i<arr.length;i++){
+        if(arr[i]>pirot){
+            right.push(arr[i])
+        }else{
+            left.push(arr[i])
+        }
+    }
+    return quickSort(left).concat(pirot,quickSort(right))
+}
+            选择排序 n^2
+            插入排序 n^2
+            希尔排序 n^1.5
+            归并排序 nlogn
+            冒泡排序 n^2
+            
+*/
