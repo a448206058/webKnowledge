@@ -1,0 +1,60 @@
+function DoublyLinkedList() {
+  let Node = function(element){
+    this.element = element;
+    //前驱指针
+    this.prev = null;
+    //后继指针
+    this.next = null;
+  }
+  // 初始头节点为null
+  let head = null;
+  // 新增尾节点
+  let tail = null;
+  // 链表长度
+  let length = 0;
+  this.search = function(element){};
+  this.insert = function(position, element){
+    //第一步确定结构 双链表
+    //确定思路：在链表中position的位置插入element节点
+    //画图
+    //确定边界条件 1.头为空 2.position大于链表的长度
+    let node = new Node(element)
+    if (position >= 0 && position < length){
+      let prev = head,
+      curr = head,
+      index = 0;
+      if(position === 0){
+        if(!head){
+          head = node;
+          tail = node;
+        } else {
+          node.next = head;
+          head.prev = node;
+          head = node;
+        }
+      } else if( position === length) {
+        curr = tail;
+        curr.next = node;
+        node.prev = curr;
+        tail = node;
+      } else {
+        while(index < position){
+          prev = curr
+          curr = curr.next
+          index++
+        }
+        prev.next = node
+        node.next = curr
+        curr.prev = node
+        node.prev = prev
+      }
+      length+=1
+      return true
+    }else{
+      return false
+    }
+  };
+  this.removeAt = function(position){};
+  this.isEmpty = function(){ return length === 0 };
+  this.size = function(){ return length };
+}
