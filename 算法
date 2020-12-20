@@ -58,3 +58,10 @@ function DoublyLinkedList() {
   this.isEmpty = function(){ return length === 0 };
   this.size = function(){ return length };
 }
+
+/*
+ * 笔记：我的第一本算法书
+ */
+O这个符号的
+}
+}
