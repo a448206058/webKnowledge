@@ -1,0 +1,39 @@
+/**
+ * 2.3 The Promise Resolution Procedure
+ * promise 解析过程
+ *
+ * The promise resolution procedure is an abstract operation taking as input a promise and a value,
+ * which we debnote as [[Resolve]](promise, x).If x is a thenable,it attempts to make promise adopt the
+ * state of x,under the assumption that x behaves at least somewhat like a promise.Otherwise,it fulfills
+ * promise with the value x.
+ * promise解析过程是一个抽象操作，它将promise和value作为输入，我们将其表示为[[Resolve]](promise, x)
+ * 如果x是一个thenable,假设x的行为至少有点像promise，它会尝试让promise采用x的状态。不然就会用x来完成promise.
+ *
+ * This treatment of thenables allows promise implementations to interoperate, as long as they expose a
+ * Promises/A+-compliant then method.It also allows Promises/A+ implementations to "assimilate" nonconformant
+ * implementations with reasonable then methods.
+ * 只要它们公开一个Promises/A+兼容的方法，对thenables的这种处理允许promise实现互操作，它还允许Promises/A+实现使用合理的then方法
+ * "同化"不一致的实现。
+ *
+ * To run [[Resolve]](promise, x),perform the following steps:
+ * 运行[[Resolve]](promise, x)，执行以下步骤：
+ *
+ * 2.3.1. If promise and x refer to the same object, reject promise with a TypeError as the reason.
+ * 如果promise和x引用同一个对象，返回一个TypeError作为reject promise的原因
+ *
+ * 2.3.2. If x is a promise, adopt its state [3.4]:
+ *  2.3.2.1. If x is pending, promise must remain pending until x is fulfilled or rejected.
+ *  2.3.2.2. If/when x is fulfilled, fulfill promise with the same value.
+ *  2.3.2.3. If/when x is fulfilled, fulfill promise with the same reason.
+ *
+ *  如果x是一个promise,采用这些状态
+ *      如果x是一个pending,promise必须保持pending状态直到x变成fulfilled或者rejected状态
+ *      如果/当x是一个fulfilled，fulfill状态时，promise使用形同的value
+ *      如果/当x是一个fulfilled，fulfill状态时，promise使用相同的reason
+ *
+ * 2.3.3. Otherwise, if x is an object or function,
+ *  2.3.3.1. Let then be x.then. [3.5]
+ *  2.3.3.2. If retrieving the property x.then results in a thrown exception e, reject promise with e as the reason.
+ *  2.3.4.3. If both resolvePromise and rejectPromise are
+ */
+
