@@ -1,4 +1,17 @@
-*      An open standard for sound,interoperable JavaScript promises - by implementers, for implementers
+// 1． 第一个记忆周期：5分钟
+// 2． 第二个记忆周期：30分钟 20201218 19:30
+// 3． 第三个记忆周期：12小时 20201219 07:00
+// 4． 第四个记忆周期：1天 20201219 19:00
+// 5． 第五个记忆周期：2天 20201220 19:00
+// 6． 第六个记忆周期：4天 20201222 19:00
+// 7． 第七个记忆周期：7天 20201225 19:00
+// 8． 第八个记忆周期：15天 20210103 19:00
+
+
+/**
+ *  基础
+ *      promise A+ 规范  09:09
+ *      An open standard for sound,interoperable JavaScript promises - by implementers, for implementers
  *      一个开放的标准，为开发者提供了一个良好的可互相操作的JavaScript promise
  *
  *      A promise represents the eventual result of an asynchronous operation.The primary way of interacting with
@@ -241,3 +254,18 @@
  *      如何对待thenable chain
  *          实例不应该对thenable链的深度设置任意限制，并假设递归超出任意限制，递归会无穷。只有真正的循环才会导致TypeError.如果遇到thenables的无限链，
  *          那么永远递归就是正确的行为。
+ *
+ */
+
+/*
+ * standard 标准 sound 良好的 interoperable 互相操作的 implementers 开发者
+ * represents  代表 eventual 最终的 asynchronous 异步的 operation 操作 primary 初级的 interacting 互相作用的
+ * specification 规范的 interoperable 可互相操作 conformant 合规的 implementations 实施 depended 依赖于 as such 像这样 stable 稳定的
+ * organization 组织 occasionally 偶尔的 revise 修改 minor 少数的 backward-compatible 向后兼容 newly-discovered 新发现的 corner 角
+ * integrate 整合 discussion 讨论
+ * Historically 历史上 clarifies 澄清 clauses 条款 proposal 建议 extending 延伸 facto 事实上 omitting 省略 areunderspecified 未指定 problematic 有问题的
+ * core 核心 instead 相反 companion 同伴 specifications 规格
+ * Terminology 术语
+ * conforms 符合 specification 规范
+ * legal 合法的
+ */

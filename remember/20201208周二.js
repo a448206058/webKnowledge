@@ -134,7 +134,7 @@ Function.prototype.apply2 = function(context, arr){
         for(let i = 0;i < arr.length;i++){
             args.push('arr['+i+']');
         }
-        result = eval('context.fn('+arr+')')
+        result = eval('context.fn('+args+')')
     }
     delete context.fn;
     return result;

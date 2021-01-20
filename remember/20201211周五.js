@@ -155,14 +155,14 @@
                 支持fragment和protal组件，根据做了一些特殊的场景做了处理
                 基于tree shaking优化，提供了更多的内置功能.
  */
- 
- 
- /*
-    算法
-        爬楼梯
-            假设你正在爬楼梯。需要 n 阶你才能到达楼顶。
-            每次你可以爬 1 或 2 个台阶。你有多少种不同的方法可以爬到楼顶呢？
-            注意：给定 n 是一个正整数。
+
+
+/*
+   算法
+       爬楼梯
+           假设你正在爬楼梯。需要 n 阶你才能到达楼顶。
+           每次你可以爬 1 或 2 个台阶。你有多少种不同的方法可以爬到楼顶呢？
+           注意：给定 n 是一个正整数。
 
 示例 1：
 
@@ -180,20 +180,20 @@
 2.  1 阶 + 2 阶
 3.  2 阶 + 1 阶
 
-     解题思路 fn = f(n-1) + f(n-2)
-     
-     var climbStairs = function(n) {
-         if(n < 0) return 0;
-         if(n == 1) return 1;
-         if(n == 2) return 2;
-         var a = 1;
-         var b = 2;
-         var temp = 0;
-         for(let i = 3;i <=n;i++){
-             temp = a + b;
-             a = b;
-             b = temp;
-         }
-         return temp;
-     }
- */
+    解题思路 fn = f(n-1) + f(n-2)
+
+    var climbStairs = function(n) {
+        if(n < 0) return 0;
+        if(n == 1) return 1;
+        if(n == 2) return 2;
+        var a = 1;
+        var b = 2;
+        var temp = 0;
+        for(let i = 3;i <=n;i++){
+            temp = a + b;
+            a = b;
+            b = temp;
+        }
+        return temp;
+    }
+*/
