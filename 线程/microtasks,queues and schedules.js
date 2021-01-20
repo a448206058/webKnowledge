@@ -1,0 +1,320 @@
+/**
+ * Tasks, microtasks, queues and schedules
+ * 任务，微任务，队列和调度
+ *
+ * When I told my colleague Matt Gaunt I was thinking of writing a piece on microtask queueing and execution
+ * within the browser's event loop,he said "I'll be honest with you Jake,I'm not going to read that".Well, I've
+ * written it anyway,so we're all going to sit here and enjoy it, ok?
+ * 当我告诉我的合作伙伴Matt Gaunt我在思考写一篇微任务和执行在浏览器事件循环，他说“我会诚实的告诉你，我不会去读它”好的，
+ * 不管怎么样我已经写好它，所以我们都要坐在这里好好享受，好吗？
+ *
+ * Actually,if video's more your thing, Phillip Roberts gave a great talk at JSConf on the event loop - microtasks
+ * aren't covered, but it's a great introduction to the rest.Anyway, on with the show...
+ * 实际上，如果视频更适合你，Phillip Roberts提供了很好的演说在JS形态在事件循环中 - 微队列不包括在内，
+ * 但是它是很好的介绍对于剩余部分。不管怎么样，继续表演
+ *
+ * Take this little bit of JavaScript:
+ * 做一下一些JavaScript
+ *
+ * console.log('script start');
+ *
+ * setTimeout(function() {
+ *     console.log('setTimeout');
+ * }, 0);
+ *
+ * Promise.resolve()
+ *  .then(function() {
+ *    console.log('promise1');
+ *  })
+ *  .then(function() {
+ *     console.log('promise2');
+ *  });
+ *
+ *  console.log('script end');
+ *  In what order should the logs appear?
+ *  日志应该以什么样的顺序出现？
+ *
+ *  The correct answer: script start, script end, promise1, promise2, setTimeout,but it's pretty wild out there
+ *  in terms of browser support.
+ *  正确的答案是：script start, script end, promise1, pormise2, setTimeout, 但在浏览器支持方面它是相当狂野的。
+ *
+ *  Microsoft Edge,Firefox 40,iOS safari and desktop Safari 8.0.8 log setTimeout before promise1 and promise2 -
+ *  although it appears to be a race condition.This is really weird, as Firefox 39 and Safari 8.0.7 get it
+ *  consistently right.
+ *
+ *  Microsoft Edge,Firefox 40,iOS safari and desktop Safari 8.0.8 输出 setTimout 在promise1 和promise2之前-
+ *  虽然这似乎是一种竞赛状态。这真的很奇怪，像Firefox 39 and Safari 8.0.7一直正确
+ *
+ *  Why this happens
+ *  为什么会发生这样的事情
+ *
+ *  To understand this you need to know how the event loop handles tasks and microtasks.This can be a lot to get
+ *  your head around the first time you encounter it.Deep breath...
+ *  去理解这些你需要知道时间循环是如何处理任务和微任务的。当你第一次遇到它的时候，这可能会让你的头脑清醒过来。深呼吸...
+ *
+ *  Each 'thread' gets it own event loop,so each web worker gets it own,so it can execute independently,where as all
+ *  windows on the same origin share an event loop as they can synchronously communicate. The event loop runs continually,
+ *  executing any tasks queued.An event loop has multiple task sources which guarantees execution order within that source
+ *  (specs such as IndexedDB define their own),but the browser gets to pick which source to take a task from on each turn
+ *  of the loop.This allows the browser to give preference to performance sensitive tasks such as user-input.Ok ok,stay with me...
+ *  每个线程都有自己的任务循环，所以每个网络工作者都有自己的，以便于它能独立运行，同一源上的所有窗口共享一个事件循环，因为它们可以
+ *  同步通信。事件循环持续运行，执行队列中的任何任务。一个事件循环有多个任务源，它们保证了该源中的执行顺序（像IndexedDB这样的规范定义了他们），
+ *  但是浏览器可以在循环的每一圈中选择从哪个源执行任务。这允许浏览器优先考虑性能敏感的任务，如用户输入。好的，好的，跟我走
+ *
+ *  Tasks are scheduled so the browser can get from its internals into JavaScript/DOM land and ensures these actions
+ *  happen sequentially.Between tasks, the browser may render updates.Getting from a mouse click to an event callback
+ *  requires scheduling a task,as does parsing HTML,and in the above example,setTimeout.
+ *  任务是被调度的以便于浏览器能够从它的内部构件进入JavaScript/DOM和确保操作能按顺序执行。在任务中，浏览器可能会渲染更新。从鼠标点击到事件
+ *  回调需要调度一个任务，解析HTML也是如此，在上面的例子中，setTimeout.
+ *
+ *  setTimeout waits for a given delay then schedules a new task for its callback.This is why setTimeout is logged after
+ *  script end, as logging script end is part of the first task, and setTimeout is logged in a separate task.Right, we're almost through
+ *  this, but I need you to stay strong for this next bit...
+ *  setTimeout等待给定的延迟，然后为其回调安排一个新任务。这就是为什么setTimeout被记录在脚本结束后，因为日志脚本结束是第一个任务的一部分，
+ *  setTimeout记录在单独的任务中。好的，我们快搞定了，但是我需要你在接下来的日子里保持坚强...
+ *
+ *  Microtasks are usually scheduled for things that should happen straight after the currently executing script,
+ *  such as reacting to a batch of actions, or to make something async without taking the penalty of a whole new task.
+ *  The microtask queue is processed after callbacks as long as no other JavaScript is mid-execution, and at the end of
+ *  each task.Any additional microtasks queued during microtasks are added to the end of queue and also processed.
+ *  Microtasks include mutation observer callbacks, and as in the above example,promise callbacks.
+ *  微任务通常在事件当前执行的脚本之后立即发生的事情上进行调度，比如对一批动作做出反应，或者做一些异步操作而不是接收新任务的触发。
+ *  只要在执行过程中没有其他JavaScript，则在回调之后处理微任务队列，每次任务结束时。一些额外的微任务队列在微任务被添加到队列的末尾期间也
+ *  同样处理。微任务包括了变化的观察者回调，就像上面的例子中，promise 回调。
+ *
+ *  Once a promise settles, or if it has already settled, it queues a microtask for its reactionary callbacks.This ensures promise
+ *  callbacks are async even if the promise has already settled.So calling .then(yey, nay) against a settled promise immediately queues a
+ *  microtask.This is why promise1 and promise2 are logged after script end, as the currently running script must finish before microtasks
+ *  are handled. promise1 and promise2 are logged before setTimeout, as microtasks always happen before the next task.
+ *  只要一个promise解决，或者它已经解决，它将微任务排队等待其反应的回调。这确保了promise回调是异步甚至promise已经被解决。所以调用 .then 违背了一个解决promise
+ *  立即把一个微任务插入队列。这就是为什么promise1 和 promise2 是被打印在script结束后，作为正确的执行代码必须在微任务被处理之前完成。
+ *  promise1和promise2被打印在setTimeout之前，就像微任务总是完成在下一个任务之前。
+ *
+ *  So, step by step:
+ *  所以一步一步
+ *  console.log('script start');
+ *  setTimeout(function () {
+ *      Tasks
+ *      Microtasks
+ *      JS stack
+ *      Log
+ *  })
+ *
+ *  Yes that's right, I created an animated step-by-step diagram.How did your spend your Saturday? Went out in the sun with
+ *  your friends? Well I didn't. Um, in cast it isn't clear from my amazing UI design, click the arrows above to advance.
+ *  是的这是对的，我创建了一个动画的一步一步的图表。你怎么样度过你的周六？在阳光下和你的朋友外出？好吧我不会。我造的图表并不十分清楚在
+ *  ui设计动画中，单击上面的箭头前行。
+ *
+ *  What are some browsers doing differently?
+ *  什么是一些浏览器不同的？
+ *
+ *  Some browsers log script start, script end, setTimeout, promise1, promise2.They're running promise callbacks after setTimeout.
+ *  It's likely that they're calling promise callbacks as part of a new task rather than as a microtask.
+ *  一些浏览器打印script start, script end, setTimeout, promise1, promise2.他们是运行promise回调在setTimeout之后。
+ *  这像他们调用promise回调作为一个新任务的一部分而不是作为一个微任务。
+ *
+ *  This is sort-of excusable, as promises come from ECMAScript rather than HTML.ECMAScript has the concept of "jobs" which are
+ *  similar to microtasks, but the relationship isn't explicit aside from vague mailing list discussions.However, the general
+ *  consensus is that promises should be part of the microtask queue, and for good reason.
+ *  这是情有可原的，因为promises来自ECMAScript而不是HTML。ECMAScript有“作业”的概念，类似于微任务，但是这种关系不是非常明确从模糊的
+ *  邮件讨论。然而，一般的共识是promises应该成为微任务队列的一部分，有充分的理由。
+ *
+ *  Treating promises as tasks leads to performance problems, as callbacks may be unnecessarily delayed by task-related things
+ *  such as rendering.It also causes non-determinism due to interaction with other task sources, and can break interactions with
+ *  other APIs, but more on that later.
+ *  将promises作为任务会导致执行问题，像回调可能被不必要的任务相关事情例如渲染延迟。它也是非决定性原因由于与其他任务源的交互，
+ *  并且可以中断与其他API的交互，但稍后会有更多内容。
+ *
+ *  Here's an Edge ticket for making promises use microtasks.WebKit nightly is doing the right thing, so I assume Safari will
+ *  pick up the fix eventually, and it appears to be fixed in Firefox 43.
+ *  这是一个Edge标签对于把promises用作微任务。Webkit 每晚工作的做法是正确的，所以我想Safari最终会找到解决八法，
+ *  在Firefox 43 中它似乎是固定的。
+ *
+ *  Really interesting that both Safari and Firefox suffered a regression here that's since been fixed.I wonder if it's just a
+ *  coincidence.
+ *  真正有趣的事情是Safari和Firefox都是遭遇倒退在这已经被修好了。我不知道这是不是巧合。
+ *
+ *  How to tell if something uses tasks or microtasks
+ *  如何判断某个东西是使用任务还是队列
+ *
+ *  Testing is one way.See when logs appear relative to promises & setTimeout, although you're relying on the implementation
+ *  to be correct.
+ *  测试是一种方法。查看日志何时相对于promise和setTimeout出现，尽管您依赖于实现是正确的。
+ *
+ *  The certain way, is to look up the spec.For instance, step 14 of setTimeout queues a task, whereas step 5 of queuing a
+ *  mutation record queues a microtask.
+ *  以某种方式，就是查说明书。对于实例，setTimeout的第14步将任务排队，而将突变记录队列的第5步将微任务排队。
+ *
+ *  As mentioned, in ECMAScript land,they call microtasks "jobs". In step 8.a of PerformPromiseThen, EnqueueJob is called
+ *  to queue a microtask.
+ *  如前所述，在ECMAScript上，他们叫微任务为jobs。在步骤8中执行，调用EnqueueJob对微任务进行队列。
+ *
+ *  Now,let's look at a more complicated example.Cut to a concerned apprentice "No, they're not ready!".Ignore him,you're
+ *  ready.Let's do this...
+ *  现在，让我们看一个更复杂的例子。切换到一个关心的学徒“不是，他们没有准备好"忽略它，你已经准备好。开干...
+ *
+ *  Level 1 bossfight
+ *  第一关
+ *
+ *  Before writing this post I'd have gotten this wrong.Here's a bit of html:
+ *  在写这篇文章之前我会出错。这里有一点html
+ *  <div class="outer">
+ *      <div class="inner"></div>
+ *  </div>
+ *
+ *  Given the following JS, what will be logged if I click div.inner?
+ *  给定下面的JS，什么会被打印如果我点击了div.inner
+ *
+ *  // Let's get hold of those elements
+ *  var outer = document.querySelector('.outer');
+ *  var inner = document.querySelector('.inner');
+ *
+ *  // Let's listen for attribute changes on the
+ *  // outer element
+ *  new MutationObserver(function () {
+ *      console.log('mutate');
+ *  }).observe(outer, {
+ *     attributes: true,
+ *  });
+ *
+ *  // Here's a click listener...
+ *  function onClick() {
+ *      console.log('click');
+ *
+ *      setTimeout(function() {
+ *          console.log('timeout');
+ *      }, 0);
+ *
+ *      Promise.resolve().then(function () {
+ *         console.log('promise');
+ *      });
+ *
+ *      outer.setAttribute('data-random', Math,random());
+ *  }
+ *
+ *  // ...which we'll attach to both elements
+ *  inner.addEventListener('click', onClick);
+ *  outer.addEventListener('click', onClick);
+ *
+ *  Go on, give it a go before peeking at the answer.Clue:Logs can happen more than once.
+ *  去吧，在看电视之前先试一试回答。提醒：打印可能被执行多次。
+ *
+ *  //click promise mutate click promise mutate timeout timeout
+ *
+ *  Was your guess different? If so, you may still be right.Unfortunately the browsers don't really agree here:
+ *  你的猜测不同吗？如果是这样，你可能仍然是对的。不幸的是，浏览器在这里并不完全一致：
+ *
+ *  Who's right?
+ *  谁是对的？
+ *
+ *  Dispatching the 'click' event is a task.Mutation observer and promise callbacks are queued as microtasks.
+ *  The setTimeout callback is queued as a task.So here's how it goes:
+ *  调度"click"事件是一项任务。Mutation observer 和 promise 回调是被作为微任务队列。这setTimeout回调是作为任务队列。
+ *  事情是这样的：
+ *
+ *  So it's Chrome that gets it right.The bit that was 'news to me' is that microtasks are processed after callbacks
+ *  (as long as no other JavaScript is mid-execution),I though it was limited to end-of-task.This rule comes from
+ *  the HTML spec for calling a callback:
+ *  所以Chrome是对的。"对我来说最新的消息”是微任务在回调后处理（只要没有其他JavaScript在执行中），我认为这只限于任务结束。
+ *  这规则来自调用回调的HTML规范。
+ *
+ *  If the stack of script settings objects is now empty,perform a microtask checkpoint
+ *  ——HTML：Cleaning up after a callback step 3
+ *  如果脚本设置对象堆栈现在为空，这执行微任务检查点
+ *  ——HTML：回调后清理步骤3
+ *
+ *  ...and a microtask checkpoint involves going through the microtask queue, unless we're already processing
+ *  the microtask queue.Similarly, ECMAScript says this of jobs:
+ *  而一个微任务检查点需要遍历微任务队列，除非我们已经处理了微任务队列。类似地，ECMAScript也提到了这一点
+ *
+ *  Execution of a Job can be initiated only when there is no running execution context and the execution context stack is empty...
+ *  ——ECMAScript:Jobs and Job Queues
+ *  执行一个Job可能被启动仅仅当这些没有运行在可执行的而且堆栈是空的上下文中
+ *  ——ECMAScript:Jobs and Job Queues
+ *
+ *  ..although the "can be" becomes "must be" when in an HTML context.
+ *  尽管在HTML上下文中"can be"变成了"must be"
+ *
+ *  What did browsers get wrong?
+ *  什么使浏览器得到错误的结果？
+ *
+ *  Firefox and Safari are correctly exhausting the microtask queue between click listeners,as shown by the mutation callbacks,
+ *  but promises appear to be queued differently.This is sort-of excusable given that the link between jobs & microtasks is vague,
+ *  but I'd still expect them to execute between listener callbacks.Firefox ticket. Safari ticket.
+ *  Firefox 和 Safari 正确的执行完了click监听之间微任务队列，像mutation回调展示一样，但promises的排队方式似乎有所不同。考虑到工作和微任务之间的
+ *  联系是模糊的，这有点情有可原，但是我仍然希望它们在监听器回调之间执行。Firefox票。Safari票。
+ *
+ *  With Edge we've already seen it queue promises incorrectly, but it also fails to exhaust the microtask queue between click listeners,
+ *  instead it does so after calling all listeners, which accounts for the single mutate log after both click logs.Bug ticket.
+ *  在Edge我们已经可以看到它错误的队列promises，但它也无法耗尽单击监听器之间的微任务队列，相反，它会在调用所有监听器之后这样做，
+ *  哪一个账户对于但一个变化日志在俩次点击打印之后。Bug表。
+ *
+ *  Level 1 boss's angry older brother
+ *  一级Boss的愤怒大哥
+ *
+ *  And I swear I keep getting different results from Chrome,I've updated this chart a ton of times thinking I was testing Canary
+ *  by mistake.If you get different results in Chrome,tell me which version in the comments.
+ *  我发誓我一直从Chrome得到不同的结果，我已经更新这个图表很多次了，以为我在测试错误。如果你在Chrome中得到不同的结果，在评论中告诉我版本。
+ *
+ *  So the correct order is:click, click, promise, mutate, promise, timeout, timeout, which Chrome seems to get  right.
+ *  所以正确的顺序是:click, click, promise, mutate, promise, timeout, timeout。哪种chrome看起来是对的
+ *
+ *  After each listener callback is called...
+ *  在每个监听器回调以后...
+ *
+ *  If the stack of script settings objects is now empty,perform a microtask checkpoint
+ *  如果脚本设置对象堆栈现在是空的，则执行微任务检查点
+ *  ——HTML:Cleaning up after a callback step 3
+ *  回调后清理步骤3
+ *
+ *  Previously, this meant that microtasks ran between listener callbacks,but .click() causes the event to dispatch synchronously,
+ *  so the script that calls .click() is still in the stack between callbacks.The above rule ensures microtasks don't interrupt
+ *  JavaScript that's mid-execution.This means we don't process the microtask queue between listener callbacks, they're processed
+ *  after both listeners.
+ *  以前，这意味着微任务在监听回调之间运行，但是 .click() 会导致事件同步调度，
+ *  所以调用.click()的脚本仍然在回调之间的堆栈中。上述规则确保微任务不会中断正在执行的JavaScript。这意味着我们不需要在任务监听之间排队，
+ *  它们在俩个监听器之后被处理掉。
+ *
+ *  Does any of this matter?
+ *  这有什么关系吗？
+ *
+ *  Yeah, it'll bite you in obscure places (ouch).I encountered this while trying to create a simple wrapper library for IndexedDB
+ *  that uses promises rather than weird IDBRequest objects.It almost makes IDB fun to use.
+ *  是的，它会在不知名的地方咬你。我在尝试为IndexedDB创建一个简单的包装器库时遇到了这个问题，它使用promise而不是请求IDBRequest对象。
+ *  它几乎使IDB使用起来很有趣。
+ *
+ *  When IDB fires a success event, the related transaction object becomes inactive after dispatching (step 4).If I create a promise
+ *  that resolves when this event fires, the callbacks should run before step 4 while the transaction is still active,but that doesn't
+ *  happen in browsers other than Chrome,rendering the library kinda useless.
+ *  当IDB触发成功事件时，调度后关联实物对象变为非活动。如果我创建了一个在事件触发时解决的promise,当事务仍处于活动状态时，回调应该在步骤4之前运行，
+ *  但这在Chrome以外的浏览器中是不会发生的，这使得库有点无用。
+ *
+ *  You can actually work around this problem in Firefox,because promise polyfills such as es6-promise use mutation observers for callbacks,
+ *  which correctly use microtasks.Safari seems to suffer from race conditions with that fix,but that could just be their broken
+ *  implementation of IDB.Unfortunately, things consistently fail in IE/Edge,as mutation events aren't handled after callbacks.
+ *  你可以在Firefox中解决这个问题，因为promise polyfill就像es6 promise 使用mutation observers 进行回调，正确的使用微任务。Safari似乎受到了种族条件的影响，
+ *  但那可能是他们失败的实施IDB。不幸的是，IE/Edge总是失败，因为回调后不会处理mutation事件。
+ *
+ *  Hopefully we'll start to see some interoperability here soon.
+ *  希望我们能很快看到一些互操作性。
+ *
+ *  You made it!
+ *  In summary:
+ *      Tasks execute in order, and the browser may render between them
+ *      任务按顺序执行，浏览器可以在它们之间进行渲染
+ *      Microtasks execute in order, and are executed:
+ *      微任务按顺序执行，并执行：
+ *          after every callback,as long as no other JavaScript is mid-execution
+ *          每个回调之后，只要没有其它JavaScript正在执行
+ *          at the end of each task
+ *          在每个任务结束时
+ *
+ *  Hopefully you now know your way around the event loop, or at least have an excuse to go and have a
+ *  lie down.
+ *  希望你现在了解事件循环，或者至少有个借口去躺下。
+ *
+ *  Actually,is anyone still reading? Hello? Hello?
+ *  事实上，有人在读吗？
+ *
+ */
+
