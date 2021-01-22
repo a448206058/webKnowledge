@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Single Instance Demo -- popup</title>
+	<style>
+		#modal {
+			height: 200px;
+			width: 200px;
+			line-height: 200px;
+			position: fixed;
+			left: 50%;
+			top: 50%;
+			transform: translate(-50%, -50%);
+			border: 1px solid black;
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+	<button id="open">open popup</button>
+	<button id="close">close popup</button>
+</body>
+<script>
+	const Modal = (function() {
+		let modal = null;
+		return function() {
+			if(!modal) {
+				modal = document.createElement('div');
+				modal.innerHTML = '我是一个全局唯一的Modal';
+				modal.id = 'modal';
+				modal.style.display = 'none';
+				document.body.appendChild(modal);
+			}
+			return modal;
+		}
+	})();
+
+	// ES6
+	class Modal1 {
+		static getInstance() {
+			if(!Modal1.instance) {
+				Modal1.instance = document.createElement('div');
+				Modal1.instance.innerHTML = '我是一个全局唯一的Modal';
+				Modal1.instance.id = 'modal';
+				Modal1.instance.style.display = 'none';
+				document.body.appendChild(Modal1.instance);
+			}
+			return Modal1.instance;
+		}
+	}
+
+	document.getElementById('open').addEventListener('click', function() {
+		// const modal = new Modal();
+		// modal.style.display = 'block';
+		const modal = Modal1.getInstance();
+		modal.style.display = 'block';
+	});
+
+	document.getElementById('close').addEventListener('click', function() {
+		// const modal = new Modal();
+		// modal.style.display = 'none';
+		const modal = Modal1.getInstance();
+		modal.style.display = 'none';
+	});
+</script>
+</html>

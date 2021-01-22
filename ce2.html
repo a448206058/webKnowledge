@@ -7,53 +7,54 @@
 <body>
     <div id="time"></div>
 <script>
-    var len;
+    function bucketSort(arr, bucketSize) {
+        if(arr.length === 0) {
+            return arr;
+        }
 
-    function heapSort(arr) {
-        buildMaxHeap(arr);
-        for (var i = arr.length - 1; i > 0; i--){
-            swap(arr, 0, i);
-            len--;
-            heapify(arr, 0);
+        var maxValue = Math.max(...arr);
+        var minValue = Math.min(...arr);
+
+        var len = arr.length;
+        var defaultIndex = Math.floor((maxValue-minValue)/len);
+        var result = new Array(defaultIndex);
+
+        for(let i = 0; i < arr.length; i++){
+            if(!result[Math.floor(arr[i] - minValue)]){
+                result[Math.floor(arr[i] - minValue)] = [];
+            }
+            result[Math.floor(arr[i] - minValue)].push(arr[i]);
+        }
+
+        arr = [];
+        for(let i = 0; i < result.length; i++){
+            if(result[i]){
+                insertionSort(result[i]);
+                for(let j = 0; j < result[i].length;j++){
+                    arr.push(result[i][j]);
+                }
+            }
         }
         return arr;
     }
 
-    function buildMaxHeap(arr) {
-        len = arr.length;
-        for (var i = Math.floor(len / 2); i >= 0; i--) {
-            heapify(arr, i);
+    function insertionSort(arr) {
+        var len = arr.length;
+        var preIndex, current;
+        for(let i = 1; i < len; i++){
+            preIndex = i - 1;
+            current = arr[i];
+            while(preIndex >= 0 && current < arr[preIndex]){
+                arr[preIndex + 1] = arr[preIndex];
+                arr[preIndex] = current;
+                preIndex--;
+            }
         }
-    }
-
-    function heapify(arr, i) {
-        var left = 2 * i + 1,
-            right = 2 * i + 2,
-            largest = i;
-
-        if(left < len && arr[left] > arr[largest]) {
-            largest = left;
-        }
-
-        if(right < len && arr[right] > arr[largest]) {
-            largest = right;
-        }
-
-        if(largest != i){
-            swap(arr, i, largest)
-            heapify(arr, largest)
-        }
-    }
-
-    function swap(arr, i, j) {
-        var temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+        return arr;
     }
 
 
-
-    console.log(heapSort([22,3,2,5,6,7,1,44,23,12,34]))
+    console.log(bucketSort([22,3,2,5,6,7,1,44,23,12,34]))
 </script>
 </body>
 </html>

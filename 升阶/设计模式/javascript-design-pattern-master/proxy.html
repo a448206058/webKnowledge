@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Proxy Demo —— 事件代理</title>
+</head>
+<body>
+	<div id="father">
+		<a href="#">链接1号</a>
+		<a href="#">链接2号</a>
+		<a href="#">链接3号</a>
+		<a href="#">链接4号</a>
+		<a href="#">链接5号</a>
+		<a href="#">链接6号</a>
+	</div>
+
+	<div id="image">
+		<img src="" alt="" id="preloadImage">
+	</div>
+</body>
+<script>
+	/*const aNodes = document.getElementById('father').getElementsByTagName('a');
+
+	const aLength = aNodes.length;
+
+	for (let i = 0; i < aNodes.length; i++) {
+		aNodes[i].addEventListener('click', function (e) {
+			e.preventDefault();
+			alert(`我是${aNodes[i].innerText}`);
+		})
+	}*/
+
+	const father = document.getElementById('father');
+
+	father.addEventListener('click', function (e) {
+		if(e.target.tagName === 'A') {
+			e.preventDefault();
+			alert(`我是${e.target.innerText}`);
+		}
+	});
+</script>
+<script src="./proxy-preload.js"></script>
+<script>
+	// const preloadImage = new PreloadImage(document.getElementById('preloadImage'));
+	// preloadImage.setSrc("https://dss1.bdstatic.com/lvoZeXSm1A5BphGlnYG/skin/524.jpg?2");
+
+	const preloadImage = new PreloadImage(document.getElementById('preloadImage'));
+	const proxyImage = new ProxyImage(preloadImage);
+	proxyImage.setSrc("https://dss1.bdstatic.com/lvoZeXSm1A5BphGlnYG/skin/524.jpg?2");
+</script>
+</html>

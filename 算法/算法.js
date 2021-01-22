@@ -142,7 +142,9 @@ function merge(left, right) {
 
 /**
  * 快速排序：    O(log2n)
- *
+ *      利用分治思想处理数组
+ *      声明一个中间值，中间值为轴点（轴点为比较值+1) 分为左右处理数组
+ *      处理数组的过程为冒泡排序 从左往右循环比较
  */
 function quickSort(arr, left, right) {
     var len = arr.length,
@@ -182,6 +184,10 @@ function swap(arr, i, j){
  *      利用堆的概念来排序的选择排序。
  *      1.大顶堆：每个节点的值都大于或等于其子节点的值，在堆排序算法中用于升序排列
  *      2.小顶堆：每个节点的值都小于或等于其子节点的值，在堆排序算法中用于降序排列
+ *
+ *      第一轮把前一半的值替换为最大值
+ *      arr[0]经过排序为最大值 位于最顶端 此时交换arr[0]与arr[i]  确保arr[i]为最大值
+ *      每次循环减1
  */
 
 var len;
@@ -223,6 +229,105 @@ function heapSort(arr) {
         swap(arr, 0, i);
         len--;
         heapify(arr, 0);
+    }
+    return arr;
+}
+
+/**
+ * 计数排序
+ *      找到最大值
+ *      定义一个存储数组大小为0,最大值
+ *      循环数组存储值
+ *      循环数组取出值
+ */
+
+function countingSort(arr, maxValue) {
+    maxValue = maxValue ? maxValue : Math.max(...arr);
+    var temp = new Array(maxValue);
+    var result;
+    for(let i = 0; i < arr.length; i++){
+        if(!temp[arr[i]]){
+            temp[arr[i]] = 0;
+        }
+        temp[arr[i]]++;
+    }
+    for (let j = 0; j < temp.length;j++){
+        while(temp[j] > 0){
+            result.push(temp[j]);
+            temp[j]--;
+        }
+    }
+    return result;
+}
+
+/**
+ * 桶排序      O(n+k)      O(n+k)
+ *      映射关系 找到最大值和最小值
+ *      找到数组的长度
+ *      用最大值减去最小值除以数组的长度 得到每个桶的长度
+ *
+ *      每个桶中存储值
+ *      对桶内数据进行排序
+ *
+ */
+
+function bucketSort(arr, bucketSize) {
+    if(arr.length === 0) {
+        return arr;
+    }
+
+    var maxValue = Math.max(...arr);
+    var minValue = Math.min(...arr);
+
+    var len = arr.length;
+    var defaultIndex = Math.floor((maxValue-minValue)/len);
+    var result = new Array(defaultIndex);
+
+    for(let i = 0; i < arr.length; i++){
+        if(!result[Math.floor(arr[i] - minValue)]){
+            result[Math.floor(arr[i] - minValue)] = [];
+        }
+        result[Math.floor(arr[i] - minValue)].push(arr[i]);
+    }
+
+    arr = [];
+    for(let i = 0; i < result.length; i++){
+        if(result[i]){
+            insertionSort(result[i]);
+            for(let j = 0; j < result[i].length;j++){
+                arr.push(result[i][j]);
+            }
+        }
+    }
+    return arr;
+}
+
+/**
+ * 基数排序
+ *
+ */
+
+var counter = [];
+function radixSort(arr, maxDigit) {
+    var mod = 10;
+    var dev = 1;
+    for (var i = 0; i < maxDigit; i++, dev *= 10, mod *= 10) {
+        for (var j = 0; j < arr.length; j++) {
+            var bucket = parseInt((arr[j] % mod) / dev);
+            if (counter[bucket] == null) {
+                counter[bucket] = [];
+            }
+            counter[bucket].push(arr[j]);
+        }
+        var pos = 0;
+        for (var j = 0; j < counter.length; j++) {
+            var value = null;
+            if(counter[j] != null) {
+                while((value = counter[j].shift()) != null) {
+                    arr[pos++] = value;
+                }
+            }
+        }
     }
     return arr;
 }
