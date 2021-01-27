@@ -7,54 +7,84 @@
 <body>
     <div id="time"></div>
 <script>
-    function bucketSort(arr, bucketSize) {
-        if(arr.length === 0) {
-            return arr;
-        }
-
-        var maxValue = Math.max(...arr);
-        var minValue = Math.min(...arr);
-
-        var len = arr.length;
-        var defaultIndex = Math.floor((maxValue-minValue)/len);
-        var result = new Array(defaultIndex);
-
-        for(let i = 0; i < arr.length; i++){
-            if(!result[Math.floor(arr[i] - minValue)]){
-                result[Math.floor(arr[i] - minValue)] = [];
+    /**
+     * @param {string} s
+     * @return {string}
+     */
+    var frequencySort = function(s) {
+        var map1 = new Map();
+        s.split("").map(item=>{
+            if(!map1.has(item)){
+                map1.set(item, 0);
             }
-            result[Math.floor(arr[i] - minValue)].push(arr[i]);
+            map1.set(item, map1.get(item) + 1);
+        })
+        var arr1 = [];
+        var value1 = [];
+        for(var item of map1.entries()){
+            arr1.push(item[1]);
+            value1.push(item[0]);
         }
 
-        arr = [];
-        for(let i = 0; i < result.length; i++){
-            if(result[i]){
-                insertionSort(result[i]);
-                for(let j = 0; j < result[i].length;j++){
-                    arr.push(result[i][j]);
-                }
-            }
-        }
-        return arr;
-    }
-
-    function insertionSort(arr) {
-        var len = arr.length;
-        var preIndex, current;
+        var len = arr1.length;
+        var preIndex, current, currents;
         for(let i = 1; i < len; i++){
             preIndex = i - 1;
-            current = arr[i];
-            while(preIndex >= 0 && current < arr[preIndex]){
-                arr[preIndex + 1] = arr[preIndex];
-                arr[preIndex] = current;
+            current = arr1[i];
+            currents = value1[i]
+            while(preIndex >= 0 && current > arr1[preIndex]){
+                arr1[preIndex + 1] = arr1[preIndex];
+                value1[preIndex + 1] = value1[preIndex];
+                arr1[preIndex] = current;
+                value1[preIndex] = currents;
                 preIndex--;
             }
         }
-        return arr;
+        var content = "";
+        value1.map((item, index)=>{
+            var string = "";
+            for(var i = 0;i < arr1[index];i++){
+                string = string + item;
+            }
+            content = content + string;
+        });
+        return content
+    };
+
+    function quickSort(arr, left, right) {
+        var len = arr.length,
+            partitionIndex,
+            left = typeof left != 'number' ? 0 : left,
+            right = typeof right != 'number' ? len - 1 : right;
+
+        if (left < right) {
+            partitionIndex = partition(arr, left, right);
+            quickSort(arr, left, partitionIndex-1);
+            quickSort(arr, partitionIndex+1, right);
+        }
+        return arr
     }
 
+    function partition(arr, left, right) {
+        var pivot = left,
+            index = pivot + 1;
+        for (var i = index; i <= right; i++){
+            if (arr[i] < arr[pivot]) {
+                swap(arr, i, index);
+                index++;
+            }
+        }
+        swap(arr, pivot, index - 1);
+        return index - 1;
+    }
 
-    console.log(bucketSort([22,3,2,5,6,7,1,44,23,12,34]))
+    function swap(arr, i, j){
+        var temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
+    console.log(frequencySort("tree"))
 </script>
 </body>
 </html>

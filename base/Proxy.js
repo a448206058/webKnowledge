@@ -165,5 +165,179 @@ console.log(proxy2.message2); // world
 
 /**
  * Extending constructor
+ * 扩展构造函数
  *
+ * A function proxy could easily extend a constructor with a new constructor.This example uses the construct
+ * and apply handlers.
+ * 函数代理可以很容易地用新的构造函数扩展构造函数。这个例子使用构造和应用处理程序。
  */
+ function extend(sup, base) {
+     var descriptor = Object.getOwnPropertyDescriptor(
+         base.prototype, 'constructor'
+     );
+     base.prototype = Object.create(sup.prototype);
+     var handler =  {
+         construct: function(target, args) {
+             var obj = Object.create(base.prototype);
+             this.apply(target, obj, args);
+             return obj;
+         },
+         apply: function(target, that, args) {
+             sup.apply(that, args);
+             base.apply(that, args);
+         }
+     };
+     var proxy = new Proxy(base, handler);
+     descriptor.value = proxy;
+     Object.defineProperty(base.prototype, 'constructor', descriptor);
+     return proxy;
+}
+
+var Person = function(name) {
+     this.name = name;
+};
+
+ var Boy = extend(Person, function(name, age) {
+     this.age = age;
+});
+
+ Boy.prototype.gender = 'M';
+
+ var Peter = new Boy('Peter', 13);
+ console.log(Peter.gender); // "M"
+ console.log(Peter.name); // "Peter"
+ console.log(Peter.age); // 13
+
+/**
+ * Manipulating DOM nodes
+ * 操作DOM节点
+ *
+ * Sometimes you want to toggle the attribute or class name of two different element.Here's how using the
+ * set handler.
+ * 有时需要切换俩个不同元素的属性或类名。下面是如何使用set处理程序。
+ */
+let view = new Proxy({
+    selected: null
+},
+    {
+        set: function(obj, prop, newval) {
+            let oldval = obj[prop];
+
+            if (prop === 'selected') {
+                if (oldval) {
+                    oldval.setAttribute('aria-selected', 'false');
+                }
+                if (newval) {
+                    newval.setAttribute('aria-selected', 'true');
+                }
+            }
+            // The default behavior to store the value
+            obj[prop] = newval;
+
+            // Indicate success
+            return true;
+        }
+    });
+    let i1 = view.selected = document.getElementById('item-1');
+
+/**
+ * Value correction and an extra property
+ * 修改正确的值和一个额外的属性
+ *
+ * The products proxy object evaluates the passed value and converts it to an array if needed.
+ * The object also supports an extra property called latestBrowser both as a getter and a setter.
+ * 产品代理对象计算传递的值，并在需要的时候转换成数组。该对象还支持一个名为latestBrowser的额外属性作为getter和setter。
+ */
+
+ let products = new Proxy({
+    browsers: ['Internet Explorer', 'Netscape']
+ },
+    {
+        get: function(obj, prop) {
+            // An extra property
+            if (prop === 'latestBrowser') {
+                return obj.browsers[obj.browsers.length - 1];
+            }
+
+            // The default behavior to return the value
+            return obj[prop];
+        },
+        set: function(obj, prop, value) {
+            // An extra property
+            if (prop === 'latestBrowser') {
+                obj.browsers.push(value);
+                return true;
+            }
+
+            // Convert the value if it is not an array
+            if (typeof value === 'string') {
+                value = [value];
+            }
+
+            // The default behavior to store the value
+            obj[prop] = value;
+
+            // Indicate success
+            return true;
+        }
+    }
+)
+
+/**
+ * Finding an array item object by its property
+ * 通过属性查找数组项对象
+ *
+ * This proxy extends an array with some utillity features.As you see, you can flexibly "define" properties
+ * without using Object.defineProperties.This example can be adapted to find a table row by its cell.In that case,
+ * the target will be table.rows.
+ * 此代理使用一些实用功能扩展数组。如你所见，你可以灵活地定义属性而不用使用Object.defineProperties属性。
+ * 这个例子可以通过单元格来查找表行。在这种情况下，目标将是表.rows.
+ */
+
+/**
+ * A complete traps list example
+ * 完整的陷阱列表示例
+ *
+ * Now in order to create a complete sample traps list, for didactic purposes, we will try to proxify a
+ * non-native object that is particularly suited to this type of operation: the docCookies global object created
+ * by the "little framework" published on the document.cookie page.
+ * 现在为了创建一个完整的示例陷阱表，处于说教的目的，我们将尝试代理一个特别适合这种操作的非本机对象：docCookies全局对象由
+ * 发布在文档.cookie中
+ */
+ var docCookies = new Proxy(docCookies, {
+     get: function(oTarget, sKey) {
+         return oTarget[sKey] || oTarget.getItem(sKey) || undefined;
+     },
+    set: function (oTarget, sKey, vValue) {
+         if (sKey in oTarget) { return false;}
+         return oTarget.setItem(sKey, vValue);
+    },
+    deleteProperty: function(oTarget, sKey) {
+        if (!sKey in oTarget) { return false;}
+        return oTarget.removeItem(sKey);
+     },
+    enumerate: function (oTarget, sKey) {
+         return oTarget.keys();
+    },
+    ownKeys: function (oTarget, sKey) {
+         return oTarget.keys();
+    },
+    has: function (oTarget, sKey) {
+         return sKey in oTarget || oTarget.hasItem(sKey);
+    },
+    defineProperty: function(oTarget, sKey, oDesc){
+         if (oDesc && 'value' in oDesc) { oTarget.setItem(sKey, oDesc.value );}
+         return oTarget;
+    },
+    getOwnPropertyDescriptor: function (oTarget, sKey){
+         var vValue = oTarget.getItem(sKey);
+         return vValue ? {
+             value: vValue,
+             writable: true,
+             enumerable: true,
+             configurable: false
+         }: undefined;
+    }
+
+})
+
