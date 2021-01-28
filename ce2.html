@@ -5,86 +5,60 @@
     <title>Title</title>
 </head>
 <body>
-    <div id="time"></div>
+<div id="time"></div>
 <script>
     /**
-     * @param {string} s
-     * @return {string}
+     * @param {number[]} nums
+     * @return {number[][]}
      */
-    var frequencySort = function(s) {
-        var map1 = new Map();
-        s.split("").map(item=>{
-            if(!map1.has(item)){
-                map1.set(item, 0);
-            }
-            map1.set(item, map1.get(item) + 1);
-        })
-        var arr1 = [];
-        var value1 = [];
-        for(var item of map1.entries()){
-            arr1.push(item[1]);
-            value1.push(item[0]);
-        }
 
-        var len = arr1.length;
-        var preIndex, current, currents;
-        for(let i = 1; i < len; i++){
-            preIndex = i - 1;
-            current = arr1[i];
-            currents = value1[i]
-            while(preIndex >= 0 && current > arr1[preIndex]){
-                arr1[preIndex + 1] = arr1[preIndex];
-                value1[preIndex + 1] = value1[preIndex];
-                arr1[preIndex] = current;
-                value1[preIndex] = currents;
-                preIndex--;
+        // var twoSum = function(nums, target) {
+        //     // let map = {};
+        //     // for (let i = 0; i < nums.length;i++){
+        //     //     map[nums[i]] = i;
+        //     // }
+        //     // for (let i = 0;i < nums.length;i++){
+        //     //     var d = target - nums[i];
+        //     //     if(map[d] && (map[d] != i)){
+        //     //         return [i, map[d]]
+        //     //     }
+        //     // }
+        //     var map = new Map();
+        //     for (var i = 0; i < nums.length; i++){
+        //         if(map.has(target - nums[i])){
+        //             return [map.get(target  - nums[i]), i]
+        //         }
+        //         map.set(nums[i], i);
+        //     }
+        //     return []
+        // };
+        //[[-1,-1,2],[-1,0,1]]
+    var threeSum = function (nums) {
+        var target = 0;
+        var map = new Map();
+        var value = [];
+        var start = 0;
+        var end = 2;
+        while(start < nums.length && end < nums.length){
+            target = 0 - nums[end];
+            for (var i = start; i < end; i++) {
+                if (map.has(target - nums[i])) {
+                    if(map.get(target - nums[i]) != i && i != end && map.get(target - nums[i]) != end){
+                        var content = [target - nums[i], nums[i], nums[end]].sort();
+                        if(JSON.stringify(value).indexOf(content) === -1){
+                            value.push(content)
+                        }
+                        start++;
+                    }
+                }
+                map.set(nums[i], i);
             }
+            end++;
         }
-        var content = "";
-        value1.map((item, index)=>{
-            var string = "";
-            for(var i = 0;i < arr1[index];i++){
-                string = string + item;
-            }
-            content = content + string;
-        });
-        return content
+        return value
     };
 
-    function quickSort(arr, left, right) {
-        var len = arr.length,
-            partitionIndex,
-            left = typeof left != 'number' ? 0 : left,
-            right = typeof right != 'number' ? len - 1 : right;
-
-        if (left < right) {
-            partitionIndex = partition(arr, left, right);
-            quickSort(arr, left, partitionIndex-1);
-            quickSort(arr, partitionIndex+1, right);
-        }
-        return arr
-    }
-
-    function partition(arr, left, right) {
-        var pivot = left,
-            index = pivot + 1;
-        for (var i = index; i <= right; i++){
-            if (arr[i] < arr[pivot]) {
-                swap(arr, i, index);
-                index++;
-            }
-        }
-        swap(arr, pivot, index - 1);
-        return index - 1;
-    }
-
-    function swap(arr, i, j){
-        var temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
-    }
-
-    console.log(frequencySort("tree"))
+    console.log(threeSum([-1,0,1,0]))
 </script>
 </body>
 </html>
