@@ -342,3 +342,7 @@ function radixSort(arr, maxDigit) {
 
 
 shellSort([22,3,2,5,6,7,1,44,23,12,34])
+
+//难题
+//查找表
+15 18 16
