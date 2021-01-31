@@ -21,3 +21,22 @@ ViewModel是怎么实现这一过程的呢？
 分析完了，开始造轮子的步骤。
 	如何实现步骤一呢？
 		首先了解下Object.defineProperty，不了解的同学可以通过MDN进行了解
+		通过Object.defineProperty劫持一个自定义的对象，设置自定义的setter和getter
+		Setter做哪些事情呢？
+			1.监听对象变化，变化的时候触发对应的修改函数
+			2.定义修改函数，修改DOM
+	如何实现步骤二呢？
+		对初始对象的getter进行observe watch
+	
+	如何造轮子？
+		我们最终目的是要发布到网上供自己或他人使用，所以需要使用node的npm包管理工具进行发布
+		通过npm init 初始化
+		定义目录结构
+			src
+				main.js
+				index.html
+		
+		main.js中如何定义
+			定义初始化对象
+			通过export导出
+		

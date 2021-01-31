@@ -3924,6 +3924,7 @@ export class Observer {
 /**
  * Augment an target Object or Array by intercepting
  * the prototype chain using __proto__
+ * protoAugment 方法是直接把target.__proto__原型直接修改为src
  */
 function protoAugment (target, src: Object, keys: any) {
 	/* eslint-disable no-proto */
@@ -3934,6 +3935,8 @@ function protoAugment (target, src: Object, keys: any) {
 /**
  * Augment an target Object or Array by defining
  * hidden properties.
+ * copyAugment 方法是遍历keys，通过def,也就是Object.defineProperty去定义它自身的属性值。
+ * 它实际上就把value的原型指向了arrayMethods
  */
 /* istanbul ignore next */
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
@@ -3943,3 +3946,51 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 	}
 }
 ```
+arrayMethods
+	src/core/observer/array.js
+```JavaScript
+import { def } from '../util/index'
+const arrayProto = Array.prototype
+// 首先继承了array
+export const arrayMethods = Object.create(arrayProto)
+
+const methodsToPatch = [
+	'push',
+	'pop',
+	'shift',
+	'unshift',
+	'splice',
+	'sort',
+	'reverse'
+]
+
+/**
+ * Intercept mutating methods and emit events
+ * push、pop重写
+ */
+methodsToPatch.forEach(function (method)) {
+	// cache original method
+	const original = arrayProto[method]
+	def(arrayMethods, method, function mutator (...args) {
+		const result = original.apply(this, args)
+		const ob = this.__ob__
+		let inserted
+		switch (method) {
+			case 'push':
+			case 'unshift':
+				inserted = args
+				break
+			case 'splice':
+				inserted = args.slice(2)
+				break
+		}
+		// 把新添加的值变成了一个响应式对象。
+		if (inserted) ob.observeArray(inserted)
+		// notify change
+		// 手动触发依赖通知
+		ob.dep.notify()
+		return result
+	})
+}
+```
+
