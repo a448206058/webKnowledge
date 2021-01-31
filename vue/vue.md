@@ -1,3 +1,4 @@
+## 本文主要学习自黄轶老师的vue源码教程 大家可以去慕课网学习，非常感谢。
 /**
  * vue核心思想
  *   核心思想有哪些？
@@ -3835,3 +3836,110 @@ import {registerRef} from "./vue/vue-dev/src/core/vdom/modules/ref";
 			
 		})
 	})
+	
+## 检测变化的注意事项
+###	对象添加属性
+对于使用Object.defineProperty实现响应式的对象，当我们去给这个对象添加一个新的属性的时候，是不能够
+触发它的setter的
+Vue为了解决这个问题，定义了一个全局的Vue.set方法，
+  src/core/global-api.index.js
+  Vue.set = set
+  
+  src/core/observer/index.js
+
+```JavaScript
+/**
+ * Set a property on an object. Adds the new property and
+ * triggers change notification if the property doesn't
+ * already exist.
+ */
+// set方法接收3个参数，target可能是数组或者普通对象，key代表数组的下标或者对象的键值，val代表添加的值
+export function set (target: Array<any> | Object, key: any, val: any): any {
+	if (process.env.NODE_ENV !== 'production' &&
+	(isUndef(target) || isPrimitive(target))) {
+		warn(`Cannot set reactive property on undefined, null, or primitive value: ${{target: any}}`)
+	}
+	// 首先判断如果target是数组且key是一个合法的下标，则通过splice去添加数组然后返回
+	if (Array.isArray(target) && isValidArraryIndex(key)) {
+		target.length = Math.max(target.length, key)
+		target.splice(key, 1, val)
+		return val
+	}
+	// 判断key已经存在于target中，则直接复制返回
+	if (key in target && !(key in Object.prototype)) {
+		target[key] = val
+		return val
+	}
+	// 获取target.__ob__并赋值给ob.
+	const ob = (target: any).__ob__
+	if (target._isVue || (ob && ob.vmCount)) {
+		process.env.NODE_ENV !== 'production' && warn(
+			'Avoid adding reactive properties to a Vue instance or its root $data'+
+			'at runtime - declare it upfront in the data option.'
+		)
+		return val
+	}
+	// 如果它不存在，则说明target不是一个响应式的对象，则直接赋值并返回。
+	if (!ob) {
+		target[key] = val
+		return val
+	}
+	// 最后通过defineReactive(ob.value, key, val)把新添加的属性变成响应式对象，
+	defineReactive(ob.value, key, val)
+	// 然后再通过ob.dep.notify()手动的触发依赖通知
+	ob.dep.notify()
+	return val
+}
+```
+
+## 数组
+Vue也是不能检测到以下变动的数组：
+1.当你利用索引直接设置一个项时，例如：vm.items[indexOfItem] = newValue
+2.当你修改数组的长度时，例如：vm.items.length = newLength
+
+Observer
+src/core/observer/index.js
+```JavaScript
+export class Observer {
+	constructor (value: any) {
+		this.value = value
+		this.dep = new Dep()
+		this.vmCount = 0
+		def(value, '__ob__', this)
+		if (Array.isArray(value)) {
+			// hasProto实际上就是判断对象中是否存在__proto__
+			// 如果存在augment指向protoAugment
+			// 否则指向copyAugment
+			const augment = hasProto
+			? protoAugment
+			: copyAugment
+			augment(value, arrayMethods, arrayKeys)
+			this.observeArray(value)
+		} else {
+			// ...
+		}
+	}
+}
+
+/**
+ * Augment an target Object or Array by intercepting
+ * the prototype chain using __proto__
+ */
+function protoAugment (target, src: Object, keys: any) {
+	/* eslint-disable no-proto */
+	target.__proto__ = src
+	/* eslint-enable no-proto */
+}
+
+/**
+ * Augment an target Object or Array by defining
+ * hidden properties.
+ */
+/* istanbul ignore next */
+function copyAugment (target: Object, src: Object, keys: Array<string>) {
+	for (let i = 0, l = keys.length; i < l; i++) {
+		const key = keys[i]
+		def(target, key, src[key])
+	}
+}
+```
