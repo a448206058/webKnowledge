@@ -1,15 +1,10 @@
-import customName from './test.js';
-customName(); // 'foo'
 function dVue (option) {
-	Object.defineProperty(this, option, {
-		getter: function() {
-			console.log('getter');
-			updateDOM();
-		},
-		setter: function() {
-			console.log('setter');
-		}
+	Object.defineProperty(option, 'data', {
+		get() { console.log(111); },
+		getter() { console.log(2222)},
+		set(newValue) { console.log(newValue); }
 	});
+	return option;
 }
 
 function updateDOM() {

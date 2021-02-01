@@ -10,9 +10,43 @@
 		</div>
 		<script src="../dist/bundle.js"></script>
 		<script type="module">
-			import dVue from './main.js';
+			// import dVue from './main.js';
 			// // dVue(); // 'foo'
-			console.log(new dVue())
+			var dVues = new dVue({
+				data: {
+					a: 1,
+					shuzu: [],
+					duixiang: {cc: '1', dd: '2'}
+				}
+			})
+
+			function dVue (option) {
+				var vue = Object.assign(option);
+				vue._data = option.data;
+				defineReactive(vue._data);
+				return vue;
+			}
+
+			function defineReactive(obj) {
+				for(var key in obj){
+					console.log(key instanceof Array)
+					if(key instanceof Array){
+						defineReactive(key);
+					}else if(key instanceof Object){
+						defineReactive(key);
+					}else{
+						defineProperty(obj, key);
+					}
+				}
+			}
+
+			function defineProperty(object, key){
+				Object.defineProperty(object, key, {
+					get() {},
+					set(newValue) {console.log(222)}
+				});
+			}
+			dVues.data.a = 2
 		</script>
 	</body>
 </html>

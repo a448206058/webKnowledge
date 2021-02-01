@@ -13,27 +13,44 @@
      */
     var groupAnagrams = function(strs) {
 		var map = new Map();
+		var value = [];
+		// debugger
 		for(var i = 0;i < strs.length; i++){
-			var start = 0;
-			while()
-			// for(var j = 0; j < strs[i].length; j++){
-			// 	map.set(strs[i].charAt(j), j);
-			// }
-			// if(!map.get(strs[i])){
-			// 	map.set(strs[i], i);
-			// }
+			// map.set(strs[])
+            var control = 0;
+            var index = 0;
+            for(var j = 0;j < strs[i].length;j++){
+                var string = strs[i].split("")[j];
+                if(!map.has(string)){
+                    map.set(string, i);
+
+                }else{
+                    control = control + 1;
+                    index = map.get(string);
+                }
+            }
+            if(control === strs[i].length){
+                console.log(strs[i])
+                console.log(value)
+                console.log(index)
+                console.log(value[index])
+                value[index].push(strs[i])
+            }else{
+                value.push([strs[i]])
+            }
 		}
-		
+
 		return value;
     };
+
+    // [
+    //     ["ate","eat","tea"],
+    //     ["nat","tan"],
+    //     ["bat"]
+    // ]
 	var content = ["eat", "tea", "tan", "ate", "nat", "bat"];
-	
-	abcd
-	bacd
-	cbad
-	dbca
-	
-	
+
+
 	console.log(groupAnagrams(content));
 </script>
 </body>

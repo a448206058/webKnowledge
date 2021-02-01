@@ -16,7 +16,7 @@
   \*********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nconsole.log(3333)\nfunction dVue (option) {\n\tconsole.log(3222)\n\tObject.defineProperty(this, option, {\n\t\tgetter: function() {\n\t\t\tconsole.log('getter');\n\t\t\tupdateDOM();\n\t\t},\n\t\tsetter: function() {\n\t\t\tconsole.log('setter');\n\t\t}\n\t});\n}\n\n\n\nfunction updateDOM() {\n\tconsole.log(222)\n}\n\n\n\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dVue);\n\n//# sourceURL=webpack://dvue/./src/main.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nfunction dVue (option) {\r\n\tObject.defineProperty(option, 'data', {\r\n\t\tget() { console.log(111); },\r\n\t\tgetter() { console.log(2222)},\r\n\t\tset(newValue) { console.log(newValue); }\r\n\t});\r\n\treturn option;\r\n}\r\n\r\nfunction updateDOM() {\r\n}\r\n\r\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dVue);\r\n\n\n//# sourceURL=webpack://dvue/./src/main.js?");
 
 /***/ })
 

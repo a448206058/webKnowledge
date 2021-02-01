@@ -148,10 +148,60 @@ Gulp相当于Grunt的加强版。相对于Grunt，Gulp增加了监听文件、�
 
 Fis3
 Fis3集成了Web开发中的常用构建功能
-    读写文件：
-    资源定位：
-    文件指纹：
-    文件编译：1
-    压缩资源：
-    图片合并：
+    读写文件：通过fis.match读文件，release配置文件输出路径。
+    资源定位：解析文件之间的依赖关系和文件位置
+    文件指纹：通过useHash配置输出文件时给文件URL加上md5戳来优化浏览器缓存
+    文件编译：通过parser配置文件解析器做文件转换
+    压缩资源：通过optimizer配置代码压缩方法
+    图片合并：通过spriter配置合并CSS里导入的图片到一个文件来减少HTTP请求数。
+优点是集成了各种Web开发所需的构建功能，配置简单开箱即用。
+缺点是不再更新
+
+Webpack
+Webpack是一个打包模块化JavaScript的工具，在Webpack里一切文件皆模块，通过Loader转换文件，通过Plugin注入钩子，最后输出由
+多个模块组合成的文件。Webpack专注于构建模块化项目
+```JavaScript
+module.exports = {
+    // 所有模块的入口，Webpack从入口开始递归解析出所有依赖的模块
+    entry: './app.js',
+    output: {
+        // 把入口所依赖的所有模块打包成一个文件bundle.js输出
+        filename: 'bundle.js'
+    }
+}
+
+
+
+模块loader可以链式调用。链中的每个loader都将对资源进行转换。链会逆序执行。第一个loader将其结果（被转换后的资源）传递给下一个loader,
+依次类推。最后，webpack期望链中的最后的loader返回JavaScript。
+```
+Webpack的优点是：
+    专注于处理模块化的项目，能做到开箱即用一步到位；
+    通过Plugin扩展，完整好用又不失灵活；
+    使用场景不仅限于Web开发；
+    社区活跃；
+    良好的开发体验。
+Webpack的缺点是只能用于采用模块化开发的项目。
+
+###     Rollup
+Rollup是一个和Webpack很类似但专注于ES6的模块打包工具。
+    Rollup的亮点在于能针对ES6源码进行Tree Shaking以去除那些已被定义但没被使用的代码，以及Scope Hoisting以减少输出文件大小提升运行性能。
+Rollup在用于打包JavaScript库时比Webpack更加有优势，因为其打包出来的代码更小更快。但功能不够完善。
+
+##  使用Loader
+要支持非JavaScript类型的文件，需要使用Webpack的Loader机制。
+Loader可以看作具有文件转换功能的翻译员，配置里的module.rules数组配置了一组规则，告诉Webpack在遇到哪些文件时使用哪些Loader去加载和转换。
+    use属性的值需要是一个由Loader名称组成的数组，Loader的执行顺序是由后到前的；
+    每一个Loader都可以通过URL querystring的方式传入参数
+    css-loader主页查找用法
+
+##  使用Plugin
+Plugin是用来扩展Webpack功能的，通过在构建流程里注入钩子实现，它给Webpack带来了很大的灵活性。
+通过Plugin把注入到bundle.js文件里的CSS提取到单独的文件中
+
+## 使用DevServer
+
+
+
+
     
