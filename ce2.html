@@ -18,28 +18,40 @@
 		for(var i = 0;i < strs.length; i++){
 			// map.set(strs[])
             var control = 0;
-            var index = 0;
+            var index = [];
+			var controls = true;
+			
             for(var j = 0;j < strs[i].length;j++){
                 var string = strs[i].split("")[j];
                 if(!map.has(string)){
-                    map.set(string, i);
-
+                    map.set(string, [i]);
+					controls = false;
                 }else{
                     control = control + 1;
-                    index = map.get(string);
+					var temp = map.get(string);
+					temp.push(i);
+					map.set(string, temp);
+					
+					if(index.length === 0){
+						index = map.get(string);
+					}else{
+						let aSet = new Set(index)
+						let bSet = new Set(map.get(string))
+						index = Array.from(new Set(index.filter(v => bSet.has(v))))
+					}
                 }
             }
-            if(control === strs[i].length){
-                console.log(strs[i])
-                console.log(value)
-                console.log(index)
-                console.log(value[index])
-                value[index].push(strs[i])
+			console.log(value)
+            if(control === strs[i].length && controls && index.length > 0){
+                index = index[0];
+				console.log(index)
+				console.log(i)
+				value[index].push(strs[i])
             }else{
                 value.push([strs[i]])
             }
 		}
-
+		console.log(map)
 		return value;
     };
 

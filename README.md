@@ -11,6 +11,12 @@
 本文很多学习路径是参考ssh大佬的(https://github.com/sl1673495/frontend-advantage-roadmap
 )。
 
+日常学习主要有：
+	github 不用多说来
+	InfoQ 最近关注到的 文章质量普遍较高
+	掘金
+	知乎
+
 图灵社区：https://m.ituring.com.cn/
 
 Node学习自 朴灵大佬的深入浅出node.js

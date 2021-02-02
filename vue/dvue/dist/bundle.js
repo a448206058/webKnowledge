@@ -16,7 +16,7 @@
   \*********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nfunction dVue (option) {\r\n\tObject.defineProperty(option, 'data', {\r\n\t\tget() { console.log(111); },\r\n\t\tgetter() { console.log(2222)},\r\n\t\tset(newValue) { console.log(newValue); }\r\n\t});\r\n\treturn option;\r\n}\r\n\r\nfunction updateDOM() {\r\n}\r\n\r\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dVue);\r\n\n\n//# sourceURL=webpack://dvue/./src/main.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nconsole.log(111)\nfunction dVue(option) {\n\tconsole.log(222)\n\tconsole.log(option)\r\n\tvar vue = Object.create(option);\n\t\r\n\tvue._data = option.data;\r\n\tdefineReactive(vue._data);\r\n\treturn vue;\r\n}\r\n\r\nfunction defineReactive(obj) {\r\n\tfor (var key in obj) {\r\n\t\tif (obj[key] instanceof Array) {\r\n\t\t\tdefineReactive(obj[key]);\r\n\t\t} else if (obj[key] instanceof Object) {\r\n\t\t\tdefineReactive(obj[key]);\r\n\t\t} else {\r\n\t\t\tdefineProperty(obj, key);\r\n\t\t}\r\n\t}\r\n}\r\n\r\nfunction defineProperty(object, key) {\r\n\tObject.defineProperty(object, key, {\r\n\t\tget() {},\r\n\t\tset(newValue) {}\r\n\t});\r\n}\r\n\r\nfunction updateDOM() {}\r\n\r\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dVue);\n\n\n//# sourceURL=webpack://dvue/./src/main.js?");
 
 /***/ })
 

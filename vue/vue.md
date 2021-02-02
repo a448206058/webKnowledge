@@ -3994,3 +3994,432 @@ methodsToPatch.forEach(function (method)) {
 }
 ```
 
+### 计算属性 VS 侦听属性
+Vue的组件对象支持了计算属性computed和侦听属性watch
+computed
+计算属性的初始化是发生在实例初始化阶段的initState函数中
+执行if(opts.computed) initComputed(vm, opts.computed)
+	src/core/instance/state.js
+```JavaScript
+const computedWatcherOptions = { computed: true }
+function initComputed (vm: Component, computed: Object) {
+	// $flow-disable-line
+	//首先创建vm._computedWatchers为一个空对象
+	const watchers = vm._computedWatchers = Object.create(null)
+	// computed properties are just getters during SSR
+	const isSSO = isServerRendering()
+	//对computed对象做遍历，拿到计算属性的每一个userDef，然后尝试获取这个userDef对应的getter函数
+	for (const key in computed) {
+		const userDef = computed[key]
+		const getter = typeof userDef === 'function' ? userDef : userDef.get
+		if (process.env.NODE_ENV !== 'production' && getter == null) {
+			warn(
+				`Getter is missing for computed property "${key}".`,
+				vm
+			)
+		}
+		//接下来为每一个getter创建一个watcher，这个watcher和渲染watcher有一点很大的不同，
+		// 它是一个computed watcher
+		if (!isSSR) {
+			// create internal watcher for the computed property.
+			watchers[key] = new Watcher(
+				vm,
+				getter || noop,
+				noop,
+				computedWatcherOptions
+			)
+		}
+		
+		// component-defined computed properties are already defined on the
+		// component prototype.We only need to define computed properties defined
+		// at instantiation here.
+		// 如果key不是vm的属性，则调用defineComputed(vm, key, userDef)
+		if (!(key in vm)) {
+			defineComputed(vm, key, userDef)
+		} else if (process.env.NODE_ENV !== 'production') {
+			if (key in vm.$data) {
+				warn(`The computed property "${key}" is already defined in data.`, vm)
+			} else if (vm.$options.props && key in vm.$options.props) {
+				warn(`The computed property "${key}" is already defined as a prop.`, vm)
+			}
+		}
+	}
+}
+
+// 利用Object.defineProperty给计算属性对应的key值添加getter和setter，setter通常是计算属性是一个对象，并且拥有
+// set方法的时候才有，否则是一个空函数
+export function defineComputed (
+	target: any,
+	key: string,
+	userDef: Object | Function
+){
+	const shouldCache = !isServerRendering()
+	if (typeof userDef === 'function') {
+		sharedPropertyDefinition.get = shouldCache
+			? createComputedGetter(key)
+			: userDef
+		sharedPropertyDefinition.set = noop
+	} else {
+		sharedPropertyDefinition.get = userDef.get
+			? shouldCache && userDef.cache !== false
+				? createComputedGetter(key)
+				: userDef.get
+			: noop
+		sharedPropertyDefinition.set = userDef.set
+			? userDef.set
+			: noop
+	}
+	if (process.env.NODE_ENV !== 'production' &&
+		sharedPropertyDefinition.set === noop) {
+			sharedPropertyDefinition.set = function () {
+				warn(
+					`Computed property "${key}" was assigned to but it has no setter.`,
+					this
+				)
+			}
+		}
+		Object.defineProperty(target, key, sharedPropertyDefinition)
+}
+
+//createComputedGetter返回一个函数computedGetter，它就是计算属性对应的getter。
+function createComputedGetter (key) {
+	return function computedGetter() {
+		const watcher = this._computedWatchers &&
+		this._computedWatchers[key]
+		if (watcher) {
+			watcher.depend()
+			return watcher.evaluate()
+		}
+	}
+}
+```
+```JavaScript
+//通过一个例子来分析 computed watcher的实现
+var vm = new Vue({
+	data: {
+		firstName: 'Foo',
+		lastName: 'Bar'
+	},
+	computed: {
+		fullName: function () {
+			return this.firstName + ' ' + this.lastName
+		}
+	}
+});
+
+//当初始化computed watcher实例的时候，构造函数部分逻辑稍有不同：
+//可以发现computed watcher会并不会立刻求值，同时持有一个dep实例。
+//当render函数执行访问到this.fullName的时候，就触发来计算属性的getter，
+constructor(
+	vm: Component,
+	expOrFn: string | Function,
+	cb: Function,
+	options?: ?Object,
+	isRenderWatcher?: boolean
+) {
+	// ...
+	if (this.computed) {
+		this.value = undefined
+		this.dep = new Dep()
+	} else {
+		this.value = this.get()
+	}
+}
+
+//watcher.depend()
+/**
+ * Depend on this watcher. Only for computed property watchers.
+ */
+depend () {
+	// Dep.target是渲染watcher
+	if (this.dep && Dep.target) {
+		//this.dep.depend()相当于渲染watcher订阅了computed watcher
+		this.dep.depend()
+	}
+}
+
+//执行watcher.evaluate()求值
+/**
+ * Evalutate and return the value of the watcher.
+ * This only gets called for computed property watchers.
+ */
+evaluate() {
+	// 如果为true则通过this.get()求值，然后把this.dirty设置为false。
+	// 在求值过程中，会执行value = this.getter.call(vm, vm)，这实际上就是执行了计算属性定义的getter函数
+	if (this.dirty) {
+		this.value = this.get()
+		this.dirty = false
+	}
+	return this.value
+}
+
+//一旦我们对计算属性依赖的数据做修改，则会触发setter过程，通知所有订阅它变化的watcher更新，执行watcher.update()方法
+/* istanbul ignore else */
+
+if (this.computed) {
+	// A computed property watcher has two modes: lazy and activated.
+	// It initializes as lazy by default, and only becomes activated when
+	// it is depended on by at least one subscriber, which is typically
+	// another computed property or a component's render function.
+	// 对于计算属性这样的computed watcher，它实际上是有2中模式，lazy和active。
+	// 如果this.dep.subs.length === 0 成立，则说明没有人去订阅这个computed watcher的变化，仅仅把
+	// this.dirty = true，只有当下次再访问这个计算属性的时候才会重新求值。
+	if (this.dep.subs.length === 0) {
+		// In lazy mode, we don't want to perform computations untill necessary
+		// so we simply mark the watcher as dirty.The actual computation is
+		// performed just-in-time in this.evaluate() when the computed property
+		// is accessed.
+		this.dirty = true
+	} else {
+		// In activated mode, we want to proactively perform the computation
+		// but only notify our subscibers when the value has indeed changed.
+		// 在我们的场景下，渲染watcher订阅了这个computed watcher的变化
+		this.getAndInvoke(() => {
+			this.dep.notify()
+		})
+	} else if (this.sync) {
+		this.run()
+	} else {
+		queueWatcher(this)
+	}
+}
+
+//getAndInvoke函数会重新计算，然后对比新旧值，如果变化了则执行回调函数，那么这里这个回调函数是this.dep.notify()
+//在我们这个场景下就是触发了渲染watcher重新渲染
+getAndInvoke (cb: Function) {
+	const value = this.get()
+	if (
+		value !== this.value ||
+		// Deep watchers and watchers on Object/Arrays should fire even
+		// when the value is the same, because the value may
+		// have mutated.
+		isObject(value) ||
+		this.deep
+	) {
+		// set new value
+		const oldValue = this.value
+		this.value = value
+		this.dirty = false
+		if (this.user) {
+			try {
+				cb.call(this.vm, value, oldValue)
+			} catch (e) {
+				handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+			}
+		} else {
+			cb.call(this.vm, value, oldValue)
+		}
+	}
+}
+```
+
+我们知道计算属性本质上就是一个computed watcher，之所以这么设计是因为Vue想确保不仅仅是计算属性依赖的值发生变化，
+而是当计算属性最终计算的值发生变化才会触发渲染watcher重新渲染。
+
+watch
+侦听属性的初始化也是发生在Vue的实例初始化阶段的initState函数中，在computed初始化之后，执行了：
+```JavaScript
+if (opts.watch && opts.watch !== nativeWatch) {
+	initWatch(vm, opts.watch)
+}
+
+//initWatch
+// src/core/instance/state.js
+// 这里就是对watch对象做遍历，拿到每一个handler，因为Vue是支持watch的同一个key对应多个handler,
+// 如果handler是一个数组，则遍历这个数组，调用createWatcher方法
+function initWatch (vm: Component, watch: Object) {
+	for (const key in watch) {
+		const handler = watch[key]
+		if (Array.isArray(handler)) {
+			for (let i = 0; i < handler.length; i++) {
+				createWatcher(vm, key, handler[i])
+			}
+		} else {
+			createWatcher(vm, key, handler)
+		}
+	}
+}
+
+function createWatcher (
+	vm: Component,
+	expOrFn: string | Function,
+	handler: any,
+	options?: Object,
+) {
+	// 首先对hanlder的类型做判断，拿到它最终的回调函数
+	if (isPlainObject(handler)) {
+		options = handler
+		handler = handler.handler
+	}
+	if (typeof handler === 'string') {
+		handler = vm[handler]
+	}
+	// 最后调用vm.$watch(keyOrFn, handler, options)函数
+	// $watch是Vue原型上的方法，它是在执行stateMicin的时候定义的。
+	return vm.$watch(expOrFn, handler, options)
+}
+
+// 侦听属性watch最终会调用$watch方法，这个方法首先判断cb如果是一个对象，则调用createWatcher方法
+// 这是因为$watch方法是用户可以直接调用的，它可以传递一个对象，也可以传递函数。
+Vue.prototype.$watch = function (
+	expOrFn: string | Function,
+	cb: any,
+	options?: Object
+): Function {
+	const vm: Component = this
+	if (isPlainObject(cb)) {
+		return createWatcher(vm, expOrFn, cb, options)
+	}
+	options = options || {}
+	options.user = true
+	const watcher = new Watcher(vm, expOrFn, cb, options)
+	if (options.immediate) {
+		cb.call(vm, watcher.value)
+	}
+	return function unwatchFn() {
+		watcher.teardown()
+	}
+}
+
+//接着执行const watcher = new Watcher(vm, expOrFn, cb, options)实例化了一个watcher
+// 这是一个 user watcher 因为options.user = true。通过实例化watcher的方式，一旦我们watch的数据发生变化，它最终
+// 会执行watcher的run方法，执行回调函数cb，并且如果我们设置了immediate为true，则直接会执行回调函数cb。最后返回了一个unwatchFn方法，
+// 它会调用teardown方法去移除这个watcher。
+// 所以本质上侦听属性也是基于Watcher实现的，它是一个user watcher。
+``` 
+
+### Watcher options
+watcher的构造函数对options做了处理
+```JavaScirpt
+if (options) {
+	this.deep = !!options.deep
+	this.user = !!options.user
+	this.computed = !!options.computed
+	this.sync = !!options.sync
+	// ...
+} else {
+	this.deep = this.user = this.computed = this.sync = false
+}
+
+// deep watcher
+// 通常，如果我们想对以下对象做深度观测的时候，需要设置这个属性为true
+watch : {
+	a : {
+		deep: true,
+		handler(newVal) {
+			console.log(newVal)
+		}
+	}
+}
+
+//在watcher执行get求值的过程中有一段逻辑：
+get() {
+	let value = this.getter.call(vm, vm)
+	// ...
+	if (this.deep) {
+		traverse(value)
+	}
+}
+
+// 在对watch的表达式或者函数求值后，会调用traverse函数
+// src/core/observer/traverse.js
+import { _Set as Set, isObject } from '../util/index'
+import type { SimpleSet } from '../util/index'
+import VNode from '../vdom/vnode'
+
+const seenObjects = new Set()
+
+/**
+ * Recursively traverse an object to evoke all converted
+ * getters, so that every nested property inside the object
+ * is collected as a "deep" dependency.
+ * 实际上就是对一个对象做深层递归遍历，因为遍历过程中就是对一个子对象的访问，会触发它们的getter过程，这样就可以收集到依赖
+ * 也就是订阅它们变化的watcher，这个函数实现还有一个小的优化，遍历过程中会把子响应式对象通过它们的dep id记录到seenObjects
+ * 避免以后重复访问。
+ * 在执行了traverse后，我们再对watch的对象内部任何一个值做修改，也会调用watcher的回调函数了
+ */
+export function traverse(val: any) {
+	_traverse(val, seenObjects)
+	seenObjects.clear()
+}
+
+function _traverse (val: any, seen: SimpleSet) {
+	let i, keys
+	const isA = Array.isArray(val)
+	if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
+		return
+	}
+	if (val.__ob__) {
+		const depId = val.__ob__.dep.id
+		if (seen.has(depId)) {
+			return
+		}
+		seen.add(depId)
+	}
+	if (isA) {
+		i = val.length
+		while (i--) _traverse(val[i], seen)
+	} else {
+		keys = Object.keys(val)
+		i = keys.length
+		while (i--) _traverse(val[keys[i]], seen)
+	}
+}
+
+function _traverse (val: any, seen: SimpleSet) {
+	let i, keys
+	const isA = Array.isArray(val)
+	if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
+		return
+	}
+	
+}
+
+// user watcher
+// 在对watcher求值以及在执行回调函数的时候，处理一下错误
+get() {
+	if (this.user) {
+		handleError(e, vm, `getter for watcher "${this.expression}"`)
+	} else {
+		throw e
+	}
+},
+getAndInvoke() {
+	// ...
+	if (this.user) {
+		try {
+			this.cb.call(this.vm, value, oldValue)
+		} catch (e) {
+			handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+		}
+	} else {
+		this.cb.call(this.vm, value, oldValue)
+	}
+}
+// handleError 在Vue中是一个错误捕获并且暴露给用户的一个利器
+
+// computed watcher
+
+// sync watcher
+// 对setter的分析过程知道，当响应式数据发生变化后，触发了watcher.update()，只是把这个watcher推送到一个队列中，
+// 在nextTick后才会真正执行watcher的回调函数。而一旦我们设置了sync，就可以在当前Tick中同步之心watcher的回调函数。
+
+// 只有当我们需要watch的值的变化到执行watcher的回调函数是一个同步过程的时候才会去设置该属性为true。
+update () {
+	if (this.computed) {
+		// ...
+	} else if (this.sync) {
+		this.run()
+	} else {
+		queueWatcher(this)
+	}
+}
+```
+
+计算属性本质上是computed watcher，而侦听属性本质上是user watcher。就应用场景而言，计算属性适合用在模版渲染中，某个值是
+依赖了其它的响应式对象甚至是计算属性计算而来；而侦听属性适用于观测某个值的变化去完成一段复杂的业务逻辑。
+
+
+
+
+

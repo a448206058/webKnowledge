@@ -9,43 +9,42 @@
 			<!-- {{hello}} -->
 		</div>
 		<script src="../dist/bundle.js"></script>
-		<script type="module">
-			// import dVue from './main.js';
+		<script>
 			// // dVue(); // 'foo'
 			var dVues = new dVue({
 				data: {
 					a: 1,
+					duixiang: {cc: '1', dd: '2'},
 					shuzu: [],
-					duixiang: {cc: '1', dd: '2'}
 				}
 			})
 
-			function dVue (option) {
-				var vue = Object.assign(option);
-				vue._data = option.data;
-				defineReactive(vue._data);
-				return vue;
-			}
+			// function dVue (option) {
+			// 	var vue = Object.assign(option);
+			// 	vue._data = option.data;
+			// 	defineReactive(vue._data);
+			// 	return vue;
+			// }
 
-			function defineReactive(obj) {
-				for(var key in obj){
-					console.log(key instanceof Array)
-					if(key instanceof Array){
-						defineReactive(key);
-					}else if(key instanceof Object){
-						defineReactive(key);
-					}else{
-						defineProperty(obj, key);
-					}
-				}
-			}
+			// function defineReactive(obj) {
+			// 	for(var key in obj){
+			// 		if(obj[key] instanceof Array){
+			// 			defineReactive(obj[key]);
+			// 		}else if(obj[key] instanceof Object){
+			// 			defineReactive(obj[key]);
+			// 		}else{
+			// 			defineProperty(obj, key);
+			// 		}
+			// 	}
+			// }
 
-			function defineProperty(object, key){
-				Object.defineProperty(object, key, {
-					get() {},
-					set(newValue) {console.log(222)}
-				});
-			}
+			// function defineProperty(object, key){
+			// 	Object.defineProperty(object, key, {
+			// 		get() {},
+			// 		set(newValue) {}
+			// 	});
+			// }
+			// console.log(dVues)
 			dVues.data.a = 2
 		</script>
 	</body>
