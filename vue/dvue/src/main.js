@@ -1,9 +1,7 @@
-console.log(111)
+(function(global, factory) {
+}(this, (function () {
 function dVue(option) {
-	console.log(222)
-	console.log(option)
 	var vue = Object.create(option);
-	
 	vue._data = option.data;
 	defineReactive(vue._data);
 	return vue;
@@ -30,4 +28,8 @@ function defineProperty(object, key) {
 
 function updateDOM() {}
 
-export default dVue;
+// export default dVue;
+
+return dVue;
+})
+));
