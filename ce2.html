@@ -14,44 +14,49 @@
     var groupAnagrams = function(strs) {
 		var map = new Map();
 		var value = [];
-		// debugger
 		for(var i = 0;i < strs.length; i++){
-			// map.set(strs[])
-            var control = 0;
             var index = [];
 			var controls = true;
-			
+			var control = 0;
             for(var j = 0;j < strs[i].length;j++){
                 var string = strs[i].split("")[j];
                 if(!map.has(string)){
-                    map.set(string, [i]);
-					controls = false;
-                }else{
-                    control = control + 1;
-					var temp = map.get(string);
-					temp.push(i);
-					map.set(string, temp);
-					
-					if(index.length === 0){
-						index = map.get(string);
-					}else{
-						let aSet = new Set(index)
-						let bSet = new Set(map.get(string))
-						index = Array.from(new Set(index.filter(v => bSet.has(v))))
-					}
+                    controls = false;
+                    break;
                 }
             }
-			console.log(value)
-            if(control === strs[i].length && controls && index.length > 0){
-                index = index[0];
-				console.log(index)
-				console.log(i)
-				value[index].push(strs[i])
-            }else{
+            for(var j = 0;j < strs[i].length;j++){
+                var string = strs[i].split("")[j];
+                if(!map.has(string)){
+                    map.set(string, [value.length]);
+                }else{
+                    if(!controls){
+                        var temp = map.get(string);
+                        temp.push(value.length);
+                        map.set(string, temp);
+                    }
+                    if(index.length === 0){
+                        index = map.get(string);
+                    }else{
+                        let bSet = new Set(map.get(string))
+                        index = Array.from(new Set(index.filter(v => bSet.has(v))))
+                    }
+                }
+            }
+            index = index[0] ? index[0] : 0;
+            if(!controls){
                 value.push([strs[i]])
+            }else{
+                if(value.length === 0){
+                    value.push([strs[i]])
+                }else if(strs[i].length != value[index][0].length){
+                    value.push([strs[i]])
+                }else{
+                    // value.push([strs[i]])
+                    value[index].push(strs[i])
+                }
             }
 		}
-		console.log(map)
 		return value;
     };
 
@@ -60,8 +65,12 @@
     //     ["nat","tan"],
     //     ["bat"]
     // ]
-	var content = ["eat", "tea", "tan", "ate", "nat", "bat"];
+	// var content = ["eat", "tea", "tan", "ate", "nat", "bat"];
 
+	// var content = [""];
+	// var content = ["",""];
+    // var content = ["",""]
+    var content = ["ac","c"]
 
 	console.log(groupAnagrams(content));
 </script>

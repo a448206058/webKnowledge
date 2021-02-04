@@ -7,77 +7,9 @@
  * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
 /******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
-
-/***/ "./src/main.js":
 /*!*********************!*\
   !*** ./src/main.js ***!
   \*********************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nconsole.log(111)\nfunction dVue(option) {\n\tconsole.log(222)\n\tconsole.log(option)\r\n\tvar vue = Object.create(option);\n\t\r\n\tvue._data = option.data;\r\n\tdefineReactive(vue._data);\r\n\treturn vue;\r\n}\r\n\r\nfunction defineReactive(obj) {\r\n\tfor (var key in obj) {\r\n\t\tif (obj[key] instanceof Array) {\r\n\t\t\tdefineReactive(obj[key]);\r\n\t\t} else if (obj[key] instanceof Object) {\r\n\t\t\tdefineReactive(obj[key]);\r\n\t\t} else {\r\n\t\t\tdefineProperty(obj, key);\r\n\t\t}\r\n\t}\r\n}\r\n\r\nfunction defineProperty(object, key) {\r\n\tObject.defineProperty(object, key, {\r\n\t\tget() {},\r\n\t\tset(newValue) {}\r\n\t});\r\n}\r\n\r\nfunction updateDOM() {}\r\n\r\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dVue);\n\n\n//# sourceURL=webpack://dvue/./src/main.js?");
-
-/***/ })
-
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/************************************************************************/
-/******/ 	// startup
-/******/ 	// Load entry module
-/******/ 	__webpack_require__("./src/main.js");
-/******/ 	// This entry module used 'exports' so it can't be inlined
+eval("throw new Error(\"Module build failed (from ./node_modules/babel-loader/lib/index.js):\\nSyntaxError: E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\src\\\\main.js: 'import' and 'export' may only appear at the top level (36:0)\\n\\n\\u001b[0m \\u001b[90m 34 |\\u001b[39m \\u001b[36mfunction\\u001b[39m updateDOM() {}\\u001b[0m\\n\\u001b[0m \\u001b[90m 35 |\\u001b[39m\\u001b[0m\\n\\u001b[0m\\u001b[31m\\u001b[1m>\\u001b[22m\\u001b[39m\\u001b[90m 36 |\\u001b[39m \\u001b[36mexport\\u001b[39m \\u001b[36mdefault\\u001b[39m dVue\\u001b[33m;\\u001b[39m\\u001b[0m\\n\\u001b[0m \\u001b[90m    |\\u001b[39m \\u001b[31m\\u001b[1m^\\u001b[22m\\u001b[39m\\u001b[0m\\n\\u001b[0m \\u001b[90m 37 |\\u001b[39m })))\\u001b[33m;\\u001b[39m\\u001b[0m\\n\\u001b[0m \\u001b[90m 38 |\\u001b[39m\\u001b[0m\\n    at Parser._raise (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:776:17)\\n    at Parser.raiseWithData (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:769:17)\\n    at Parser.raise (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:737:17)\\n    at Parser.parseStatementContent (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:11869:18)\\n    at Parser.parseStatement (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:11776:17)\\n    at Parser.parseBlockOrModuleBlockBody (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:12358:25)\\n    at Parser.parseBlockBody (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:12349:10)\\n    at Parser.parseBlock (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:12333:10)\\n    at Parser.parseFunctionBody (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:11319:24)\\n    at Parser.parseFunctionBodyAndFinish (E:\\\\know\\\\webKnowledge\\\\vue\\\\dvue\\\\node_modules\\\\@babel\\\\parser\\\\lib\\\\index.js:11303:10)\");\n\n//# sourceURL=webpack://dvue/./src/main.js?");
 /******/ })()
 ;

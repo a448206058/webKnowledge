@@ -9,5 +9,20 @@ module.exports = {
     filename: 'bundle.js',
     // 输出文件都放到 dist 目录下
     path: path.resolve(__dirname, './dist'),
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            //用babel-loader 需要把es6转化未es5
+            presets: ["@babel/preset-env"], //大插件的集合
+            plugins: ["@babel/plugin-proposal-class-properties"] //小插件
+          }
+        }
+      }
+    ]
   }
 };

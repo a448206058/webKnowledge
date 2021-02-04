@@ -1,9 +1,11 @@
-console.log(111)
-function dVue(option) {
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() : typeof define === 'function' && define.amd ? define(factory) : (global.dVue = factory()); //执行factory()函数，将返回值Vue传递给window.Vue
+}(this, (function () {
+	function dVue(option) {
 	console.log(222)
 	console.log(option)
 	var vue = Object.create(option);
-	
+
 	vue._data = option.data;
 	defineReactive(vue._data);
 	return vue;
@@ -28,6 +30,8 @@ function defineProperty(object, key) {
 	});
 }
 
+
 function updateDOM() {}
 
 export default dVue;
+})));
