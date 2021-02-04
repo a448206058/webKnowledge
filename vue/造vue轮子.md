@@ -44,9 +44,123 @@ ViewModel是怎么实现这一过程的呢？
 ### 什么是响应式？
     就是数据发生变化能够马上知晓并发生变更。
     
+    
 ### 怎么实现？
-    主要是通过Object.defineProperty的get和set属性
-    第一步：
-        定义一个函数，返回
+    数据劫持/数据代理
+        主要是通过Object.defineProperty的get和set属性
+            第一步：
+                定义一个函数取名为dVue，主要功能是创建一个对象并返回
+        	第二步：
+        		定义一个函数取名为defineReactive，主要功能是循环对象内的值，并给每个值绑定上对应的set和get
+        	第三步：
+        		定义一个函数defineProperty，主要功能就是绑定set和get
+        	第四步：
+        		返回该对象
+    依赖收集
+        核心思想是事件发布订阅模式
+            订阅者Dep和观察者Watcher
+            收集依赖需要为依赖找一个存储依赖的地方，Dep,它用来收集依赖、删除依赖和向依赖发送消息等。
+            实现一个订阅者Dep类，用于解耦属性的依赖收集和派发更新操作，它的主要作用是用来存放Watcher观察者对象。我们可以把Watcher
+            理解成一个中介的角色，数据发生变化时通知它，然后它再通知其他地方。
+    发布订阅模式
+    
+    
+```JavaScript
+	function dVue(option) {
+		var vue = Object.create(option);
+		vue._data = option.data;
+		defineReactive(vue._data);
+		return vue;
+	}
+	
+	function defineReactive(obj) {
+		for (var key in obj) {
+			if (obj[key] instanceof Array) {
+				defineReactive(obj[key]);
+			} else if (obj[key] instanceof Object) {
+				defineReactive(obj[key]);
+			} else {
+				defineProperty(obj, key);
+			}
+		}
+	}
+	
+	function defineProperty(object, key) {
+		Object.defineProperty(object, key, {
+			get() {},
+			set(newValue) {console.log('监听到变化')}
+		});
+	}
+	return dVue;
+```
+
+初步完成，接下来直接使用测试用例试试看
+```JavaScript
+	var dVues = new dVue({
+		data: {
+			a: 1,
+			duixiang: {cc: '1', dd: '2'},
+			shuzu: [{c1: '1', d1: '2'}, {c2: '11', d2: '22'}],
+		}
+	});
+	dVues.data.a = 2 // 监听到变化
+	dVues.data.duixiang.cc = 'cc'; // 监听到变化
+	dVues.data.shuzu[0].c1 = '1'; // 监听到变化
+```
+
+完善一下 我们想像vue一样通过 new的方式直接在html中使用
+通过IIFE（立即调用函数表达式）的方式来返回该对象
+```JavaScript
+(function(global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ?
+		module.exports = factory :
+		typeof define === 'function' && define.amd ?
+		define(factory) :
+		(global.dVue = factory())
+})(this, function() {
+	'use strict'
+	function dVue(option) {
+		var vue = Object.create(option);
+		vue._data = option.data;
+		defineReactive(vue._data);
+		return vue;
+	}
+	
+	function defineReactive(obj) {
+		for (var key in obj) {
+			if (obj[key] instanceof Array) {
+				defineReactive(obj[key]);
+			} else if (obj[key] instanceof Object) {
+				defineReactive(obj[key]);
+			} else {
+				defineProperty(obj, key);
+			}
+		}
+	}
+	
+	function defineProperty(object, key) {
+		Object.defineProperty(object, key, {
+			get() {},
+			set(newValue) {console.log('监听到变化')}
+		});
+	}
+	return dVue;
+})
+```
+
+然后再实现下Dep
+```JavaScript
+function Dep() {
+    
+}
+```
+
+
+好了，简单的实现了响应式，但是如何把响应的数据动态的绑定到页面上去呢？
+我们在下一章继续探讨。
+
+## 造轮子系列： 数据渲染
+思路：通过虚拟节点VNode对节点进行构建，构建DOM Tree
+在通过遍历DOM Tree 通过createElement创建元素
     
 		

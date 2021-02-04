@@ -8,71 +8,64 @@
 <div id="time"></div>
 <script>
     /**
-     * @param {string[]} strs
-     * @return {string[][]}
+     * @param {number[][]} points
+     * @return {number}
      */
-    var groupAnagrams = function(strs) {
-		var map = new Map();
-		var value = [];
-		for(var i = 0;i < strs.length; i++){
-            var index = [];
-			var controls = true;
-			var control = 0;
-            for(var j = 0;j < strs[i].length;j++){
-                var string = strs[i].split("")[j];
-                if(!map.has(string)){
-                    controls = false;
-                    break;
-                }
+    var numberOfBoomerangs = function(points) {
+        var value = [];
+        var num = 0;
+        const getDistance = function(valueStart, valueEnd){
+            var start = valueStart[0] - valueEnd[0];
+            var end = valueStart[1] - valueEnd[1];
+            var distance = Math.sqrt((start * start) + (end * end));
+            return distance;
+        }
+        const factorial = function(n){
+            if(n <= 1){
+                return 0;
             }
-            for(var j = 0;j < strs[i].length;j++){
-                var string = strs[i].split("")[j];
-                if(!map.has(string)){
-                    map.set(string, [value.length]);
+            return factorial(n-1) + (n - 1);
+        }
+        for (var i = 0; i < points.length; i++) {
+            var map = new Map();
+            value = [];
+            for(var j = 0;j < points.length; j++){
+                if(i === j ){
+                    continue
+                }
+                var distance = parseInt(getDistance(points[i], points[j]));
+                console.log(distance)
+                if(!map.get(distance)){
+                    map.set(distance, [i, j]);
                 }else{
-                    if(!controls){
-                        var temp = map.get(string);
-                        temp.push(value.length);
-                        map.set(string, temp);
+                    if(value.length === 0){
+                        value.push(points[map.get(distance)[1]]);
                     }
-                    if(index.length === 0){
-                        index = map.get(string);
-                    }else{
-                        let bSet = new Set(map.get(string))
-                        index = Array.from(new Set(index.filter(v => bSet.has(v))))
-                    }
+                    value.push(points[j]);
                 }
             }
-            index = index[0] ? index[0] : 0;
-            if(!controls){
-                value.push([strs[i]])
-            }else{
-                if(value.length === 0){
-                    value.push([strs[i]])
-                }else if(strs[i].length != value[index][0].length){
-                    value.push([strs[i]])
-                }else{
-                    // value.push([strs[i]])
-                    value[index].push(strs[i])
-                }
-            }
-		}
-		return value;
+            value = factorial(value.length) * 2;
+            console.log(value)
+            num += value;
+        }
+        return num
     };
 
-    // [
-    //     ["ate","eat","tea"],
-    //     ["nat","tan"],
-    //     ["bat"]
-    // ]
-	// var content = ["eat", "tea", "tan", "ate", "nat", "bat"];
+    // var points = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
+    var points = [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8]];
+    console.log(numberOfBoomerangs(points));
 
-	// var content = [""];
-	// var content = ["",""];
-    // var content = ["",""]
-    var content = ["ac","c"]
+    //2选2 1
+    //3选2 3
+    //4选2 4
+    //5选2
 
-	console.log(groupAnagrams(content));
+    //a b c d
+    // a b  b c  a c + a d b d c d + 3
+    // f(1) = 0;
+    // f(2) = f(1) + 1;
+    // f(3) = f(2) + 2;
+    // fn = f(n-1) + n - 1;
 </script>
 </body>
 </html>

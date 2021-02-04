@@ -3163,11 +3163,9 @@ import {registerRef} from "./vue/vue-dev/src/core/vdom/modules/ref";
 			 // ...
 		 })
 	 }
-	 
-	 /**
-	  * Dep是整个getter依赖收集的核心
-	  * 	src/core/observe/dep.js
-	  */
+###     Dep是整个getter依赖收集的核心
+源码：src/core/observe/dep.js
+```JavaScript
 	 import type Watcher from './watcher'
 	 import { remove } from '../util/index'
 	 
@@ -3227,12 +3225,10 @@ import {registerRef} from "./vue/vue-dev/src/core/vdom/modules/ref";
 	 export function popTarget () {
 		 Dep.target = targetStack.pop()
 	 }
-	 
-	 /**
-	  *  Dep实际上就是对Watcher的一种管理，Dep脱离Watcher单独存在是没有意义的
-	  * 	src/core/observer/watcher.js
-	  */
-	 
+```
+###     Dep实际上就是对Watcher的一种管理，Dep脱离Watcher单独存在是没有意义的
+源码：src/core/observer/watcher.js
+```JavaScript
 	 let uid = 0
 	 
 	 /**
@@ -3311,7 +3307,7 @@ import {registerRef} from "./vue/vue-dev/src/core/vdom/modules/ref";
 						'For full control, use a function instead.',
 						vm
 					)
-				}
+				}__
 			}
 			if (this.computed) {
 				this.value = undefined
@@ -3402,6 +3398,7 @@ import {registerRef} from "./vue/vue-dev/src/core/vdom/modules/ref";
 		 }
 		 // ...
 	 }
+```
 	 /**
 	  * 过程分析
 	  * 	当我们去实例化一个渲染watcher的时候，首先进入watcher的构造函数逻辑，然后会执行它的this.get()方法，
