@@ -141,16 +141,17 @@ ViewModel是怎么实现这一过程的呢？
 	function defineProperty(object, key) {
 		Object.defineProperty(object, key, {
 			get() {},
-			set(newValue) {console.log('监听到变化')}
+			set(newValue) {console.log('监听到变化');notify()}
 		});
 	}
 	return dVue;
 })
 ```
 
-然后再实现下Dep
+然后再用一个Watcher类去进行依赖收集,用Dep进行管理，先不写那么深
+继续往下走，想set触发更新的时候，通知页面进行刷新
 ```JavaScript
-function Dep() {
+export default class Watcher {
     
 }
 ```

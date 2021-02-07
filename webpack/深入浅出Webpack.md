@@ -238,7 +238,58 @@ Plugin是用来扩展Webpack功能的，通过在构建流程里注入钩子实�
 ## 创建library
     除了打包应用程序，webpack还可以用于打包JavaScript library。
     
+## 构建性能
+###     更新到最新版本
+    loader 将loader应用于最小数量的必要模块，通过使用include字段，仅将loader应用在实际需要将
+    其转换的模块：
+    
+###     引导
+    每个额外的loader/plugin都有其启动时间。尽量少地使用工具。
+    
+###     解析
+    减少 resolve.modules, resolve.extensions, resolve.mainFiles, resolve.descriptionFiles 中条目数量，因为他们会增加文件系统调用的次数。
+    如果你不使用 symlinks（例如 npm link 或者 yarn link），可以设置 resolve.symlinks: false。
+    如果你使用自定义 resolve plugin 规则，并且没有指定 context 上下文，可以设置 resolve.cacheWithContext: false。
+
+###     dll
+    使用 DllPlugin 为更改不频繁的代码生成单独的编译结果。这可以提高应用程序的编译速度，尽管它增加了构建过程的复杂度。
+    
+###     小即是快(smaller = faster)
+
+###     worker 池(worker pool)
+    thread-loader 可以将非常消耗资源的 loader 分流给一个 worker pool。
+    
+###     持久化缓存
+    在 webpack 配置中使用 cache 选项。使用 package.json 中的 "postinstall" 清除缓存目录
+
+###     自定义 plugin/loader
+    对它们进行概要分析，以免在此处引入性能问题
+    
+###     Progress plugin 
+    将 ProgressPlugin 从 webpack 中删除，可以缩短构建时间
+    
+## 开发环境
+###     增量编译
+    使用 webpack 的 watch mode(监听模式)
+    
+###     在内存中编译
+    webpack-dev-server
+    webpack-hot-middleware
+    webpack-dev-middleware
+
+###     stats.toJson 加速
+
+###     Devtool
             
+## 内容安全策略
+启用 CSP
+
+## 依赖管理
+    ES6 modules
+    commonjs
+    amd
+
+###     带表达式的require语句
 
 
 

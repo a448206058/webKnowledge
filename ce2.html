@@ -22,37 +22,51 @@
         }
         const factorial = function(n){
             if(n <= 1){
-                return 0;
+                return 1;
             }
             return factorial(n-1) + (n - 1);
         }
+        var map1 = new Map();
         for (var i = 0; i < points.length; i++) {
             var map = new Map();
-            value = [];
             for(var j = 0;j < points.length; j++){
                 if(i === j ){
                     continue
                 }
                 var distance = parseInt(getDistance(points[i], points[j]));
-                console.log(distance)
-                if(!map.get(distance)){
-                    map.set(distance, [i, j]);
-                }else{
-                    if(value.length === 0){
-                        value.push(points[map.get(distance)[1]]);
+                if(!map1.get(points[i] +" "+points[j])){
+                    map1.set(points[i] +" "+points[j], distance);
+                    if(!map.get(distance)){
+                        map.set(distance, 1);
+                    }else{
+                        map.set(distance, map.get(distance) + 1);
                     }
-                    value.push(points[j]);
+                }else{
+                    console.log(222)
                 }
             }
-            value = factorial(value.length) * 2;
-            console.log(value)
-            num += value;
+            console.log(map)
+            console.log(map1)
+            for(let item of map.values()){
+                if(item > 1){
+                    num += factorial(item);
+                }
+            }
+            console.log(num)
         }
         return num
     };
 
     // var points = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
     var points = [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8]];
+    // var points = [[1,1],[2,2],[3,3],[4,4],[5,5]];
+    // 4 3 3 3 3
+    // 2 2
+    // 3 4
+    // 3 4
+    // 3 4
+    // 3 4
+    // 1
     console.log(numberOfBoomerangs(points));
 
     //2选2 1
