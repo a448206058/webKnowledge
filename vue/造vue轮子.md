@@ -148,6 +148,22 @@ ViewModel是怎么实现这一过程的呢？
 })
 ```
 
+定义一个Dep
+Dep主要是干什么呢  主要用来进行依赖收集 也就是管理watch
+需要哪些东西呢？
+Class Dep {
+    static target: ?Watcher;
+    id: number;
+    subs: Array<Watcher>;
+    
+    constructor () {
+        this.id = this.id++;
+        subs: <Array>
+    }
+}
+
+
+
 然后再用一个Watcher类去进行依赖收集,用Dep进行管理，先不写那么深
 继续往下走，想set触发更新的时候，通知页面进行刷新
 ```JavaScript

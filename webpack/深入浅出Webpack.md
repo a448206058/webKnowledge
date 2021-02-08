@@ -291,7 +291,17 @@ Plugin是用来扩展Webpack功能的，通过在构建流程里注入钩子实�
 
 ###     带表达式的require语句
 
+##  Tree Shaking
+    tree shaking 是一个术语，通常用于描述移除JavaScript上下文中的未引用代码。
+    
+    sideEffects更为有效是因为它允许跳过整个模块/文件和整个文件子树。
+    usedExports依赖于terser去检测语句中的副作用。它是一个JavaScript任务而且没有像sideEffects一样简单直接。
+    
+    将函数调用标记为无副作用
+    通过 /*#__PURE__*/
+    
+    压缩输出结果
 
-
-
+##  懒加载
+    
     

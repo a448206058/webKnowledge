@@ -11,75 +11,16 @@
      * @param {number[][]} points
      * @return {number}
      */
-    var numberOfBoomerangs = function(points) {
-        var value = [];
+    var maxPoints = function(points) {
         var num = 0;
-        const getDistance = function(valueStart, valueEnd){
-            var start = valueStart[0] - valueEnd[0];
-            var end = valueStart[1] - valueEnd[1];
-            var distance = Math.sqrt((start * start) + (end * end));
-            return distance;
+        var map = new Map();
+        for(var i = 0; i < points.length; i++){
+
         }
-        const factorial = function(n){
-            if(n <= 1){
-                return 1;
-            }
-            return factorial(n-1) + (n - 1);
-        }
-        var map1 = new Map();
-        for (var i = 0; i < points.length; i++) {
-            var map = new Map();
-            for(var j = 0;j < points.length; j++){
-                if(i === j ){
-                    continue
-                }
-                var distance = parseInt(getDistance(points[i], points[j]));
-                if(!map1.get(points[i] +" "+points[j])){
-                    map1.set(points[i] +" "+points[j], distance);
-                    if(!map.get(distance)){
-                        map.set(distance, 1);
-                    }else{
-                        map.set(distance, map.get(distance) + 1);
-                    }
-                }else{
-                    console.log(222)
-                }
-            }
-            console.log(map)
-            console.log(map1)
-            for(let item of map.values()){
-                if(item > 1){
-                    num += factorial(item);
-                }
-            }
-            console.log(num)
-        }
-        return num
     };
 
-    // var points = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
-    var points = [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8]];
-    // var points = [[1,1],[2,2],[3,3],[4,4],[5,5]];
-    // 4 3 3 3 3
-    // 2 2
-    // 3 4
-    // 3 4
-    // 3 4
-    // 3 4
-    // 1
-    console.log(numberOfBoomerangs(points));
-
-    //2选2 1
-    //3选2 3
-    //4选2 4
-    //5选2
-
-    //a b c d
-    // a b  b c  a c + a d b d c d + 3
-    // f(1) = 0;
-    // f(2) = f(1) + 1;
-    // f(3) = f(2) + 2;
-    // fn = f(n-1) + n - 1;
+    var points = [[1,1],[2,2],[3,3]];
+    console.log(maxPoints(points));
 </script>
 </body>
 </html>
