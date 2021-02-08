@@ -4416,7 +4416,455 @@ update () {
 计算属性本质上是computed watcher，而侦听属性本质上是user watcher。就应用场景而言，计算属性适合用在模版渲染中，某个值是
 依赖了其它的响应式对象甚至是计算属性计算而来；而侦听属性适用于观测某个值的变化去完成一段复杂的业务逻辑。
 
+## 组件更新
+```JavaScript
+updateComponent = () => {
+	vm._update(vm._render(), hydrating)
+}
 
+new Watcher(vm, updateComponent, noop, {
+	before () {
+		if (vm._isMounted) {
+			callHook(vm, 'beforeUpdate')
+		}
+	}
+}, true)
 
+// src/core/instance/lifecycle.js
+Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
+	const vm: Component = this
+	// ...
+	const prevVnode = vm._vnode
+	if (!prevVnode) {
+		// initial render
+		vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false)
+	} else {
+		// updates
+		vm.$el = vm.__patch__(prevVnode, vnode)
+	}
+	// ...
+}
+
+// src/core/vdom/patch.js
+return function patch(oldVnode, vnode, hydrating, removeOnly) {
+	if (isUndef(vnode)) {
+		if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
+		return
+	}
+	
+	let isInitialPatch = false
+	const insertedVnodeQueue = []
+	
+	if (isUndef(oldVnode)) {
+		// empty mount (likely as component), create new root element
+		isInitialPatch = true
+		createElm(vnode, insertedVnodeQueue)
+	} else {
+		const isRealElememnt = isDef(oldVnode.nodeType)
+		if (!isRealElement && sameVnode(oldVnode, vnode)) {
+			// patch existing root node
+			patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
+		} else {
+			if (isRealElement) {
+				// ...
+			}
+			
+			// 以当前旧节点为参考节点，创建新的节点，并插入到DOM中
+			// replacing existing element
+			const oldElm = oldVnode.elm
+			const parentElm = nodeOps.parentNode(oldElm)
+			
+			// create new node
+			createElm(
+				vnode,
+				insertedVnodeQueue,
+				// extremely rare edge case: do not insert if old element is in a
+				// leaving transition. Only happens when combining transition +
+				// keep-alive + HOCs. (#4590)
+				oldElm._leaveCb ? null : parentElm,
+				nodeOps.nextSibling(oldElm)
+			)
+			
+			// update parent placeholder node element, recursively
+			if (isDef(vnode.parent)) {
+				let ancestor = vnode.parent
+				const patchable = isPatchable(vnode)
+				while (ancestor) {
+					for (let i = 0; i < cbs.destroy.length; ++i) {
+						cbs.destroy[i](ancestor)
+					}
+					ancestor.elm = vnode.elm
+					if (patchable) {
+						for (let i = 0; i < cbs.create.length; ++i) {
+							cbs.create[i](emptyNode, ancestor)
+						}
+						// #6513
+						// invoke insert hooks that may have been merged by create hooks.
+						// e.g. for directives that uses the "inserted" hook.
+						const insert = ancestor.data.hook.insert
+						if (insert.merged) {
+							// start at index 1 to avoid re-invoking component mounted hook
+							for (let i = 1; i < insert.fns.length; i++) {
+								insert.fns[i]()
+							}
+						}
+					} else {
+						registerRef(ancestor)
+					}
+					ancestor = ancestor.parent
+				}
+			}
+			
+			// destroy old node
+			if (isDef(parentElm)) {
+				removeVnodes(parentElm, [oldVnode], 0, 0)
+			} else if (isDef(oldVnode.tag)) {
+				invokeDestroyHook(oldVnode);
+			}
+		}
+	}
+	
+	invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);
+	return vnode.elm;
+}
+
+//sameVnode
+
+function sameVnode(a, b) {
+	return (
+		a.key === b.key && (
+			(
+				a.tag === b.tag &&
+				a.isComment === b.isComment &&
+				isDef(a.data) === isDef(b.data) &&
+				sameInputType(a, b)
+			) || (
+				isTrue(a.isAsyncPlaceholder) &&
+				a.asyncFactory === b.asyncFactory &&
+				isUndef(b.asyncFactory.error)
+			)
+		)
+	)
+}
+
+// removeVnodes
+// 遍历待删除的vnodes做删除
+function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
+	for (; startIdx <= endIdx; ++startIdx) {
+		const ch = vnodes[startIdx]
+		if (isDef(ch)) {
+			if (isDef(ch.tag)) {
+				removeAndInvokeRemoveHook(ch)
+				invokeDestroyHook(ch)
+			} else {
+				removeNode(ch.elm)
+			}
+		}
+	}
+}
+
+// 从DOM中移除节点并执行module的remove钩子函数，并对它的子节点递归调用removeAndInvokeRemoveHook函数；
+// invokeDestroyHook是执行module的destory钩子函数以及vnode的destory钩子函数，并对它的子vnode递归调用
+// invokeDestroyHook函数；removeNode就是调用平台的DOM API去把真正的DOM节点移除
+function removeAndInvokeRemoveHook (vnode, rm) {
+	if (isDef(rm) || isDef(vnode.data)) {
+		let i
+		const listeners = cbs.remove.length + 1
+		if (isDef(rm)) {
+			// we have a recursively passed down rm callback
+			// increase the listeners count
+			rm.listeners += listeners
+		} else {
+			// directly removing
+			rm = createRmcb(vnode.elm, listeners)
+		}
+		// recursively invoke hooks on child component root node
+		if (isDef(i = vnode.componentInstance) && isDef(i = i._vnode) && isDef(i.data)) {
+			removeAndInvokeRemoveHook(i, rm)
+		}
+		for (i = 0; i < cbs.remove.length; ++i) {
+			cbs.remove[i](vnode, rm)
+		}
+		if (isDef(i = vnode.data.hook) && isDef(i = i.remove)) {
+			i(vnode, rm)
+		} else {
+			rm()
+		}
+	} else {
+		removeNode(vnode.elm)
+	}
+}
+
+function invokeDestroyHook (vnode) {
+	let i, j
+	const data = vnode.data
+	if (isDef(data)) {
+		if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
+		for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
+	}
+	if (isDef(i = vnode.children)) {
+		for (j = 0; j < vnode.children.length; ++j) {
+			invokeDestroyHook(vnode.children[j])
+		}
+	}
+}
+
+// destory
+// src/core/vdom/create-component.js
+const componentVNodeHooks = {
+	destroy (vnode: MountedComponentVNode) {
+		const { componentInstance } = vnode
+		if (!componentInstance._isDestroyed) {
+			if (!vnode.data.keepAlive) {
+				componentInstance.$destroy()
+			} else {
+				deactivateChildComponent(componentInstance, true)
+			}
+		}
+	}
+}
+
+//新旧节点相同
+// 调用 patchVNode
+// src/core/vdom.patch.js
+// patchVnode的作用就是把新的vnode patch到旧的vnode上
+function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+	if (oldVnode === vnode) {
+		return
+	}
+	
+	const elm = vnode.elm = oldVnode.elm
+	
+	if (isTrue(oldVnode.isAsyncPlaceholder)) {
+		if (isDef(vnode.asyncFactory.resolved)) {
+			hydrate(oldVnode.elm, vnode, insertedVnodeQueue)
+		} else {
+			vnode.isAsyncPlaceholder = true
+		}
+		return
+	}
+	
+	// reuse element for static trees.
+	// note we only do this if the vnode is cloned -
+	// if the new node is not cloned it means the render functions have been
+	// reset by the hot-reload-api and we need to do a proper re-render.
+	if (isTrue(vnode.isStatic) && 
+	isTrue(oldVnode.isStatic) &&
+	vnode.key === oldVnode.key && 
+	(isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
+	) {
+		vnode.componentInstance = oldVnode.componentInstance
+		return
+	}
+	
+	// 执行prepatch钩子函数
+	let i
+	const data = vnode.data
+	if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+		i(oldVnode, vnode)
+	}
+	
+	// 完成patch过程
+	// 如果vnode是个文本节点且新旧文本不相同，则直接替换文本内容。
+	// 如果不是文本节点，则判断它们的子节点
+	const oldCh = oldVnode.children
+	const ch = vnode.children
+	if (isDef(data) && isPatchable(vnode)) {
+		for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
+			if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
+	}
+	// 1.oldCh 与 ch都存在且不相等时，使用updateChildren 函数来更新节点
+	// 2. 如果只有ch存在，表示旧节点不需要了。如果旧的节点是文本节点则先将节点的文本清除，
+	if (isUndef(vnode.text)) {
+		if (isDef(oldCh) && isDef(ch)) {
+			if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
+		} else if (isDef(ch)) {
+			if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+			addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
+		} else if (isDef(oldCh)) {
+			removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+		} else if (isDef(oldCh)) {
+			removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+		} else if (isDef(oldVnode.text)) {
+			nodeOps.setTextContent(elm, '')
+		}
+	} else if (oldVnode.text !== vnode.text) {
+		nodeOps.setTextContent(elm, vnode.text)
+	}
+	if (isDef(data)) {
+		if (isDef(i = data.hook) && isDef(i = i.postpatch))
+		i(oldVnode, vnode)
+	}
+}
+
+// prepatch 的方法
+// src/core/vdom/create-component.js
+// 拿到新的vnode的组件配置以及组件实例，去执行updateChildComponent方法
+const componentVNodeHooks = {
+	prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
+		const options = vnode.componentOptions
+		const child = vnode.componentInstance = oldVnode.componentInstance
+		updateChildComponent(
+			child,
+			options.propsData, // updated props
+			options.listeners, // updated listeners
+			vnode, // new parent vnode
+			options.children // new children
+		)
+	}
+}
+
+// updateChildComponent
+// src/core/instance/lifecycle.js
+export function updateChildComponent (
+	vm: Component,
+	propsData: ?Object,
+	listeners: ?Object,
+	parentVnode: MountedComponentVNode,
+	renderChildren: ?Array<VNode>
+) {
+	if (process.env.NODE_ENV !== 'production') {
+		isUpdatingChildComponent = true
+	}
+	
+	// determine whether component has slot children
+	// we need to do this before overwriting $options._renderChildren
+	const hasChildren = !!(
+		renderChildren || 	//	has new static slots
+		vm.$options._renderChildren || 		//	has old static slots
+		parentVnode.data.scopedSlots || 	// has new scoped slots
+		vm.$scopedSlots !== emptyObject 	// has old scoped slots
+	)
+	
+	vm.$options._parentVnode = parentVnode
+	vm.$vnode = parentVnode // update vm's placeholder node without re-render
+	
+	if (vm._vnode) {	// update child tree's parent
+		vm._vnode.parent = parentVnode
+	}
+	vm.$options._renderChildren = renderChildren
+	
+	// update $attrs and $listeners hash
+	// these are also reactive so they may trigger child update if the child
+	// used them during render
+	vm.$attrs = parentVnode.data.attrs || emptyObject
+	vm.$listeners = listeners || emptyObject
+	
+	// update props
+	if (propsData && vm.$options.props) {
+		toggleObserving(false)
+		const props = vm._props
+		const propKeys = vm.$options._propKeys || []
+		for (let i = 0; i < propKeys.length; i++) {
+			const key = propKeys[i]
+			const propOptions: any = vm.$options.props // wtf flow?
+			props[key] = validateProp(key, propOptions, propsData, vm)
+		}
+		toggleObserving(true)
+		// keep a copy of raw propsData
+		vm.$options.propsData = propsData
+	}
+	
+	// update listeners
+	listeners = listeners || emptyObject
+	const oldListeners = vm.$options._parentListeners
+	vm.$options._parentListeners = listeners
+	updateComponentListeners(vm, listeners, oldListeners)
+	
+	// resolve slots + force update if has children
+	if (hasChildren) {
+		vm.$slots = resolveSlots(renderChildren, parentVnode.context);
+		vm.$forceUpdate()
+	}
+	
+	if (process.env.NODE_ENV !== 'production') {
+		isUpdatingChildComponent = false
+	}
+}
+
+// update钩子函数
+if (isDef(data) && isPatchable(vnode)) {
+	for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
+	if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
+}
+
+//updateChildren
+function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+	let oldStartIdx = 0
+	let newStartIdx = 0
+	let oldEndIdx = oldCh.length - 1
+	let oldStartVnode = oldCh[0]
+	let oldEndVnode = oldCh[oldEndIdx]
+	let newEndIdx = newCh.length - 1
+	let newStartVnode = newCh[0]
+	let newEndVnode = newCh[0]
+	let newEndVnode = newCh[newEndIdx]
+	let oldKeyToIdx, idxInOld, vnodeToMove, refElm
+	
+	// removeOnly is a special flag used only by <transition-group>
+	// to ensure removed elements stay in correct relative
+	// during leaving transitions
+	const canMove = !removeOnly
+	
+	if (process.env.NODE_ENV !== 'production') {
+		checkDuplicateKeys(newCh)
+	}
+	
+	while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+		if (isUndef(oldStartVnode)) {
+			oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
+		} else if (isUndef(oldEndVnode)) {
+			oldEndVnode = oldCh[--oldEndIdx]
+		} else if (sameVnode(oldStartVnode, newStartVnode)) {
+			patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
+			oldStartVnode = oldCh[++oldStartIdx]
+			newStartVnode = newCh[++newStartIdx]
+		} else if (sameVnode(oldEndVnode, newEndVnode)) {
+			patchVNODE(oldEndVnode, newEndVnode, insertedVnodeQueue)
+			oldEndVnode = oldCh[--oldEndIdx]
+			newEndVnode = newCh[--newEndIdx]
+		} else if (sameVnode(oldStartVnode, newEndVnode)) {
+			patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
+			canMove && nodeOps.insertBefore(parentElm, 
+			oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+			oldStartVnode = oldCh[++oldStartIdx]
+			newEndVnode = newCh[--newEndIdx]
+		} else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
+			patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
+			canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+			oldEndVnode = oldCh[--oldEndIdx]
+			newStartVnode = newCh[++newStartIdx]
+		} else {
+			if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh， oldStartIdx, oldEndIdx)
+			idxInOld = isDef(newStartVnode.key)
+			? oldKeyToIdx[newStartVnode.key]
+			: findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
+			if (isUndef(idxInOld)) { // New element
+				createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+			} else {
+				vnodeToMove = oldCh[idxInOld]
+				if (sameVnode(vnodeToMove, newStartVnode)) {
+					patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue)
+					oldCh[idxInOld] = undefined
+					canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+				} else {
+					createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+				}
+			}
+			newStartVnode = newCh[++newStartIdx]
+		}
+	}
+	if (oldStartIdx > oldEndIdx) {
+		refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
+		addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
+	} else if (newStartIdx > newEndIdx) {
+		removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
+	}
+}
+```
+
+组件更新的过程核心就是新旧vnode diff，对新旧节点相同以及不同的情况分别做不同的处理。新旧节点不同的更新流程是创建新节点
+->更新父占位符节点->删除旧节点；而新旧节点相同的更新流程是去获取它们的children，根据不同的情况做不同的更新逻辑。
+最复杂的情况是新旧节点相同且它们都存在子节点，那么会执行updateChildren逻辑。
 
 
