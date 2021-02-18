@@ -8,19 +8,32 @@
 <div id="time"></div>
 <script>
     /**
-     * @param {number[][]} points
-     * @return {number}
+     * @param {number[]} nums
+     * @param {number} k
+     * @param {number} t
+     * @return {boolean}
      */
-    var maxPoints = function(points) {
-        var num = 0;
-        var map = new Map();
-        for(var i = 0; i < points.length; i++){
 
+    var containsNearbyAlmostDuplicate = function(nums, k, t) {
+
+        let set = new Set()
+        for (let i = 0; i < nums.length; i++) {
+            for (let val of set) {
+                if (Math.abs(nums[i] - val) <= t) return true
+            }
+            set.add(nums[i])
+            if (set.size > k) set.delete(nums[i - k])
         }
+        return false
     };
 
-    var points = [[1,1],[2,2],[3,3]];
-    console.log(maxPoints(points));
+    var nums = [1,2,3,1], k = 3, t = 0;
+
+    // var nums = [1,0,1,1], k = 1, t = 2;
+
+    // var nums = [1,5,9,1,5,9], k = 2, t = 3
+
+    console.log(containsNearbyAlmostDuplicate(nums, k, t));
 </script>
 </body>
 </html>
