@@ -30,10 +30,40 @@ export default class Watcher {
         value = this.getter.call(vm, vm);
         return value;
     }
+	
+	addDep(dep) {
+		const id = dep.id;
+		if(!newDepIds.has(id)) {
+			this.newDepIds.add(id);
+			this.newDeps.push(dep);
+			if(!this.depIds.has(id)) {
+				dep.addSub(this);
+			}
+		}
+	}
 
     update() {
         queueWatcher(this)
     }
-
-
+	
+	run() {
+		const value = this.get()
+		
+		if(value !== this.value || isObject(value) || this.deep){
+			const oldValue = this.value
+			this.value = value
+			if (this.user) {
+				this.cb.call(this.vm, value, oldValue)
+			}
+		} else {
+			this.cb.call(this.vm, value, oldValue)
+		}
+	}
+	
+	depend() {
+		let i = this.deps.length
+		while(i--){
+			this.deps[i].depend()
+		}
+	}
 }
