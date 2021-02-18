@@ -4867,4 +4867,24 @@ function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly
 ->更新父占位符节点->删除旧节点；而新旧节点相同的更新流程是去获取它们的children，根据不同的情况做不同的更新逻辑。
 最复杂的情况是新旧节点相同且它们都存在子节点，那么会执行updateChildren逻辑。
 
+## 编译
+模版编译成render函数的过程叫编译
+虽然我们可以直接为组件编写render函数，但是编写template模版更加直观，也更符合我们的开发习惯
+Vue.js提供了2个版本，一个是Runtime + Compiler,一个是Runtime only，前者是包含编译代码的，可以把
+编译过程放在运行时做，后者是不包含编译代码的，需要借助webpack的vue-loader事先把模版编译成render函数
 
+### 编译入口
+
+../platforms/web/entry-runtime-with-compiler.js
+compileToFunctions
+
+Vue.js在不同的平台下都会有编译的过程，因此编译过程中的依赖的配置baseOptions会有所不同
+Vue.js利用了函数柯里化的技巧很好的实现了baseOptions的参数保留。同样，Vue.js也是利用
+柯里化技巧把baseCompile函数抽出来，把真正编译的过程和其它逻辑如对编译配置处理、缓存处理等剥离开
+
+ast是用一个javascript对象对节点进行描述的一种抽象语法树的树状表现形式
+是一个
+```JavaScript
+//parse
+
+```

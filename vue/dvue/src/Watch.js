@@ -12,7 +12,7 @@ export default class Watcher {
     newDepIds: Set;
     getter: Function;
     value: any;
-
+	
     constructor(vm: Component){
         this.vm = vm;
 

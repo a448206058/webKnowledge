@@ -42,7 +42,19 @@ ViewModel是怎么实现这一过程的呢？
 			
 ## 造轮子系列： 响应式原理
 ### 什么是响应式？
-    就是数据发生变化能够马上知晓并发生变更。
+	响应式原理的核心就是观测数据的变化，数据发生变化以后能通知到对应的观察者来执行相关的逻辑。
+	核心就是Dep，它是连接数据和观察者的桥梁。
+	
+	data/props:	defineReactive
+	
+	computed: computed watcher 	
+				(depend)->		
+				(notify)->		Dep ➡️（depend) getter ➡（notify）setter️
+								⬇️（update) ⬇️（addDep)
+	watch: 						user watcher (run)-> user callback
+								⬇️（update) ⬇️（addDep)
+	mount: 						render watcher (run)-> updateComponent
+	
     
     
 ### 怎么实现？
@@ -151,10 +163,11 @@ ViewModel是怎么实现这一过程的呢？
 定义一个Dep
 Dep主要是干什么呢  主要用来进行依赖收集 也就是管理watch
 需要哪些东西呢？
+```JavaScript
 // Dep 的核心是 notify
 // 通过自定义数组subs进行控制
 // 主要实现 addSub removeSub 循环遍历subs 去通知watch 更新
-```JavaScript
+
 let uid = 0;
 
 export default Class Dep {
@@ -184,6 +197,7 @@ export default Class Dep {
 	}
 }
 ```
+
 
 然后再用一个Watcher类去进行依赖收集,用Dep进行管理，先不写那么深
 继续往下走，想set触发更新的时候，通知页面进行刷新

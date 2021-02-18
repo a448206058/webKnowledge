@@ -8,32 +8,89 @@
 <div id="time"></div>
 <script>
     /**
-     * @param {number[]} nums
-     * @param {number} k
-     * @param {number} t
-     * @return {boolean}
+     * Definition for singly-linked list.
+     * function ListNode(val, next) {
+     *     this.val = (val===undefined ? 0 : val)
+     *     this.next = (next===undefined ? null : next)
+     * }
      */
-
-    var containsNearbyAlmostDuplicate = function(nums, k, t) {
-
-        let set = new Set()
-        for (let i = 0; i < nums.length; i++) {
-            for (let val of set) {
-                if (Math.abs(nums[i] - val) <= t) return true
-            }
-            set.add(nums[i])
-            if (set.size > k) set.delete(nums[i - k])
-        }
-        return false
+	function ListNode(val, next) {
+		 var head = {};
+	     head.val = (val===undefined ? 0 : val)
+	     head.next = (next===undefined ? null : next)
+		 return head
+	}
+	
+	function creatrLink(arr){
+		if(arr.length === 0) {
+			return null;
+		}
+		var head = new ListNode(arr[0]);
+		var curNode = head;
+		for (var i = 1; i < arr.length; i++){
+			curNode.next = new ListNode(arr[i]);
+			curNode = curNode.next;
+		}
+		return head;
+	}
+	
+	function printLink(head){
+		var curNode = head;
+		while(curNode != null) {
+			console.log(curNode.val)
+			curNode = curNode.next;
+		}
+	}
+    /**
+     * @param {ListNode} head
+     * @param {number} m
+     * @param {number} n
+     * @return {ListNode}
+     */
+    var reverseBetween = function(head, m, n) {
+        var nums = 0;
+		head = creatrLink(head);
+		
+		var prev = null;
+		var cur;
+		
+		var curNode = head;
+		while(curNode != null) {
+			// debugger
+			if(nums+1 === m - 1) {
+				prev = new ListNode(curNode.val, curNode.next);
+				console.log(prev)
+			}
+			if(nums+1 > m && nums+1 < n){
+				cur = JSON.parse(JSON.stringify(curNode));
+				
+				var next = cur.next;
+				
+				cur.next = prev;
+				prev = cur;
+				cur = next;
+			}
+			if(nums+1 === n){
+				
+			}
+			console.log(curNode.val)
+			curNode = curNode.next;
+			nums++;
+		}
+		console.log(prev)
+		// while(cur != null){
+		// 	var next = cur.next;
+			
+		// 	cur.next = prev;
+		// 	prev = cur;
+		// 	cur = next;
+		// }
+		// return prev;
     };
-
-    var nums = [1,2,3,1], k = 3, t = 0;
-
-    // var nums = [1,0,1,1], k = 1, t = 2;
-
-    // var nums = [1,5,9,1,5,9], k = 2, t = 3
-
-    console.log(containsNearbyAlmostDuplicate(nums, k, t));
+	var head = [1,2,3,4,5],
+	m = 2,
+	n = 4;
+	console.log(reverseBetween(head, m, n))
 </script>
 </body>
 </html>
