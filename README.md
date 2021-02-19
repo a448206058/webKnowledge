@@ -11,14 +11,16 @@
 本文很多学习路径是参考ssh大佬的(https://github.com/sl1673495/frontend-advantage-roadmap
 )。
 
+
+
+Node： [here](./node/node.md) # It works!  
+
+设计模式： [here](./升阶/设计模式.md) # It works!  
+
 日常学习主要有：
-	github 不用多说来
+
+	github
 	InfoQ 最近关注到的 文章质量普遍较高
 	掘金
 	知乎
-
-图灵社区：https://m.ituring.com.cn/
-
-Node学习自 朴灵大佬的深入浅出node.js
-
-设计模式学习自 增探大佬的JavaScript设计模式与开发实践
+	图灵社区：https://m.ituring.com.cn/

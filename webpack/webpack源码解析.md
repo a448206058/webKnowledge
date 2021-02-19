@@ -470,24 +470,131 @@ Tapable作为webpack底层事件流库，最终事件触发后的执行，是先
 相比于我们平时直接遍历或者递归的调用每一个事件来说，这种执行方法效率上来说更搞笑；
 
 ## resolve
-```flow
+webpack编译
 
-st=>start: 开始框
+    webpack配置处理
+        错误检查、增加默认配置等
+    编译前的准备工作
+        处理webpack配置中的plugin、webpack自己的一堆plugin、初始化compiler等
+    开始编译主入口
+    resolve阶段：解析文件路径&loaders
+        将文件的绝对路径解析出；同时解析出inline和我们配置在webpack.config.js匹配的
+        loaders,将loaders解析为固定的格式以及loaders执行文件路径
+    loaders逐个执行
+    parse阶段
+        文件转为ast树，解析出import和export等
+    递归处理依赖
+    module一些优化&增加id
+    生成chunk，决定每个chunk中包含的module
+    生成文件
+        根据模板生成文件名称；生成文件，这里会再次用到前面parse阶段的内容，将'import xxx'/export xxx
+        替换成webpack的写法 
+    写文件。结束
 
-op=>operation: 处理框
+webpack源码中resolve流程开始的入口在factory阶段
+factory事件会触发NormalModuleFactory中的函数
 
-cond=>condition: 判断框(是或否?)
+    factory->获取resolve执行函数->解析出行内loader
+                                获取loaderResolver  -> 解析loader路径
+                                普通文件request
+                                获取normalResolver  -> 解析文件路径
 
-sub1=>subroutine: 子流程
+```JavaScript                              
+//normalModuleFactory.js
+    this.hooks.factory.tap("NormalModuleFactory", () => (result, callback) => {
+        // 首先得到 resolver
+        let resolver = this.hooks.resolver.call(null);
 
-io=>inputoutput: 输入输出框
+        // Ignored
+        if (!resolver) return callback();
 
-e=>end: 结束框
+        // 执行
+        resolver(result, (err, data) => {
+            if (err) return callback(err);
 
-st->op->cond
+            // Ignored
+            if (!data) return callback();
+            
+            // direct module
+            if (typeof data.source === "function") return callback(null, data);
 
-cond(yes)->io->e
-
-cond(no)->sub1(right)->op
-
+            this.hooks.afterResolve.callAsync(data, (err, result) => {
+                    //... resolve 结束流程
+            });
+        });
+    });
 ```
+resolver函数中，从整体看分为俩大主要流程loader和文件
+loader流程
+1.获取到inline loader 的request部分，从中解析出路径
+2.得到loader类型的resolver处理实例，即const loaderResolver = this.getResolver("loader");
+3.对每一个loader用loaderResolver依次处理，得到执行文件的路径。
+
+文件流程
+1.得到普通文件的resolver处理实例，即代码 const normalResolver = this.getResolver("normal", data.resolveOptions);
+2.用normalResolver处理文件，得到最终文件绝对路径
+
+```JavaScript
+
+this.hooks.resolver.tap("NormalModuleFactory", () => (data, callback) => {
+    const contextInfo = data.contextInfo;
+    const context = data.context;
+    const request = data.request;
+    
+    // 处理 inline loaders，拿到 loader request 部分
+    let elements = request
+                    .replace(/^-?!+/, "")
+                    .replace(/!!+/g, "!")
+                    .split("!")
+    let resource = elements.pop();
+    // 提取出具体的loader
+    elements = elements.map(identToLoaderRequest);
+
+    const loaderResolver = this.getResolver("loader");
+    const normalResolver = this.getResolver("normal", data.resolveOptions);
+
+    asyncLib.parallel(
+        [
+            callback =>
+                this.resolveRequestArray(
+                    contextInfo,
+                    context,
+                    elements,
+                    loaderReslver,
+                    callback
+                ),
+            callback => {
+                if (resource === "" || resource[0] === "?") {
+                    return callback(null, {
+                        resource
+                    });
+                }
+    
+                normalResolver.resolve(
+                    contextInfo,
+                    context,
+                    resource,
+                    {},
+                    (err, resource, resourceResolveData => {
+                        if (err) return callback(err);
+                        callback(null, {
+                            resourceResolveData,
+                            resource
+                        })
+                    });
+                )
+            }
+        ],
+        (err, results) => {
+            // ... resolver callback
+        })
+    )
+})
+```
+webpack中的options配置
+在WebpackOptionsDefaulter()配置了很多关于resolve和resolveLoader的配置
+
+普通文件的resolver过程
+普通文件resolver处理入口为webpack中normalResolver.resolve方法，而整个resolve过程可以看成事件的串联，
+当所有串联在一起的事件执行完之后，resolve就结束了
+
