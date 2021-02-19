@@ -20,7 +20,7 @@
 	     head.next = (next===undefined ? null : next)
 		 return head
 	}
-	
+
 	function creatrLink(arr){
 		if(arr.length === 0) {
 			return null;
@@ -33,7 +33,7 @@
 		}
 		return head;
 	}
-	
+
 	function printLink(head){
 		var curNode = head;
 		while(curNode != null) {
@@ -49,48 +49,91 @@
      */
     var reverseBetween = function(head, m, n) {
         var nums = 0;
+        console.log(head)
 		head = creatrLink(head);
-		
+		console.log(head)
+
 		var prev = null;
 		var cur;
-		
+		var last = null;
+
 		var curNode = head;
 		while(curNode != null) {
 			// debugger
-			if(nums+1 === m - 1) {
-				prev = new ListNode(curNode.val, curNode.next);
-				console.log(prev)
+			if(nums + 1 < m) {
+                if(!last){
+                    last = new ListNode(curNode.val, curNode.next.val);
+                }else{
+                    last.next = new ListNode(curNode.val, curNode.next.val);
+                }
 			}
-			if(nums+1 > m && nums+1 < n){
-				cur = JSON.parse(JSON.stringify(curNode));
-				
-				var next = cur.next;
-				
-				cur.next = prev;
-				prev = cur;
-				cur = next;
+			if(nums === n){
+                prev = new ListNode(curNode.val, curNode.next);
 			}
-			if(nums+1 === n){
-				
-			}
-			console.log(curNode.val)
 			curNode = curNode.next;
 			nums++;
 		}
-		console.log(prev)
-		// while(cur != null){
-		// 	var next = cur.next;
-			
-		// 	cur.next = prev;
-		// 	prev = cur;
-		// 	cur = next;
-		// }
-		// return prev;
+        nums = 0;
+        curNode = head;
+        while(curNode != null) {
+            if(nums+1 >= m && nums+1 <= n){
+                cur = JSON.parse(JSON.stringify(curNode));
+                var next = cur.next;
+                cur.next = prev;
+                prev = cur;
+                cur = next;
+            }
+            curNode = curNode.next;
+            nums++;
+        }
+        last.next.next = cur;
+        last.next = prev;
+        return last;
     };
-	var head = [1,2,3,4,5],
-	m = 2,
-	n = 4;
-	console.log(reverseBetween(head, m, n))
+
+
+    /**
+     * Definition for singly-linked list.
+     * function ListNode(val) {
+     *     this.val = val;
+     *     this.next = null;
+     * }
+     */
+    /**
+     * @param {ListNode} head
+     * @param {number} m
+     * @param {number} n
+     * @return {ListNode}
+     */
+    var reverseBetween = function(head, m, n) {
+        head = creatrLink(head);
+        let dummy = new ListNode(0);
+        dummy.next = head;
+        let tmpHead = dummy;
+        // 找到第m-1个链表节点
+        for(let i = 0;i < m - 1;i++){
+            tmpHead = tmpHead.next;
+        }
+        // 206题解法一
+        let prev = null;
+        let curr = tmpHead.next;
+        for(let i = 0;i <= n - m;i++){
+            let next = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = next;
+        }
+        console.log(prev)
+        // 将翻转的部分链表 和 原链表拼接
+        tmpHead.next.next = curr;
+        tmpHead.next = prev;
+        return dummy.next;
+    };
+
+    var head = [1,2,3,4,5,6],
+        m = 2,
+        n = 4;
+    console.log(reverseBetween(head, m, n))
 </script>
 </body>
 </html>

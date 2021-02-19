@@ -209,6 +209,26 @@ export default class Watcher {
 
 
 好了，简单的实现了响应式，但是如何把响应的数据动态的绑定到页面上去呢？
+主要是通过render watcher的updateComponent方法
+updateComponent
+updateComponent = () => {
+	vm._update(vm._render(), hydrating)
+}
+
+Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
+	const vm: Component = this
+	// ...
+	const prevVnode = vm._vnode
+	if (!prevVnode) {
+		// initial render
+		vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false)
+	} else {
+		// updates
+		vm.$el = vm.__patch__(prevVnode, vnode)
+	}
+	// ...
+}
+
 我们在下一章继续探讨。
 
 ## 造轮子系列： 数据渲染

@@ -468,3 +468,26 @@ BasicHook                       BallHook        WaterfallHook   LoopHook
 ## 总结
 Tapable作为webpack底层事件流库，最终事件触发后的执行，是先动态生成执行的code，然后通过new Function来执行。
 相比于我们平时直接遍历或者递归的调用每一个事件来说，这种执行方法效率上来说更搞笑；
+
+## resolve
+```flow
+
+st=>start: 开始框
+
+op=>operation: 处理框
+
+cond=>condition: 判断框(是或否?)
+
+sub1=>subroutine: 子流程
+
+io=>inputoutput: 输入输出框
+
+e=>end: 结束框
+
+st->op->cond
+
+cond(yes)->io->e
+
+cond(no)->sub1(right)->op
+
+```
