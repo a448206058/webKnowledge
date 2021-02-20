@@ -597,4 +597,125 @@ webpack中的options配置
 普通文件的resolver过程
 普通文件resolver处理入口为webpack中normalResolver.resolve方法，而整个resolve过程可以看成事件的串联，
 当所有串联在一起的事件执行完之后，resolve就结束了
+```JavaScript
+doResolve(hook, request, message, resolveContext, callback) {
+    // 生成 context 栈
+    const stackLine = hook.name + ": (" + request.path + ")" +
+                (request.request || "") + (request.query || "") +
+                (request.directory ? " directory" : "") +
+                (request.module ? " module" : "");
 
+    let newStack;
+    if(resolveContext.stack) {
+        newStack = new Set(resolveContext.stack);
+        if(resolveContext.stack.has(stackLine)) {
+            // Prevent recursion
+            const recursionError = new Error("Recursion in resolving\nStack:\n " + Array.from(newStack).join("\n "));
+            recursionError.recursion = true;
+            if(resolveContext.log) resolveContext.log("abort resolving because of recursion");
+            return callback(recursionError);
+        }
+        newStack.add(stackLine);
+    } else {
+        newStack = new Set([stackLine]);
+    }
+    this.hooks.resolveStep.call(hook, request);
+    
+    // 如果该hook有注册过事件，则调触发该hook
+    if(hook.isUsed()) {
+        const innerContext = createInnerContext({
+            log: resolveContext.log,
+            missing: resolveContext.missing,
+            stack: newStack
+        }, message);
+        return hook.callAsync(request, innerContext, (err, result) => {
+            if(err) return callback(err);
+            if(result) return callback(null, result);
+            callback();
+        });
+    } else {
+        callback();
+    }
+}
+
+// 调用到hook.callAsync时，进入UnsafeCachePlugin
+//分为俩部分：事件注册和事件执行
+class UnsafeCachePlugin {
+    constructor(source, filterPredicate, cache, withContext, target) {
+        this.source = source;
+        this.target = target;
+    }
+    apply(resolver) {
+        // ensureHook主要逻辑：如果resolver已经有对应的hook则返回；如果没有，则会给resolver增加一个this.target类型的hook
+        const target = resolver.ensureHook(this.target);
+        // getHook会根据this.source字符串获取对应的hook
+        resolver.getHook(this.source).tapAsync("UnsageCachePlugin", (request, resolveContext, callback) => {
+            //... 先省略 UnsafeCache中其它逻辑，只看衔接部分
+            // 继续调用 doResolve,但是注意这里的target
+            resolver.doResolve(target, request, null, resolveContext, (err, result) => {
+                if(err) return callback(err);
+                if(result) return callback(null, this.cache[cacheId] = result);
+                callback();
+            });
+        });
+    }
+}
+```
+事件执行阶段，递归地阿偶用resolver.doResolve形成事件流
+```JavaScript
+exports.createResolver = function(options) {
+    // 根据options中条件的不同，加入各种plugin
+    if(unsafeCache) {
+        plugins.push(new UnsafeCachePlugin("resolve", cachePredicate, unsafeCache, cacheWithContext, "new-resolve"));
+        plugins.push(new ParsePlugin("new-resolve", "parsed-resolve"));
+    } else {
+        plugins.push(new ParsePlugin("resolve", "parsed-resolve"));
+    }
+
+    plugins.forEach(plugin => {
+        plugin.apply(resolver);
+    });   
+}
+```
+1.UnsafeCachePlugin
+增加一层缓存，提高效率，会默认启用
+2.ParsePlugin
+初步解析路径
+3.DescriptionFilePlugin和NextPlugin
+DescriptionFilePlugin寻找描述文件，默认会寻找package.json。
+首先会在request.path目录下寻找，没有则一层层往上
+nextPlugin起衔接作用，内部逻辑就是直接调用doResolve
+4.AliasPlugin/AliasFieldPlugin
+处理别名
+5.ModuleKindPlugin
+根据request.module的值走不同的分支
+6.JoinRequestPlugin
+将request中path和request合并起来
+7.DescriptionFilePlugin
+8.FileKindPlugin
+判断是否为一个directory
+9.TryNextPlugin/ConcordExtensionsPlugin/AppendPlugin
+10.AliasPlugin/AliasFields/ConcorModulesPlugin/SymlinkPlugin
+11.FileExistsPlugin
+读取request.path所在的文件，看文件是否存在。
+12.NextPlugin/ResultPlugin
+request保存了resolve的结果
+
+module的resolve过程
+1.ModuleAppendPlugin/TryNextPlugin
+2.ModulesInHierachicDirectoriesPlugin/ModulesInRootPlugin
+3.与普通文件resolve过程分叉点
+4.DirectoryExistsPlugin
+5.MainFieldPlugin
+6.UseFilePlugin
+7.DescriptionFilePlugin/TryNextPlugin
+8.AppendPlugin
+
+loader的resolve过程
+
+从原理到优化
+利用resolve配置来减少文件搜索范围
+1.使用resolve.alias
+2.设置resolve.modules
+3.对第三方模块设置resolve.alias
+4.合理设置resolve.extensions，减少文件查找

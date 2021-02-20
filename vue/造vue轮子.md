@@ -159,6 +159,63 @@ ViewModel是怎么实现这一过程的呢？
 	return dVue;
 })
 ```
+接下来用Observer类来拆分循环判断
+```JavaScript
+// 定义一个Observer.js
+class Observer {
+    constructor(value) {
+        this.value = value;
+        if(Array.isArray(value)){
+            this.observeArray(value);
+        } else {
+            this.walk(value);
+        }
+    }
+
+    walk(obj) {
+        const keys = Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            this.defineReactive(obj, keys[i]);
+        }
+    }
+
+    observeArray(items) {
+        for (let i = 0; i < items.length; i++){
+            observe(items[i])
+        }
+    }
+
+    defineReactive(object, key) {
+        Object.defineProperty(object, key, {
+            get() {},
+            set(newValue) {console.log('监听到变化')}
+        });
+    }
+}
+
+//index.js
+import Observer from './Observer';
+
+(function(global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ?
+		module.exports = factory :
+		typeof define === 'function' && define.amd ?
+		define(factory) :
+		(global.dVue = factory())
+})(this, function() {
+	'use strict'
+
+	function dVue(option) {
+		var vue = Object.create(option);
+		vue._data = option.data;
+		Observer(vue._data);
+		return vue;
+	}
+	
+	// function updateDOM() {}
+	return dVue;
+})
+```
 
 定义一个Dep
 Dep主要是干什么呢  主要用来进行依赖收集 也就是管理watch
