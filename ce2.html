@@ -41,99 +41,35 @@
 			curNode = curNode.next;
 		}
 	}
+
     /**
      * @param {ListNode} head
-     * @param {number} m
-     * @param {number} n
+     * @param {number} x
      * @return {ListNode}
      */
-    var reverseBetween = function(head, m, n) {
-        var nums = 0;
-        console.log(head)
-		head = creatrLink(head);
-		console.log(head)
-
-		var prev = null;
-		var cur;
-		var last = null;
-
-		var curNode = head;
-		while(curNode != null) {
-			// debugger
-			if(nums + 1 < m) {
-                if(!last){
-                    last = new ListNode(curNode.val, curNode.next.val);
-                }else{
-                    last.next = new ListNode(curNode.val, curNode.next.val);
-                }
-			}
-			if(nums === n){
-                prev = new ListNode(curNode.val, curNode.next);
-			}
-			curNode = curNode.next;
-			nums++;
-		}
-        nums = 0;
-        curNode = head;
-        while(curNode != null) {
-            if(nums+1 >= m && nums+1 <= n){
-                cur = JSON.parse(JSON.stringify(curNode));
-                var next = cur.next;
-                cur.next = prev;
-                prev = cur;
-                cur = next;
-            }
-            curNode = curNode.next;
-            nums++;
-        }
-        last.next.next = cur;
-        last.next = prev;
-        return last;
-    };
-
-
-    /**
-     * Definition for singly-linked list.
-     * function ListNode(val) {
-     *     this.val = val;
-     *     this.next = null;
-     * }
-     */
-    /**
-     * @param {ListNode} head
-     * @param {number} m
-     * @param {number} n
-     * @return {ListNode}
-     */
-    var reverseBetween = function(head, m, n) {
+    var partition = function(head, x) {
         head = creatrLink(head);
-        let dummy = new ListNode(0);
-        dummy.next = head;
-        let tmpHead = dummy;
-        // 找到第m-1个链表节点
-        for(let i = 0;i < m - 1;i++){
-            tmpHead = tmpHead.next;
+        let small = new ListNode(0);
+        const smallHead = small;
+        let large = new ListNode(0);
+        const largeHead = large;
+        while (head !== null) {
+            if (head.val < x) {
+                small.next = head;
+                small = small.next;
+            } else {
+                large.next = head;
+                large = large.next;
+            }
+            head = head.next;
         }
-        // 206题解法一
-        let prev = null;
-        let curr = tmpHead.next;
-        for(let i = 0;i <= n - m;i++){
-            let next = curr.next;
-            curr.next = prev;
-            prev = curr;
-            curr = next;
-        }
-        console.log(prev)
-        // 将翻转的部分链表 和 原链表拼接
-        tmpHead.next.next = curr;
-        tmpHead.next = prev;
-        return dummy.next;
+        large.next = null;
+        small.next = largeHead.next;
+        return smallHead.next;
     };
 
-    var head = [1,2,3,4,5,6],
-        m = 2,
-        n = 4;
-    console.log(reverseBetween(head, m, n))
+    var head = [1,4,3,2,5,2], x = 3;
+    console.log(partition(head, x))
 </script>
 </body>
 </html>
