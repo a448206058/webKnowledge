@@ -11,11 +11,20 @@
 本文很多学习路径是参考ssh大佬的(https://github.com/sl1673495/frontend-advantage-roadmap
 )。
 
+进阶：
 
+代码规范： [链接地址](./升阶/代码规范.md)  
 
-Node： [here](./node/node.md) # It works!  
+开发思想： [链接地址](./升阶/开发思想.md)
 
-设计模式： [here](./升阶/设计模式.md) # It works!  
+异常处理：[链接地址](./升阶/异常处理.md)
+
+插件机制：[链接地址](./升阶/插件机制.md)
+
+设计模式： [链接地址](./升阶/设计模式.md)
+
+Node： [链接地址](./node/node.md)  
+
 
 日常学习主要有：
 
