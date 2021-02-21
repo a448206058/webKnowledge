@@ -4877,14 +4877,792 @@ Vue.js提供了2个版本，一个是Runtime + Compiler,一个是Runtime only，
 
 ../platforms/web/entry-runtime-with-compiler.js
 compileToFunctions
+把模版template编译生成render以及staticRenderFns
+```JavaScript
+const { render, staticRenderFns } = compileToFunctions(template, {
+	shouldDecodeNewlines,
+	shouldDecodeNewlinesForHref,
+	delimiters: options.delemiters,
+	comments: options.comments
+}, this)
+options.render = render
+options.staticRenderFns = staticRenderFns
+
+
+```
+staticRenderFns
+	src/platforms/web/compiler/index.js
+compileToFunctions实际上是createCompiler方法的返回值
+```Javascript
+import { baseOptions } from './options'
+import { createCompiler } from 'compiler/index'
+
+const { compiler, compilerToFunctions } = createCompiler(baseOptions)
+
+export {compile, compileToFunctions }
+```
+createCompiler
+实际上是通过调用createCompilerCreator方法返回的，该方法传入的参数是一个函数，真正的编译过程都在这个baseCompile
+函数里执行
+```JavaScript
+// createCompilerCreator allows creating compulers that use alternative
+// parse/optimizer/codegen, e.g the SSR optimizing compiler.
+// Here we just export a default compiler using the default parts
+export const createCompiler = createCompilerCreator(function baseCompile(
+	template: string,
+	options: CompilerOptions
+): CompiledResult {
+	const ast = parse(template.trim(), options)
+	if (options.optimize !== false) {
+		optimize(ast, options)
+	}
+	const code = generate(ast, options)
+	return {
+		ast,
+		render: code.render,
+		staticRenderFns: code.staticRenderFns
+	}
+})
+```
+createCompilerCreator
+src/compiler/create-compiler.js
+该方法返回了一个createCompiler函数，它接收一个baseOptions的参数，返回的是一个对象，包括compile方法属性
+和compileToFunctions属性
+```JavaScript
+export function createCompilerCreator(baseCompile: Function): Function{
+	return function createCompiler (baseOptions: CompilerOptions) {
+		function compile(
+			template: string,
+			options?: CompilerOptions
+		): CompiledResult {
+			const finalOptions = Object.create(baseOptions)
+			const errors = []
+			const tips = []
+			finalOptions.warn = (msg, tip) => {
+				(tip ? tips : errors).push(msg)
+			}
+			
+			if (options) {
+				// merge custom modules
+				if (options.modules) {
+					finalOptions.modules = 
+						(baseOptions.modules || []).concat(options.modules)
+				}
+				// merge custom directives
+				if (options.directives) {
+					finalOptions.directives = extend(
+						Object.create(baseOptions.directives || null),
+						options.directives
+					)
+				}
+				// copy other options
+				for (const key in options) {
+					if (key !== 'modules' && key !== 'directives') {
+						finalOptions[key] = options[key]
+					}
+				}
+			}
+			
+			const compiled = baseCompile(template, finalOptions)
+			if (process.env.NODE_ENV !== 'production') {
+				errors.push.apply(errors, detectErrors(compiled.ast))
+			}
+			compiled.errors = errors
+			compiled.tips = tips
+			return compiled
+		}
+		
+		return {
+			compile,
+			compileToFunctions: createCompileToFunctionFn(compile)
+		}
+	}
+}
+```
+createCompileToFunctionFn
+src/compiler/to-function/js
+
+接收三个参数、编译模版 templage,编译配置 options和Vue实例 vm
+```JavaScript
+export function createCompileToFunctionFn (compile: Function):Function {
+	const cache = Object.create(null)
+	
+	return function compileToFunctions (
+		template: string,
+		options?: CompilerOptions,
+		vm?: Component
+	): CompiledFunctionResult {
+		options = extend({}, options)
+		const warn = options.warn || baseWarn
+		delete options.warn
+		
+		/* istanbul ignore if */
+		if (process.env.NODE_ENV !== 'production') {
+			// delect possible CSP restriction
+			try {
+				new Function('return 1')
+			} catch (e) {
+				if (e.toString().match(/unsafe-eval|CSP/)) {
+					warn(
+						'It seems you are using the standalone build of Vue.js in an ' +
+						'environment with Content Security Policy that prohibits unsafe-eval. ' +
+						'The template compiler cannnot work in this environment. Consider ' +
+						'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
+						'templates into render functions.'
+					)
+				}
+			}
+		}
+		
+		// check cache
+		const key = options.delimiters
+			? String(options.delimiters) + template
+			: template
+		if (cache[key]) {
+			return cache[key]
+		}
+		
+		// compile
+		// 核心代码
+		const compiled = compile(template, options)
+		
+		// check compilation errors/tips
+		if (process.env.NODE_ENV !== 'production') {
+			if (compiled.errors && compiled.errors.length) {
+				warn(
+					`Error compiling template: \n\n${template}\n\n` + 
+					compiled.errors.map(e => `- ${e}`).join('\n') + '\n',
+					vm
+				)
+			}
+			if (compiled.tips && compiled.tips.length) {
+				compiled.tips.forEach(msg => tip(msg, vm))
+			}
+		}
+		
+		// turn code into functions
+		const res = {}
+		const fnGenErrors = []
+		res.render = createFunction(compiled.render, fnGenErrors)
+		res.staticRenderFns = compiled.staticRenderFns.map(code => {
+			return createFunction(code, fnGenErrors)
+		})
+		
+		// check function generation errors.
+		// this should only happen if there is a bug in the compiler itself.
+		// mostly for codegen development use
+		/* instanbul ignore if */
+		if (process.env.NODE_ENV !== 'production') {
+			if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
+				warn(
+					`Failed to generate render function:\n\n` +
+					fnGenErrors.map(({err, code}) => `${err.toString()} in \n\n${code}\n`).join('\n'),
+					vm
+				)
+			}
+		}
+		
+		return (cache[key] = res)
+	}
+}
+
+function compile(
+	template: string,
+	options?: CompilerOptions
+): CompiledResult{
+	const finalOptions = Object.create(baseOptions)
+	const errors = []
+	const tips = []
+	finalOptions.warn = (msg, tip) => {
+		(tip ? tips: errors).push(msg)
+	}
+	
+	if (options) {
+		// merge custom modules
+		if (options.modules) {
+			finalOptions.modules = 
+				(baseOptions.modules || []).concat(options.modules)
+		}
+		// merge custom directives
+		if (options.directives) {
+			finalOptions.directives = extend(
+				Object.create(baseOptions.directives || null),
+				options.directives
+			)
+		}
+		// copy other options
+		for (const key in options) {
+			if (key !== 'modules' && key !== 'directives') {
+				finalOptions[key] = options[key]
+			}
+		}
+	}
+	//执行编译
+	const compiled = baseCompile(template, finalOptions)
+	if (process.env.NODE_ENV !== 'production') {
+		errors.push.apply(errors, detectErrors(compiled.ast))
+	}
+	compiled.errors = errors
+	compiled.tips = tips
+	return compiled
+}
+
+// baseCompile在执行createCompilerCreator方法时作为参数传入
+export const createCompiler = createCompilerCreator(function baseCompiler(
+	template: string,
+	options: CompilerOptions
+): CompiledResult{
+	// 解析模版字符串生成ast
+	const ast = parse(template.trim(), options)
+	// 优化语法树
+	optimize(ast, options)
+	// 生成代码
+	const code = generate(ast, options)
+	return {
+		ast,
+		render: code.render,
+		staticRenderFns: code.staticRenderFns
+	}
+})
+```
 
 Vue.js在不同的平台下都会有编译的过程，因此编译过程中的依赖的配置baseOptions会有所不同
 Vue.js利用了函数柯里化的技巧很好的实现了baseOptions的参数保留。同样，Vue.js也是利用
 柯里化技巧把baseCompile函数抽出来，把真正编译的过程和其它逻辑如对编译配置处理、缓存处理等剥离开
 
 ast是用一个javascript对象对节点进行描述的一种抽象语法树的树状表现形式
-是一个
-```JavaScript
-//parse
 
+parse
+src/compiler/parser/index.js
+```JavaScript
+export function parse(
+	template: string,
+	options: CompilerOptions
+): ASTElement | void {
+	// 从options中获取方法和配置
+	getFnsAndConfigFromOptions(options)
+	
+	parseHTML(template, {
+		// options ...
+		start (tag, attrs, unary) {
+			let element = createASTElement(tag, attrs)
+			processElement(element)
+			treeManagement()
+		},
+		
+		end () {
+			treeManagement()
+			closeElement()
+		},
+		
+		chars (text: string) {
+			handleText()
+			createChildrenASTOfText()
+		},
+		comment(text: string) {
+			createChildrenASTOfComment()
+		}
+	})
+	return astRootElement
+}
+
+//options
+// src/platforms/web/compiler/options
+import{
+	isPreTag,
+	mustUseProp,
+	isReservedTag,
+	getTagNamespace
+} from '../util/index'
+
+import modules from './modules/index'
+import directives from './directives/index'
+import { genStaticKeys } from 'shared/util'
+import { isUnaryTag, canBeLeftOpenTag } from './util'
+
+export const baseOptions: CompilerOptions = {
+	expectHTML: true,
+	modules,
+	directives,
+	isPreTag,
+	isUnaryTag,
+	mustUseProp,
+	canBeLeftOpenTag,
+	isReservedTag,
+	getTagNamespace,
+	staticKeys: genStaticKeys(modules)
+}
+
+// getFnsAndConfigFromOptions
+warn = options.warn || baseWarn
+
+platformIsPreTag = options.isPreTag || no
+platformMustUseProp = options.mustUseProp || no
+platformGetTagNamespace = options.getTagNamespace || no
+
+transforms = pluckModuleFunction(options.modules, 'transformNode')
+preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
+postTransforms = pluchModuleFunction(options.modules, 'postTransformNode')
+
+delimiters = options.delimiters
+```
+
+解析HTML模版
+parseHTML
+src/compiler/parser/html-parse
+循环解析template，用正则做各种匹配，对于不同情况分别进行不同的处理，直到整个template被解析完毕。
+在匹配的过程中会利用advance函数不断前进整个模版字符串，直到字符串末尾。
+```JavaScript
+export function parseHTML(html, options) {
+	let lastTag
+	while (html) {
+		if (!lastTag || !isPlainTextElement(lastTag)) {
+			let textEnd = html.indexOf('<')
+			if (textEnd === 0) {
+				if(matchComment) {
+					advance(commentLength)
+					continue
+				}
+				if(matchDoctype) {
+					advance(doctypeLength)
+					continue
+				}
+				if(matchEndTag) {
+					advance(endTagLength)
+					parseEndTag()
+					continue
+				}
+				if(matchStartTag) {
+					parseStartTag()
+					handleStartTag()
+					continue
+				}
+			}
+			handleText()
+			advance(textLength)
+		} else {
+			handlePlainTextElement()
+			parseEndTag()
+		}
+	}
+}
+
+function advance(n) {
+	index += n
+	html = html.substring(n)
+}
+```
+对于注释节点和文档类型节点的匹配，如果匹配到我们仅仅做的是做前进即可。
+```JavaScript
+if (comment.test(html)) {
+	const commentEnd = html.indexOf('-->')
+	
+	if (commentEnd >= 0) {
+		if (options.shouldKeepComment) {
+			options.comment(html.substring(4, commentEnd))
+		}
+		advance(commentEnd + 3)
+		continue
+	}
+}
+
+if (conditionalComment.test(html)) {
+	const conditionalEnd = html.indexOf(']>')
+	
+	if (conditionalEnd >= 0) {
+		advance(conditionalEnd + 2)
+		continue
+	}
+}
+
+const doctypeMatch = html.match(doctype)
+if (doctypeMatch) {
+	advance(doctypeMatch[0].length)
+	continue
+}
+```
+对于注释和条件注释节点，前进至它们的末尾位置；对于文档类型节点，则前进它自身长度的距离。
+开始标签
+```JavaScript
+const startTagMatch = parseStartTag()
+if (startTagMatch) {
+	handleStartTag(startTagMatch)
+	if (shouldIgnoreFirstNewline(lastTag, html)) {
+		advance(1)
+	}
+	continue
+}
+
+// parseStartTag
+function parseStartTag () {
+	const start = html.match(startTagOpen)
+	if (start) {
+		const match = {
+			tagName: start[1],
+			attrs: [],
+			start: index
+		}
+		advance(start[0].length)
+		let end, attr
+		while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+			advance(attr[0].length)
+			match.attrs.push(attr)
+		}
+		if (end) {
+			match.unarySlash = end[1]
+			advance(end[0].length)
+			match.end = index
+			return match
+		}
+	}
+}
+
+// handleStartTag
+// 先判断开始标签是否是一元标签，接着对match.attrs遍历并做了一些处理，最后判断如果非一元标签
+// 则往stack里push一个对象，并且把tagName赋值给lastTag。
+function handleStartTag (match) {
+	const tagName = match.tagName
+	const unarySlash = match.unarySlash
+	
+	if (expectHTML) {
+		if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
+			parseEndTag(lastTag)
+		}
+		if (canBeLeftOpenTag(tagName) && lastTag === tagName) {
+			parseEndTag(tagName)
+		}
+	}
+	
+	const unary = isUnaryTag(tagName) || !!unarySlash
+	
+	const l = match.attrs.length
+	const attrs = new Array(l)
+	for (let i = 0; i < l; i++) {
+		const args = match.attrs[i]
+		if (IS_REGEX_CAPTURING_BROKEN && args[0].indexOf('""') === -1) {
+			if (args[3] === '') { delete args[3] }
+			if (args[4] === '') { delete args[4] }
+			if (args[5] === '') { delete args[5] }
+		}
+		const value = args[3] || args[4] || args[5] || ''
+		const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
+			? options.shouldDecodeNewlinesForHref
+			: options.shouldDecodeNewlines
+		attrs[i] = {
+			name: args[1],
+			value: decodeAttr(value, shouldDecodeNewlines)
+		}
+	}
+	
+	if (!unary) {
+		stack.push({tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs})
+		lastTag = tagName
+	}
+	if (options.start) {
+		options.start(tagName, attrs, unary, match.start, match.end)
+	}
+}
+```
+
+闭合标签
+```JavaScript
+// 先通过正则endTag匹配到闭合标签，然后前进到闭合标签末尾，然后执行parseEndTag方法对闭合标签做解析。
+const endTagMatch = html.match(endTag)
+if (endTagMatch) {
+	const curIndex = index
+	advance(endTagMatch[0].length)
+	parseEndTag(endTagMatch[1], curIndex, index)
+	continue
+}
+
+// parseEndTag
+// 对于闭合标签的解析，就是倒序stack,找到第一个和当前endTag匹配的元素
+function parseEndTag (tagName, start, end) {
+	let pos, lowerCasedTagName
+	if (start == null) start = index
+	if (end == null) end = index
+	
+	if (tagName) {
+		lowerCasedTagName = tagName.toLowerCase()
+	}
+	
+	if (tagName) {
+		for (pos = stack.length - 1; pos >= 0; pos--) {
+			if (stack[pos].lowerCasedTag === lowerCasedTagName) {
+				break
+			}
+		}
+	} else {
+		pos = 0
+	}
+	
+	if (pos >= 0) {
+		for (let i = stack.length - 1; i >= pos; i--) {
+			if (process.env.NODE_ENV !== 'production' &&
+				(i > pos || !tagName) &&
+				options.warn
+			) {
+				options.warn(
+					`tag <${stack[i].tag}> has no matching end tag.`
+				)
+			}
+			if (options.end) {
+				options.end(stack[i].tag, start, end)
+			}
+		}
+		stack.length = pos
+		lastTag = pos && stack[pos - 1].tag
+	} else if (lowerCasedTagName === 'br') {
+		if (options.start) {
+			options.start(tagName, [], true, start, end)
+		}
+	} else if (lowerCasedTagName === 'p') {
+		if (options.start) {
+			options.start(tagName, [], false, start, end)
+		}
+		if (options.end) {
+			options.end(tagName, start, end)
+		}
+	}
+}
+
+// 文本
+let text, rest, next
+// 满足则说明从当前位置到textEnd位置都是文本，并且如果<是纯文本中的字符，就继续找到真正的文本结束的位置，
+// 然后前进到结束的位置。
+if (textEnd >= 0) {
+	rest = html.slice(textEnd)
+	while (
+		!endTag.test(rest) &&
+		!startTagOpen.test(rest) &&
+		!comment.test(rest) &&
+		!conditionalComment.test(rest)
+	) {
+		 next = rest.indexOf('<', 1)
+		 if (next < 0) break
+		 textEnd += next
+		 rest = html.slice(textEnd)
+	}
+	text = html.substring(0, textEnd)
+	advance(textEnd)
+}
+
+// 说明整个template解析完毕
+if (textEnd < 0) {
+	text = html
+	html = ''
+}
+
+// 调用options.chars回调函数
+if (options.chars && text) {
+	options.chars(text)
+}
+```
+
+处理开始标签
+```JavaScript
+start (tag, attrs, unary) {
+	let element = createASTElement(tag, attrs)
+	processElement(element)
+	treeManagement()
+}
+
+//主要做三件事情，创建AST元素，处理AST元素，AST树管理
+
+// 创建AST元素
+// check namespace.
+// inherit parent ns if there is one
+const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
+
+// handle IE svg bug
+/* istanbul ignore if */
+if (isIE && ns === 'svg') {
+	attrs = guardIESVGBug(attrs)
+}
+
+let element: ASTElement = createASTElement(tag, attrs, currentParent)
+if (ns) {
+	element.ns = ns
+}
+
+// 通过createASTElement方法创建一个AST元素，每一个AST元素就是一个普通的JavaScript对象
+export function createASTElement(
+	tag: string,
+	attrs: Array<Attr>,
+	parent: ASTElement | void
+): ASTElement {
+	return {
+		// AST元素类型
+		type: 1,
+		// 标签名
+		tag,
+		// 属性列表
+		attrsList: attrs,
+		// 属性印社表
+		attrsMap: makeAttrsMap(attrs),
+		// 父的AST元素
+		parent,
+		// 子AST元素集合
+		children: []
+	}
+}
+
+// 处理AST元素
+if (isForbiddenTag(element) && !isServerRendering()) {
+	element.forbidden = true
+	process.env.NODE_ENV !== 'production' && warn(
+		'Templates should only be responsible for mapping the state to the ' +
+		'UI. Avoid placing tags with side-effects in your templates, such as ' +
+		`<${tag}>` + ', as they will not be parsed.'
+	)
+}
+
+// apply pre-transforms
+for (let i = 0; i < preTransforms.length; i++) {
+	element = preTransforms[i](element, options) || element
+}
+
+if (!inVPre) {
+	processPre(element)
+	if (element.pre) {
+		inVPre = true
+	}
+}
+if (platformIsPreTag(element.tag)) {
+	inPre = true
+}
+if (inVPre) {
+	processRawAttrs(element)
+} else if (!element.processed) {
+	// structural directives
+	processFor(element)
+	processIf(element)
+	processOnce(element)
+	// element-scope stuff
+	processElement(element, options)
+}
+
+// processFor
+// 从元素中拿到v-for指令的内容，然后分别解析出for、alias、iterator1、iterator2
+export function processFor (el: ASTElement) {
+	let exp
+	if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+		const res = parseFor(exp)
+		if (res) {
+			extend(el, res)
+		} else if (process.env.NODE_ENV !== 'production') {
+			warn(
+				`Invalid v-for expression: ${exp}`
+			)
+		}
+	}
+}
+
+export const forAliasRE = /(.*?)\s+(?:in|of)\s+(.*)/
+export const forIteratorRE = /,([^,\}\]]*(?:,([^,\}\]]*))?$/
+const stripParensRE = /^\(|\)$/g
+export function parseFor (exp: string): ?ForParseResult {
+	const inMatch = exp.match(forAliasRE)
+	if (!inMatch) return
+	const res = {}
+	res.for = inMatch[2].trim()
+	const alias = inMatch[1].trim().replace(stripParensRE, '')
+	const iteratorMatch = alias.match(forIteratorRE)
+	if (iteratorMatch) {
+		res.alias = alias.replace(forIteratorRE, '')
+		res.iterator1 = iteratorMatch[1].trim()
+		if (iteratorMatch[2]) {
+			res.iterator2 = iteratorMatch[2].trim()
+		}
+	} else {
+		res.alias = alias
+	}
+	return res
+}
+
+// processIf
+// 从元素中拿v-if指令的内容，如果拿到则给AST元素添加if属性和ifConditions属性；
+// 否则尝试那v-else指令及v-else-if指令的内容，如果拿到则给AST元素分别添加else和elseif属性
+function processIf (el) {
+	const exp = getAndRemoveAttr(el, 'v-if')
+	if (exp) {
+		el.if = exp
+		addIfCondition(el, {
+			exp: exp,
+			block: el
+		})
+	} else {
+		if (getAndRemoveAttr(el, 'v-else') != null) {
+			el.else = true
+		}
+		const elseif = getAndRemoveAttr(el, 'v-else-if')
+		if (elseif) {
+			el.elseif = elseif
+		}
+	}
+}
+
+export function addIfCondition (el: ASTElement, condition: ASTIfCondition) {
+	if (!el.ifConditions) {
+		el.ifCOnditions = []
+	}
+	el.ifConditions.push(condition)
+}
+
+// AST树管理
+function checkRootConstraints (el) {
+	if (process.env.NODE_ENV !== 'production') {
+		if (el.tag === 'slot' || el.tag === 'template') {
+			warnOnce(
+				`Cannot use <$el.tag> as component root element because it may ` +
+				'contain multiple nodes.'
+			)
+		}
+		if (el.attrsMap.hasOwnProperty('v-for')) {
+			warnOnce(
+				'cannot use v-for on stateful component root element because ' +
+				'it renders multiple elements.'
+			)
+		}
+	}
+	
+	// tree management
+	if (!root) {
+		root = element
+		checkRootConstraints(root)
+	} else if (!stack.length) {
+		// allow root elements with v-if, v-else-if and v-else
+		if (root.if && (element.eleseif || element.else)) {
+			checkRootConstraints(element)
+			addIfCondition(root, {
+				exp: element.elseif,
+				block: element
+			})
+		} else if (process.env.NODE_ENV !== 'production') {
+			warnOnce(
+				`Component template should contain exactly one root element. ` +
+				`If you are using v-if on multiple elements, ` +
+				`use v-else-if to chain them instead.`
+			)
+		}
+	}
+	if (currentParent && !element.forbidden) {
+		if (element.elseif || element.else) {
+			processIfConditions(element, currentParent)
+		} else if (element.slotScope) { // scoped slot
+			currentParent.plain = false
+			const name = element.slotTarget || '"default"'
+			;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
+		} else {
+			currentParent.children.push(element)
+			element.parent = currentParent
+		}
+	}
+	if (!unary) {
+		currentParent = element
+		stack.push(element)
+	} else {
+		closeElement(element)
+	}
+}
 ```

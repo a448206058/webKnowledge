@@ -67,9 +67,32 @@
         small.next = largeHead.next;
         return smallHead.next;
     };
+	
+	var oddEvenList = function(head) {
+	    head = creatrLink(head);
+		var ji = new ListNode(0);
+		const jis = ji;
+		var ou = new ListNode(0);
+		const ous = ou;
+		var num = 0;
+		while(head != null) {
+			if(num % 2 === 0){
+				ou.next = head;
+				ou = ou.next;
+			}else{
+				ji.next = head;
+				ji = ji.next;
+			}
+			num++;
+			head = head.next;
+		}
+		ji.next = null;
+		ou.next = jis.next;
+		return ous.next;
+	};
 
-    var head = [1,4,3,2,5,2], x = 3;
-    console.log(partition(head, x))
+    var head = [1,2,3,4,5];
+    console.log(oddEvenList(head))
 </script>
 </body>
 </html>
