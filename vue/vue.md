@@ -5559,7 +5559,7 @@ export function processFor (el: ASTElement) {
 }
 
 export const forAliasRE = /(.*?)\s+(?:in|of)\s+(.*)/
-export const forIteratorRE = /,([^,\}\]]*(?:,([^,\}\]]*))?$/
+export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
 const stripParensRE = /^\(|\)$/g
 export function parseFor (exp: string): ?ForParseResult {
 	const inMatch = exp.match(forAliasRE)
@@ -5610,6 +5610,9 @@ export function addIfCondition (el: ASTElement, condition: ASTIfCondition) {
 }
 
 // AST树管理
+// AST树管理的目标是构建一颗AST树，本质上它要维护root根节点和当前父节点currentParent。未来保证元素
+// 可以正确闭合，这里也利用了stack栈的数据结构
+
 function checkRootConstraints (el) {
 	if (process.env.NODE_ENV !== 'production') {
 		if (el.tag === 'slot' || el.tag === 'template') {
@@ -5646,6 +5649,8 @@ function checkRootConstraints (el) {
 			)
 		}
 	}
+	// 当我们在处理开始标签的时候，判断如果有currentParent,会把当前AST元素push到currentParent.children中，同时把AST元素的parent
+	// 指向currentParent.
 	if (currentParent && !element.forbidden) {
 		if (element.elseif || element.else) {
 			processIfConditions(element, currentParent)
@@ -5658,11 +5663,341 @@ function checkRootConstraints (el) {
 			element.parent = currentParent
 		}
 	}
+	// 接着就是更新currentParent和stack，判断当前如果不是一个一元标签，我们要把它生成的AST元素push到stack中，并且把当前的AST元素
+	// 赋值给currentParent
 	if (!unary) {
 		currentParent = element
 		stack.push(element)
 	} else {
 		closeElement(element)
+	}
+}
+```
+## 处理闭合标签
+```JavaScript
+end () {
+	treeManagement()
+	closeElement()
+}
+
+// 首先处理了尾部空格的情况
+// remove trailing whitespace
+const element = stack[stack.length - 1]
+const lastNode = element.children[element.children.length - 1]
+if (lastNode && lastNode.type === 3 && lastNode.text === ' ' && !inPre) {
+	element.children.pop()
+}
+
+// 然后把stack的元素弹一个出栈，并把stack最后一个元素赋值给currentParent
+// pop stack
+stack.length -= 1
+currentParent = stack[stack.length - 1]
+closeElement(element)
+
+
+// closeElement(element):
+function closeElement (element) {
+	// check pre state
+	if (element.pre) {
+		inVPre = false
+	}
+	if (platformIsPreTag(element.tag)) {
+		inPre = false
+	}
+	// apply post-transforms
+	for (let i = 0; i < postTransforms.length; i++){
+		postTransforms[i](element, options)
+	}
+}
+```
+
+处理文本内容
+```JavaScript
+chars (text: string) {
+	handleText()
+	createChildrenASTOfText()
+}
+
+const children = currentParent.children
+text = inPre || text.trim()
+	? isTextTag(currentParent) ? text : decodeHTMLCached(text)
+	// only preserve whitespace if its not right after a starting tag
+	: preserveWhitespace && children.length ? ' ' : ''
+if (text) {
+	let res
+	if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
+		// 有表达式的
+		children.push({
+			type: 2,
+			expression: res.expression,
+			tokens: res.tokens,
+			text
+		})
+	} else if (text !== ' ' || !children.length || children[children.length - 1].text !== ' '){
+		// 纯文本
+		children.push({
+			type: 3,
+			text
+		})
+	}
+}
+```
+parseText(text, delimiters)
+src/compiler/parse/text-parser.js
+```JavaScript
+const defaultTagRE = /\{\((?:.|\n)+?)\}/g
+const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
+
+const buildRegex = cached(delimiters => {
+	const open = delimiters[0].replace(regexEscapeRE, '\\$&')
+	const close = delimiters[1].replace(regexEscapeRE, '\\$&')
+	return new RegExp(open + '((?:.|\\n)+?)' + close, 'g')
+})
+
+export function parseText (
+	text: string,
+	delimiters?: [string, string]
+): TextParseResult | void {
+	const tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE
+	if (!tagRE.test(text)) {
+		return
+	}
+	const tokens = []
+	const rawTokens = []
+	let lastIndex = tagRE.lastIndex = 0
+	let match, index, tokenValue
+	while ((match = tagRE.exec(text))) {
+		index = match.index
+		// push text token
+		if(index > lastIndex) {
+			rawTokens.push(tokenValue = text.slice(lastIndex, index))
+			tokens.push(JSON.stringify(tokenValue))
+		}
+		// tag token
+		const exp = parseFilters(match[1].trim())
+		tokens.push(`_s(${exp})`)
+		rawTokens.push({ '@binding': exp })
+		lastIndex = index + match[0].length
+	}
+	if (lastIndex < text.length) {
+		rawTokens.push(tokenValue = text.slice(lastIndex))
+		tokens.push(JSON.stringify(tokenValue))
+	}
+	return {
+		expression: tokens.join('+'),
+		tokens: rawTokens
+	}
+}
+```
+## optimize
+优化AST树
+模版中不是所有数据都是响应式的，可以在patch的过程中跳过对他们的比对。
+src/compiler/optimizer.js
+```JavaScript
+/**
+ * Goal of the optimizer: walk the generated template AST tree
+ * and delect sub-trees that are purely static, i.e. parts of
+ * the DOM that never need to change.
+ *
+ * Once we detect these sub-trees, we can:
+ *
+ * 1. Hoist them into constants, so that we no longer need to
+ * create fresh nodes for them on each re-render;
+ *
+ * 2.Completely skip them in the patching process.
+ *
+ */
+// markStatic(root) 标记静态节点
+// markStaticRoots(root, false) 标记静态根
+export function optimize(root: ?ASTElement, options: CompilerOptions) {
+	if (!root) return
+	isStaticKey = genStaticKeysCached(options.staticKeys || '')
+	isPlatformReservedTag = options.isReservedTag || no
+	// first pass: mark all non-static nodes.
+	markStatic(root)
+	// second pass: mark static roots.
+	markStaticRoots(root, false)
+}
+
+function genStaticKeys (keys: string): Function{
+	return makeMap(
+	`'type, tag, attrsList, attrsMap, plain, parent, children, attrs' +
+	 (keys ? ',' + keys : '')
+	)
+}
+
+// markStatic
+function markStatic(node: ASTNode) {
+	// 是否是静态
+	node.static = isStatic(node)
+	if (node.type === 1) {
+		// do not make component slot context static. this avoids
+		// 1. components not able to mutate slot nodes
+		// 2. static slot content fails for hot-reloading
+		if (
+			!isPlatformReservedTag(node.tag) &&
+			node.tag !== 'slot' &&
+			node.attrsMap['inline-template'] == null
+		) {
+			return
+		}
+		for (let i = 0, l = node.children.length; i < l;i++) {
+			const child = node.children[i]
+			markStatic(child)
+			if (!child.static) {
+				node.static = false
+			}
+		}
+		if (node.ifConditions) {
+			for (let i = 1, l = node.ifConditions.length; i < l;i++) {
+				const block = node.ifConditions[i].block
+				markStatic(block)
+				if (!block.static) {
+					node.static = false
+				}
+			}
+		}
+	}
+	
+	function isStatic (node: ASTNode): boolean {
+		if (node.type === 2) { // expression
+			return false
+		}
+		if (node.type === 3) { //text
+			return true
+		}
+		return !!(node.pre || (
+			!node.hasBindings && // no dynamic bindings
+			!node.if && !node.for && // not v-if or v-for or v-else
+			!isBuiltInTag(node.tag) && // not a built-in
+			isPlatformReservedTag(node.tag) && // not a component
+			!isDirectChildOfTemplateFor(node) &&
+			Object.keys(node).every(isStaticKey)
+		))
+	}
+}
+
+// 标记静态根
+function markStaticRoots (node: ASTNode, isInFor: boolean) {
+	if (node.type === 1) {
+		if (node.static || node.once) {
+			node.staticInFor = isInFor
+		}
+		// For a node to qualify as a static root, it should have children that
+		// are not just static text. Otherwise the cost of hoisting out will
+		// out weigh the benefits and it's better off to just always render it fresh.
+		if (node.static && node.children.length && !(
+			node.children.length === 1 &&
+			node.children[0].type === 3
+		)) {
+			node.staticRoot = true
+			return
+		} else {
+			node.staticRoot = false
+		}
+		if (node.children) {
+			for (let i = 0, l = node.children.length; i < l; i++) {
+				markStaticRoots(node.children[i], isInFor || !!node.for)
+			}
+		}
+		if (node.ifConditions) {
+			for (let i = 1,l = node.ifConditions.length; i < l; i++) {
+				markStaticRoots(node.ifConditions[i].block, isInFor)
+			}
+		}
+	}
+}
+```
+
+optimize的过程
+就是深度遍历这个AST树，去检测它的每一颗子树是不是静态节点，如果是静态节点则它们生成DOM永远不需要改变
+通过optimize把整个AST树中的每一个AST元素节点标记了static和staticRoot
+
+## codegen
+把优化后的AST树转换成可执行的代码
+```JavaScript
+// src/core/instance/render-helpers/index.js
+export function installRenderHelpers (target: any) {
+	target._o = markOnce
+	target._n = toNumber
+	target._s = toString
+	// renderList 渲染列表
+	target._l = renderList
+	target._t = renderSlot
+	target._q = looseEqual
+	target._i = looseIndexOf
+	target._m = renderStatic
+	target._f = resolveFilter
+	target._k = checkKeyCodes
+	target._b = bindObjectProps
+	// 创建文本VNode
+	target._v = createTextVNode
+	// 创建空的VNode
+	target._e = createEmptyVNode
+	target._u = resolveScopedSlots
+	target._g = bindObjectListeners
+}
+
+// src/compler/to-function.js
+const compiled = compile(template, options)
+res.render = createFunction(compiled.render, fnGenErrors)
+
+function createFunction (code, errors) {
+	try {
+		return new Function(code)
+	} catch (err) {
+		errors.push({ err, code })
+		return noop
+	}
+}
+
+// generate
+const code = generate(ast, options)
+// src/compiler/codegen/index.js
+export function generate(
+	ast: ASTElement | void,
+	options: CompilerOptions
+): CodegenResult {
+	const state = new CodegenState(options)
+	const code = ast ? genElement(ast, state) : '_c("div")'
+	return {
+		render: `with(this){return ${code}}`,
+		staticRenderFns: state.staticRenderFns
+	}
+}
+
+//genElement
+export function genElement (el: ASTElement, state: CodegenState): string {
+	if (el.staticRoot && !el.staticProcessed) {
+		return genStatic(el, state)
+	} else if (el.once && !el.onceProcessed) {
+		return genOnce(el, state)
+	} else if (el.for && !el.forProcessed) {
+		return genIf(el, state)
+	} else if (el.tag === 'template' && !el.slotTarget) {
+		return genChildren(el, state) || 'void 0'
+	} else if (el.tag === 'slot') {
+		return genSlot(el, state)
+	} else {
+		// component or element
+		let code
+		if (el.component) {
+			code = genComponent(el.component, el, state)
+		} else {
+			const data = el.plain ? undefined : genData(el, state)
+			
+			const children = el.inlineTemplate ? null : genChildren(el, state, true)
+			code = `_c('${el.tag}'${
+				data ? `,${data}` : '' //data
+			}${
+				children ? `,${children}` : '' //children
+			})`
+			// module transforms
+			for (let i = 0; i < state.transforms.length; i++) {
+				code = state.transforms[i](el, code)
+			}
+			return code
+		}
 	}
 }
 ```

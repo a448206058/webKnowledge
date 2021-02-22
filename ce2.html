@@ -42,87 +42,65 @@
 		}
 	}
 
-    /**
-     * @param {ListNode} head
-     * @param {number} x
-     * @return {ListNode}
-     */
-    var partition = function(head, x) {
-        head = creatrLink(head);
-        let small = new ListNode(0);
-        const smallHead = small;
-        let large = new ListNode(0);
-        const largeHead = large;
-        while (head !== null) {
-            if (head.val < x) {
-                small.next = head;
-                small = small.next;
-            } else {
-                large.next = head;
-                large = large.next;
-            }
-            head = head.next;
-        }
-        large.next = null;
-        small.next = largeHead.next;
-        return smallHead.next;
-    };
-
     var addTwoNumbers = function(l1, l2) {
-        l1 = creatrLink(l1)
-        l2 = creatrLink(l2);
-
-        var result = null;
-        var head = null;
-        var nodes1 = l1;
-        var nodes2 = l2;
-        var next = 0;
-        while(nodes1 || nodes2){
-            var total = (nodes1.val ? nodes1.val : 0) + (nodes2.val ? nodes2.val : 0) + next;
-            next = Math.floor(total / 10);
-            total = total % 10;
-            nodes1 = nodes1.next ? nodes1.next : 0;
-            nodes2 = nodes2.next ? nodes2.next : 0;
-            if(!head){
-                head = result = new ListNode(total);
-            }else{
-                result.next = new ListNode(total);
-                result = result.next;
-            }
-        }
-        if (next > 0) {
-            result.next = new ListNode(next);
-        }
-        return head;
+		l1 = creatrLink(l1);
+		l2 = creatrLink(l2);
+		
+		var head1 = l1;
+		var node1 = null;
+		while(head1 != null){
+			var cur = head1.next;
+			
+			head1.next= node1;
+			node1 = head1;
+			head1 = cur;
+		}
+		
+		var head2 = l2;
+		var node2 = null;
+		while(head2 != null){
+			var cur = head2.next;
+			
+			head2.next = node2;
+			node2 = head2;
+			head2 = cur;
+		}
+		var node1s = node1;
+		var node2s = node2;
+		var head = null;
+		var result = null;''
+		var next = 0;
+		while (node1s || node2s){
+			var num = (node1s.val ? node1s.val : 0) + (node2s.val ? node2s.val : 0) +next;
+			next = Math.floor(num / 10);
+			num = num % 10;
+			
+			node1s = node1s.next ? node1s.next : 0;
+			node2s = node2s.next ? node2s.next : 0;
+			if(!head){
+				head = result = new ListNode(num)
+			} else {
+				result.next = new ListNode(num);
+				result = result.next;
+			}
+		}
+		if (next > 0) {
+		    result.next = new ListNode(next);
+		}
+		
+		var head3 = head;
+		var node3 = null;
+		while(head3 != null){
+			var cur = head3.next;
+			
+			head3.next = node3;
+			node3 = head3;
+			head3 = cur;
+		}
+		return node3;
     };
 
-    // let head = null, tail = null;
-    // let carry = 0;
-    // while (l1 || l2) {
-    //     const n1 = l1 ? l1.val : 0;
-    //     const n2 = l2 ? l2.val : 0;
-    //     const sum = n1 + n2 + carry;
-    //     if (!head) {
-    //         head = tail = new ListNode(sum % 10);
-    //     } else {
-    //         tail.next = new ListNode(sum % 10);
-    //         tail = tail.next;
-    //     }
-    //     carry = Math.floor(sum / 10);
-    //     if (l1) {
-    //         l1 = l1.next;
-    //     }
-    //     if (l2) {
-    //         l2 = l2.next;
-    //     }
-    // }
-    // if (carry > 0) {
-    //     tail.next = new ListNode(carry);
-    // }
-    //
-    // return head;
-
-    var l1 = [2,4,3], l2 = [5,6,4];
+    var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     console.log(addTwoNumbers(l1, l2))
 </script>
