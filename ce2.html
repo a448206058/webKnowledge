@@ -67,32 +67,64 @@
         small.next = largeHead.next;
         return smallHead.next;
     };
-	
-	var oddEvenList = function(head) {
-	    head = creatrLink(head);
-		var ji = new ListNode(0);
-		const jis = ji;
-		var ou = new ListNode(0);
-		const ous = ou;
-		var num = 0;
-		while(head != null) {
-			if(num % 2 === 0){
-				ou.next = head;
-				ou = ou.next;
-			}else{
-				ji.next = head;
-				ji = ji.next;
-			}
-			num++;
-			head = head.next;
-		}
-		ji.next = null;
-		ou.next = jis.next;
-		return ous.next;
-	};
 
-    var head = [1,2,3,4,5];
-    console.log(oddEvenList(head))
+    var addTwoNumbers = function(l1, l2) {
+        l1 = creatrLink(l1)
+        l2 = creatrLink(l2);
+
+        var result = null;
+        var head = null;
+        var nodes1 = l1;
+        var nodes2 = l2;
+        var next = 0;
+        while(nodes1 || nodes2){
+            var total = (nodes1.val ? nodes1.val : 0) + (nodes2.val ? nodes2.val : 0) + next;
+            next = Math.floor(total / 10);
+            total = total % 10;
+            nodes1 = nodes1.next ? nodes1.next : 0;
+            nodes2 = nodes2.next ? nodes2.next : 0;
+            if(!head){
+                head = result = new ListNode(total);
+            }else{
+                result.next = new ListNode(total);
+                result = result.next;
+            }
+        }
+        if (next > 0) {
+            result.next = new ListNode(next);
+        }
+        return head;
+    };
+
+    // let head = null, tail = null;
+    // let carry = 0;
+    // while (l1 || l2) {
+    //     const n1 = l1 ? l1.val : 0;
+    //     const n2 = l2 ? l2.val : 0;
+    //     const sum = n1 + n2 + carry;
+    //     if (!head) {
+    //         head = tail = new ListNode(sum % 10);
+    //     } else {
+    //         tail.next = new ListNode(sum % 10);
+    //         tail = tail.next;
+    //     }
+    //     carry = Math.floor(sum / 10);
+    //     if (l1) {
+    //         l1 = l1.next;
+    //     }
+    //     if (l2) {
+    //         l2 = l2.next;
+    //     }
+    // }
+    // if (carry > 0) {
+    //     tail.next = new ListNode(carry);
+    // }
+    //
+    // return head;
+
+    var l1 = [2,4,3], l2 = [5,6,4];
+    // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
+    console.log(addTwoNumbers(l1, l2))
 </script>
 </body>
 </html>

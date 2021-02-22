@@ -1,9 +1,13 @@
+import Dep from './Dep'
+
 export class Observer {
     constructor(value) {
         this.value = value;
         if(Array.isArray(value)){
             this.observeArray(value);
         } else {
+            console.log(value)
+            console.log(value.shuzu)
             this.walk(value);
         }
     }
@@ -11,6 +15,9 @@ export class Observer {
     walk(obj) {
         const keys = Object.keys(obj);
         for (let i = 0; i < keys.length; i++) {
+            if(Array.isArray(keys[i])){
+                console.log(keys[i])
+            }
             this.defineReactive(obj, keys[i]);
         }
     }

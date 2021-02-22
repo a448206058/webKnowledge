@@ -5,7 +5,6 @@
 export default class Dep {
 
     constructor () {
-        this.id = uid++;
         this.subs = [];
     }
 
