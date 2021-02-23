@@ -1,11 +1,23 @@
+
 import dVue from './index'
+
 var dVues = new dVue({
+	el: '#app',
 	data: {
-		a: 1,
-		duixiang: {cc: '1', dd: '2'},
-		shuzu: [{c1: '1', d1: '2'}, {c2: '11', d2: '22'}],
+		text: 1,
+		object: {cc: 'cc1', dd: '2'},
+		array: [{c1: '1', d1: '2'}, {c2: '11', d2: '22'}],
+	},
+	methods: {
+		changeText() {
+			dVues.text = '2'
+		},
+		changeObject(){
+			// dVues.object.cc = '3'
+			dVues.object = 222
+		},
+		changeArray() {
+			dVues.array[0].c1 = '333';
+		}
 	}
 });
-dVues.data.a = 2
-dVues.data.duixiang.cc = 'cc';
-dVues.data.shuzu[0].c1 = '1';

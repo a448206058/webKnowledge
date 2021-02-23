@@ -25,6 +25,16 @@
 
 Node： [链接地址](./node/node.md)  
 
+源码理解：
+
+vue2.x源码理解：[链接地址](./vue/vue.md)
+
+webpack源码解析：[链接地址](./webpack/webpack源码解析.md)
+
+轮子：
+
+vue2.x响应式原理：[链接地址](https://github.com/a448206058/dVue)
+
 
 日常学习主要有：
 

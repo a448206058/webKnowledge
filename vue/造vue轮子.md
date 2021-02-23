@@ -76,6 +76,10 @@ ViewModel是怎么实现这一过程的呢？
             理解成一个中介的角色，数据发生变化时通知它，然后它再通知其他地方。
     发布订阅模式
     
+    vue->observer数据劫持->dep发布者
+                            |
+    compiler解析指令->watcher观察者
+    
     
 ```JavaScript
 	function dVue(option) {

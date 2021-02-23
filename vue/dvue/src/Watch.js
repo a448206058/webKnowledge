@@ -1,69 +1,30 @@
-// watch 有四类 dep watch computed watch user watch sync watch
-// 在这里我们只设置 computed watch 也就是渲染watch
-// 需要id 定义 get函数 update函数 run函数
+import Dep from './Dep'
+/**
+ * 当data数据发生变化，dep对象中的notify方法内通知所有的watcher对象，去更新视图
+ * Watcher类自身实例化的时候，向dep对象中addSub方法中添加自己（1、2）
+ */
 
-let uid = 0;
 export default class Watcher {
-    vm: Component;
-    id: number;
-    deps: Array<Dep>;
-    newDeps: Array<Dep>;
-    depIds: Set;
-    newDepIds: Set;
-    getter: Function;
-    value: any;
-	
-    constructor(vm: Component){
-        this.vm = vm;
+    constructor(vm, key, cb) {
+        this.vm = vm // vue的实例对象
+        this.key = key // data中的属性名称
+        this.cb = cb // 回调函数，负责更新视图
 
-        this.id = ++uid;
-        this.deps = [];
-        this.newDeps = [];
-        this.depIds = new Set();
-        this.newDepIds = new Set();
-        this.value = this.get();
-    }
+        // 1、把watcher对象记录到Dev这个类中的target属性中
+        Dep.target = this // this 就是通过Watcher类实例化后的对象，也就是watcher对象
+        // 2、触发observer对象中的get方法，在get方法内会调用dep对象中的addSub方法
+        this.oldValue = vm[key] //更新之前的页面数据
+        // console.log(Dep.target)
+        Dep.target = null
 
-    get () {
-        let value
-        const vm = this.vm
-        value = this.getter.call(vm, vm);
-        return value;
     }
-	
-	addDep(dep) {
-		const id = dep.id;
-		if(!newDepIds.has(id)) {
-			this.newDepIds.add(id);
-			this.newDeps.push(dep);
-			if(!this.depIds.has(id)) {
-				dep.addSub(this);
-			}
-		}
-	}
-
-    update() {
-        queueWatcher(this)
+    // 当data中的数据发生变化的时候，去更新视图
+    update () {
+        // console.log(this.key)
+        const newValue = this.vm[this.key]
+        if (newValue === this.oldValue) {
+            return
+        }
+        this.cb(newValue)
     }
-	
-	run() {
-		const value = this.get()
-		
-		if(value !== this.value || isObject(value) || this.deep){
-			const oldValue = this.value
-			this.value = value
-			if (this.user) {
-				this.cb.call(this.vm, value, oldValue)
-			}
-		} else {
-			this.cb.call(this.vm, value, oldValue)
-		}
-	}
-	
-	depend() {
-		let i = this.deps.length
-		while(i--){
-			this.deps[i].depend()
-		}
-	}
 }

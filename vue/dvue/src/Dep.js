@@ -9,7 +9,10 @@ export default class Dep {
     }
 
 	addSub (sub) {
-		this.subs.push(sub);
+    	console.log(sub)
+    	if(sub && sub.update) {
+			this.subs.push(sub);
+		}
 	}
 
 	removeSub(sub) {
