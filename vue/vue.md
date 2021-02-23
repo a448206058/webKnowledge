@@ -6000,4 +6000,79 @@ export function genElement (el: ASTElement, state: CodegenState): string {
 		}
 	}
 }
+
+// genIf
+export function genIf (
+	el: any,
+	state: CodegenState,
+	altGen?: Function,
+	altEmpty?: string
+): string {
+	el.ifProcessed = true // avoid recursion
+	
+	return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
+}
+
+function genIfConditions (
+	conditions: ASTIfConditions,
+	state: CodegenState,
+	altGen?: Function,
+	altEmpty?: string
+): string {
+	if (!conditions.length) {
+		return altEmpty || '_e()'
+	}
+	
+	const condition = conditions.shift()
+	if (condition.exp) {
+		return `(${condition.exp})?${
+			genTernaryExp(condition.block)
+		}:${
+			genIfConditions(conditions, state, altGen, altEmpty)
+		}`
+	} else {
+		return `${genTernaryExp(condition.block)}`
+	}
+	
+	// v-if with v-once should generate code like (a)?_m(0):_m(1)
+	function genTernaryExp (el) {
+		return altGen
+			? altGen(el, state)
+			: el.once
+				? genOnce(el, state)
+				: genElement(el, state)
+	}
+}
+
+// genFor
+export function genFor(
+	el: any,
+	state: CodegenState,
+	altGen?: Function,
+	altHelper?: string
+): string {
+	const exp = el.for
+	const alias = el.alias
+	const iterator1 = el.iterator1 ? `,${el.iterator1}` : ''
+	const iterator2 = el.iterator2 ? `,${el.iterator2}` : ''
+	
+	if (process.env.NODE_ENV !== 'production' &&
+		state.maybeComponent(el) &&
+		el.tag !== 'slot' &&
+		el.tag !== 'template' &&
+		!el.key) {
+			state.warn(
+				`<${el.tag} v-for="${alias} in ${exp}">: component lists rendered with ` +
+				`v-for should have explicit keys. ` +
+				`See https://vuejs.org/guide/list.html#key for more info.`,
+				true /* tip */
+			)
+		}
+		
+		el.forProcessed = true // avoid recursion
+		return `${altHelper || '_l'}((${exp})),` +
+		`function(${alias}${iterator1}${iterator2}){` +
+		`return ${(altGen || genElement)(el, state)}` +
+		'})'
+}
 ```

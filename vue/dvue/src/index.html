@@ -10,9 +10,11 @@
 		<div id="app">
 			<div>{{text}}</div>
 			<div>{{object}}</div>
+			<div>{{object.cc}}</div>
 			<div>array:{{array[0].c1}}</div>
 			<button v-on:click="changeText()">改变text</button>
 			<button v-on:click="changeObject()">改变object</button>
+			<button v-on:click="changeObjectValue()">改变objectvalue</button>
 			<button v-on:click="changeArray()">改变Array</button>
 		</div>
 	</body>
