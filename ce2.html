@@ -47,7 +47,7 @@
 	      prev = newHead,
 	      curr = head;
 	  newHead.next = head;
-	  
+
 	  while (curr) {
 	    if (curr.val === val) {
 	      prev.next = curr.next;
@@ -58,32 +58,40 @@
 	      curr = curr.next;
 	    }
 	  }
-	  
+
 	  return newHead.next;
 	}
-	
-	var removeElements = function(head, val) {
-		head = creatrLink(head)
-	    var startHead = new ListNode(null);
-	    startHead.next = head;
-	
-	    var cur = startHead;
-	    while(cur.next != null){
-	        if (cur.next.val === val){
-	            var list = cur.next;
-	            cur.next = list.next;
-	            list.next = null;
-	        }else{
-	            cur = cur.next;
-	        }
-	    }
-	    return startHead.next;
-	};
+
+    var deleteDuplicates = function(head) {
+	    head = creatrLink(head);
+        let newHead = new ListNode( null ),
+            prev = newHead,
+            curr = head;
+        newHead.next = head;
+
+        while (curr && curr.next) {
+            if (curr.val === curr.next.val) {
+                while(curr.val!=null && curr.next!=null && (curr.val === curr.next.val)){
+                    curr = curr.next;
+                }
+                prev.next = curr.next;
+                curr = prev.next;
+            } else {
+
+                prev = curr;
+                curr = curr.next;
+            }
+        }
+
+        return newHead.next;
+    };
 
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
-	var head =  [1,2,6,3,4,5,6], val = 6;
-    console.log(removeElements(head, val))
+    // var head = [1, 1]
+    var head = [0,0,0,0,0];
+	// var head =  [1,2,3,3,4,4,5];
+    console.log(deleteDuplicates(head))
 </script>
 </body>
 </html>

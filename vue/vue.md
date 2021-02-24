@@ -1,37 +1,41 @@
 ## 本文主要学习自黄轶老师的vue源码教程 大家可以去慕课网学习，非常感谢。
-/**
- * vue核心思想
- *   核心思想有哪些？
- *      数据驱动
- *          数据驱动概念是什么？
- *              是指视图是由数据驱动生成的，我们对视图的修改，不会直接操作DOM，而是通过修改数据。
- *              数据更新驱动视图变化
- *          数据驱动思想由什么好处？
- *              它相比我们传统的前端开发，大大简化来代码量，特别是当交互复杂的时候，只关心数据的修改会让代码的逻辑变的非常清晰。
- *              因为DOM变成来数据的映射，我们所有的逻辑都是对数据的修改，而不用碰触DOM，这样的代码非常利于维护。
- *          数据驱动思想主要是来干什么？
- *              为了构建逻辑结构更清晰的代码，降低复杂度
- *          vue中是如何用到数据驱动的概念的？
- *              通过采用简洁的模版语法来声明式的将数据渲染为DOM
- */
 
+### vue核心思想
+### 核心思想有哪些？
+数据驱动
+
+### 数据驱动概念是什么？
+是指视图是由数据驱动生成的，我们对视图的修改，不会直接操作DOM，而是通过修改数据。
+数据更新驱动视图变化
+
+###  数据驱动思想有什么好处？
+它相比我们传统的前端开发，大大简化来代码量，特别是当交互复杂的时候，只关心数据的修改会让代码的逻辑变的非常清晰。
+因为DOM变成来数据的映射，我们所有的逻辑都是对数据的修改，而不用碰触DOM，这样的代码非常利于维护。
+
+### 数据驱动思想主要是来干什么？
+为了构建逻辑结构更清晰的代码，降低复杂度
+
+### vue中是如何用到数据驱动的概念的？
+通过采用简洁的模版语法来声明式的将数据渲染为DOM
+```JavaScript
 import {resolveConstructorOptions} from "./vue/vue-dev/src/core/instance/init";
 import {initInjections} from "./vue/vue-dev/src/core/instance/inject";
 import {formatComponentName} from "./vue/vue-dev/src/core/util";
 import {mountComponent} from "./vue/vue-dev/src/core/instance/lifecycle";
 import {measure} from "./vue/vue-dev/src/core/util/perf";
+```
 
-/**
- * new Vue
- *      new Vue是干什么的？
- *          new Vue是创建了一个vue的实例，通过这个实例去调用vue的方法和属性
- *          new 关键字是干什么的？
- *              new关键字在JavaScript语言中代表实例化一个对象
- *          Vue是什么？
- *              Vue实际上是一个类，类在Javascript中是用Function来实现
- *          源码：
- *              在src/core/instance/index.js
- */
+### new Vue
+### new Vue是干什么的？
+new Vue是创建了一个vue的实例，通过这个实例去调用vue的方法和属性
+
+### new 关键字是干什么的？
+new关键字在JavaScript语言中代表实例化一个对象
+
+### Vue是什么？
+Vue实际上是一个类，类在Javascript中是用Function来实现
+```JavaScript
+//src/core/instance/index.js
 
 //解析：Vue只能通过new关键字初始化，然后会调用this._init方法
 function Vue (options) {
@@ -40,34 +44,22 @@ function Vue (options) {
     }
     this._init(options)
 }
+```
 
-/**
- * init
- * _init:私有方法
- * 源码：
- *      在src/core/instance/init.js中定义
- *
- * _init是干什么的？
- *      初始化一个Vue实例
- *
- * _init做了什么？
- *      vue初始化主要就干了几件事情，合并配置，初始化生命周期，初始化事件中心，初始化渲染，
- *      初始化data、props、computed、watcher等等
- *
- *      uid是做什么的？
- *      startTag和endTag是做什么的？
- *      performance定义是什么？
- *          Whether to record perf
- *          是否记住性能
- *      make是干什么的？
- *          性能记录标签
- *
- *      如果有vm.$options.el属性 就使用vm.$mount挂载它vm.$mount(vm.$options.el)
- *
- *
- * _init为什么要做这些？
- *      一次性初始化方便调用内部方法和属性
- */
+### init
+_init:私有方法
+
+### _init是干什么的？
+初始化一个Vue实例
+
+### _init做了什么？
+vue初始化主要就干了几件事情，合并配置，初始化生命周期，初始化事件中心，初始化渲染，
+初始化data、props、computed、watcher等等
+
+### 为什么需要_init?
+一次性初始化方便调用内部方法和属性
+```JavaScript
+//在src/core/instance/init.js中定义
 Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
     // a uid
@@ -124,25 +116,24 @@ Vue.prototype._init = function (options?: Object) {
         vm.$mount(vm.$options.el)
     }
 }
+```
 
-/**
- * $mount
- * Vue实例挂载
- *
- * $mount是干什么的？
- *      Vue中我们是通过$mount实例方法去挂载vm的
- *
- * $mount做了哪些事情？
- *      源码：compiler版本
- *      src/platform/web/entry-runtime-with-compiler.js
- *      就是在没有render函数的时候把template转换成render
- *      mark compile compile end
- *      这段代码首先缓存了原型上的$mount方法，再重新定义该方法
- *      首先，它对el做了限制，Vue不能挂载在body、html这样的根节点上。
- *      接下来，如果没有定义render方法，则会把el或者template字符串转换成render方法。
- *      在Vue2.0版本中，所有Vue的组件的渲染最终都需要render方法，它是调用compileToFunctions方法实现的，
- *      编译过程我们之后会介绍。最后，调用原型上的$mount方法挂载
- */
+### $mount
+Vue实例挂载
+
+### $mount是干什么的？
+Vue中我们是通过$mount实例方法去挂载vm的
+
+### $mount做了哪些事情？
+就是在没有render函数的时候把template转换成render
+
+```JavaScript
+ //      这段代码首先缓存了原型上的$mount方法，再重新定义该方法
+ //      首先，它对el做了限制，Vue不能挂载在body、html这样的根节点上。
+ //      接下来，如果没有定义render方法，则会把el或者template字符串转换成render方法。
+ //      在Vue2.0版本中，所有Vue的组件的渲染最终都需要render方法，它是调用compileToFunctions方法实现的，
+ //      编译过程我们之后会介绍。最后，调用原型上的$mount方法挂载
+
 const mount = Vue.prototype.$mount;
  Vue.prototype.$mount = funciton (
      el?: string | Element,
@@ -317,19 +308,18 @@ Vue.prototype.$mount = function (
     }
     return vm
  }
+```
 
+### $mount为什么要这样做？
+结构清晰
 
-/**
- * $mount为什么要这样做？
- *  结构清晰
- *
- *  _render方法
- *      _render方法是干什么的？
- *          是实例的一个私有方法，它用来把实例渲染成一个虚拟Node。
- *      _render方法是怎么实现的？
- *          源码：
- *          src/code/instance/render.js
- */
+### _render方法是干什么的？
+是实例的一个私有方法，它用来把实例渲染成一个虚拟Node。
+
+#_render方法是怎么实现的？
+
+```JavaScript
+ //src/code/instance/render.js
 Vue.prototype._render = function ():VNode {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options
@@ -415,26 +405,23 @@ export function initRender (vm: Component) {
     // user-written render functions.
     vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true)
 }
+```
 
-/**
- * vnode
- * Virtual DOM
- * Virtual DOM是什么？
- *      Virtual DOM就是用一个原生的JS对象去描述一个DOM节点
- *
- * Virtual DOM是干什么的？
- *      浏览器中的DOM元素是非常庞大的。当我们频繁的去做dom更新，会产生一定的性能问题。
- *      它比创建一个DOM的代价要小很多。
- *
- * Virtual DOM是怎么实现的？
- *      源码：
- *      src/core/vdom/vnode.js
- *
- *      VNode是对真实DOM的一种抽象描述，它的核心定义无非就几个关键属性，标签名、数据、子节点、键值等，其它属性都是用来扩展VNode
- *      的灵活性以及实现一些特殊feature的。由于VNode只是用来映射到真实DOM的渲染，不需要包含操作DOM的方法，因此它是非常轻量和简单的。
- *
- *      Virtual DOM除了它的数据结构的定义，映射到真实DOM实际上要经历VNode的create、diff、patch等过程
- */
+### Virtual DOM是什么？
+Virtual DOM就是用一个原生的JS对象去描述一个DOM节点
+
+VNode是对真实DOM的一种抽象描述，它的核心定义无非就几个关键属性，标签名、数据、子节点、键值等，其它属性都是用来扩展VNode
+的灵活性以及实现一些特殊feature的。由于VNode只是用来映射到真实DOM的渲染，不需要包含操作DOM的方法，因此它是非常轻量和简单的。
+
+Virtual DOM除了它的数据结构的定义，映射到真实DOM实际上要经历VNode的create、diff、patch等过程
+
+### Virtual DOM是干什么的？
+浏览器中的DOM元素是非常庞大的。当我们频繁的去做dom更新，会产生一定的性能问题。
+它比创建一个DOM的代价要小很多。
+
+### Virtual DOM是怎么实现的？
+```JavaScript
+//src/core/vdom/vnode.js
  export default class VNode {
      tag: string | void;
      data: VNodeData | void;
@@ -503,16 +490,16 @@ export function initRender (vm: Component) {
         return this.compomnentInstance
     }
 }
+```
 
-/**
- * createElement是做什么的？
- *  是Vue.js用来创建VNode
- *
- * createElement怎么实现的？
- *      源码：
- *      src/core/vdom/create-element.js
- *      createElement方法实际上是对_createElement方法的封装，它允许传入的参数更加灵活，在处理这些参数后，调用真正创建VNode的函数
- */
+### createElement是做什么的？
+是Vue.js用来创建VNode
+
+### createElement怎么实现的？
+createElement方法实际上是对_createElement方法的封装，它允许传入的参数更加灵活，在处理这些参数后，调用真正创建VNode的函数
+
+```JavaScript
+//src/core/vdom/create-element.js
 
  // wrapper function for providing a more flexible interface
  // without getting yelled at by flow
@@ -771,6 +758,7 @@ if (typeof tag === 'string') {
     // direct component options / constructor
     vnode = createComponent(tag, data, context, children)
 }
+```
 
 /**
  * update
