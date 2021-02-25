@@ -1206,4 +1206,48 @@ loadLoader(currentLoaderObject, function(err){
         }   
     )
 })
+
+function runSyncOrAsync(fn, context, args, callback) {
+    var isSync = true; // 是否为同步
+    var isDone = false;
+    var isError = false; // internal error
+    var reportedError = false;
+    // 给loaderContext上下文赋值async函数，用以将loader异步化
+    context.async = function async() {
+        if(isDone) {
+            if(reportedError) return; // ignore
+            throw new Error("async(): The callback was already called.")
+        }
+        isDone = true;
+        isSync = false;
+        try {
+            callback.apply(null, arguments);
+        } catch(e) {
+            isError = true;
+            throw e;
+        }
+    };
+    try {
+        // 开始执行loader
+        var result = (function LOADER_EXECUTION(){
+            return fn.apply(context, args);
+        }());
+        
+        if(isSync) {
+            isDone = true;
+            //如果loader执行后没有返回值
+            if(result === undefined) return callback();
+            // loader 返回值为一个promise实例，待这个实例被resolve或者reject后执行下一个loader。这也是loader异步化的一种方式
+            if(result && typeof result === "object" && typeof result.then === "function") {
+                return result.catch(callback).then(function(r){
+                    callback(null, r);
+                });
+                // 如果loader执行后有返回值，执行callback
+                return callback(null, result);
+            }
+        }
+    } catch(e) {
+        // do something
+    }
+}
 ```

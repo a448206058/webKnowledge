@@ -62,36 +62,43 @@
 	  return newHead.next;
 	}
 
-    var deleteDuplicates = function(head) {
-	    head = creatrLink(head);
-        let newHead = new ListNode( null ),
-            prev = newHead,
-            curr = head;
-        newHead.next = head;
+    /**
+     * @param {ListNode} l1
+     * @param {ListNode} l2
+     * @return {ListNode}
+     */
+    var mergeTwoLists = function(l1, l2) {
+        l1 = creatrLink(l1);
+        l2 = creatrLink(l2);
 
-        while (curr && curr.next) {
-            if (curr.val === curr.next.val) {
-                while(curr.val!=null && curr.next!=null && (curr.val === curr.next.val)){
-                    curr = curr.next;
-                }
-                prev.next = curr.next;
-                curr = prev.next;
-            } else {
-
-                prev = curr;
-                curr = curr.next;
+        var newHead = new ListNode(null);
+        var prev = newHead;
+        while(l1!=null && l2!=null){
+            if(c1.val < c2.val){
+                prev.next = c1;
+                c1 = c1.next;
+                console.log(prev)
+            }else{
+                prev.next = c2;
+                c2 = c2.next;
+                console.log(prev)
             }
-        }
 
+            // console.log(prev)
+
+            // prev = c1;
+            c1 = c1.next;
+        }
         return newHead.next;
     };
 
+    var l1 = [1,2,4], l2 = [1,3,4];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
-    var head = [0,0,0,0,0];
+    // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(deleteDuplicates(head))
+    console.log(mergeTwoLists(l1, l2))
 </script>
 </body>
 </html>
