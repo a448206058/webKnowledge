@@ -473,5 +473,7 @@ export default class Compiler {
 ## 造轮子系列： 数据渲染
 思路：通过虚拟节点VNode对节点进行构建，构建DOM Tree
 在通过遍历DOM Tree 通过createElement创建元素
+
+https://github.com/answershuto/learnVue
     
 		
