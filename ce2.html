@@ -67,29 +67,23 @@
      * @param {ListNode} l2
      * @return {ListNode}
      */
-    var mergeTwoLists = function(l1, l2) {
-        l1 = creatrLink(l1);
-        l2 = creatrLink(l2);
-
-        var newHead = new ListNode(null);
-        var prev = newHead;
-        while(l1!=null && l2!=null){
-            if(c1.val < c2.val){
-                prev.next = c1;
-                c1 = c1.next;
-                console.log(prev)
-            }else{
-                prev.next = c2;
-                c2 = c2.next;
-                console.log(prev)
-            }
-
-            // console.log(prev)
-
-            // prev = c1;
-            c1 = c1.next;
-        }
-        return newHead.next;
+    var swapPairs = function(head) {
+		var newHead = new ListNode(null);
+		newHead.next = head;
+		var p = newHead;
+		while(p.next && p.next.next){
+			var node1 = p.next;
+			var node2 = p.next.next;
+			var next = node2.next;
+			
+			node2.next = node1;
+			node1.next = next;
+			p.next = node2;
+			
+			p = node1;
+		}
+		
+		return newHead.next;
     };
 
     var l1 = [1,2,4], l2 = [1,3,4];
