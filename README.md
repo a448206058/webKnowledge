@@ -11,10 +11,9 @@
 本文很多学习路径是参考ssh大佬的(https://github.com/sl1673495/frontend-advantage-roadmap
 )。
 
-进阶：
-
-代码规范： [链接地址](./升阶/代码规范.md)  
-
+## 进阶：
+代码规范： [链接地址](./升阶/代码规范.md) 
+ 
 开发思想： [链接地址](./升阶/开发思想.md)
 
 异常处理：[链接地址](./升阶/异常处理.md)
@@ -27,21 +26,24 @@
 
 Node： [链接地址](./node/node.md)  
 
-源码理解：
-
+## 源码理解：
 vue2.x源码理解：[链接地址](./vue/vue.md)
 
 webpack源码解析：[链接地址](./webpack/webpack源码解析.md)
 
-轮子：
+axios源码理解：[链接地址](./axios/axios.md)
 
+## 轮子：
 vue2.x响应式原理：[链接地址](https://github.com/a448206058/dVue)
 
 
-日常学习主要有：
+##日常学习：
+github
 
-	github
-	InfoQ 最近关注到的 文章质量普遍较高
-	掘金
-	知乎
-	图灵社区：https://m.ituring.com.cn/
+InfoQ 最近关注到的 文章质量普遍较高
+
+掘金
+
+知乎
+
+图灵社区：https://m.ituring.com.cn/

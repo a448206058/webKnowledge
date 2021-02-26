@@ -67,32 +67,46 @@
      * @param {ListNode} l2
      * @return {ListNode}
      */
-    var swapPairs = function(head) {
-		var newHead = new ListNode(null);
-		newHead.next = head;
-		var p = newHead;
-		while(p.next && p.next.next){
-			var node1 = p.next;
-			var node2 = p.next.next;
-			var next = node2.next;
-			
-			node2.next = node1;
-			node1.next = next;
-			p.next = node2;
-			
-			p = node1;
-		}
-		
-		return newHead.next;
+    /**
+     * @param {ListNode} head
+     * @param {number} k
+     * @return {ListNode}
+     */
+    var reverseKGroup = function(head, k) {
+        head = creatrLink(head);
+        var newHead = new ListNode(null);
+        newHead.next = head;
+        var cur = newHead;
+
+        var arr = new Array(k);
+        for(let i = 0; i < k; i++){
+            arr[i] = cur.next;
+            cur = cur.next;
+        }
+
+
+        while(cur.next && cur.next.next){
+            var node1 = cur.next;
+            var node2 = cur.next.next;
+            var next = node2.next;
+
+            node2.next = node1;
+            node1.next = next;
+            cur.next = node2;
+
+            cur = node1;
+        }
+        return newHead.next;
     };
 
-    var l1 = [1,2,4], l2 = [1,3,4];
+
+    var head = [1,2,3,4,5], k = 2;
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(mergeTwoLists(l1, l2))
+    console.log(reverseKGroup(head, k))
 </script>
 </body>
 </html>

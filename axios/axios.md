@@ -1,42 +1,44 @@
-/**
- * 参考文档：https://juejin.cn/post/6844903824583294984#heading-7
- *
- *  axios 源码解析
- *      Axios是什么？
- *          Axios是一个基于promise的HTTP库，可以用在浏览器和node.js中
- *
- *      Axios功能
- *          从浏览器中创建XMLHttpRequests
- *          从node.js创建http请求
- *          支持Promise API
- *          拦截请求和响应
- *          转换请求数据和响应数据
- *          取消请求
- *          自动转换JSON数据
- *          客户端支持防御XSRF
- *
- *     Axios使用
- *          执行GET请求
- */
-            axios.get('')
-                .then(function (response) {
-                    console.log(response)
-                })
- /**
-  *         执行POST请求
-  */
-            axios.post('', {
+# axios 源码解析
+## Axios是什么？
+Axios是一个基于promise的HTTP库，可以用在浏览器和node.js中
+
+## Axios功能
+从浏览器中创建XMLHttpRequests
+
+从node.js创建http请求
+
+支持Promise API
+
+拦截请求和响应
+
+转换请求数据和响应数据
+
+取消请求
+
+自动转换JSON数据
+
+客户端支持防御XSRF
+
+## Axios使用
+
+```JavaScript
+//执行GET请求
+axios.get('')
+    .then(function (response) {
+        console.log(response)
+    })
+
+// 执行POST请求
+axios.post('', {
               data: data
             })
             .then(function (response){
                 console.log(response)
             })
-
-/**
- *   源码解读：
- *          lib/axios.js
- */
- 'use strict';
+```
+## 源码解读：
+```JavaScript
+//lib/axios.js
 
  var utils = require('./utils');
  var bind = require('./helers/bind');
@@ -73,10 +75,10 @@
  axios.spread = require('./helpers/spread');
  module.exports = axios;
  module.exports.default = axios;
-
-/**
- * lib/util.js 工具方法
- */
+```
+## 工具方法
+```JavaScript
+// lib/util.js
 module.exports = {
     isArray: isArray,
     isArrayBuffer: isArrayBuffer,
@@ -155,11 +157,11 @@ function merge(/* obj1, obj2, obj3, ... */) {
     }
     return result;
 }
-
-/**
- * bind -> lib/helpers/bind.js
- *  返回一个函数，并且传入的方法执行上下文绑定到thisArg上。
- */
+```
+## bind
+```JavaScript
+//lib/helpers/bind.js
+// 返回一个函数，并且传入的方法执行上下文绑定到thisArg上。
  module.exports = function bind(fn, thisArg) {
      return function wrap() {
          var args = new Array(arguments.length);
@@ -195,10 +197,9 @@ function createInstance(defaultConfig) {
  }
  // 传入一个默认配置
 var axios = createInstance(defaults);
-
-/**
- * Axios 实例源码
- */
+```
+#Axios 实例源码
+```JavaScript
 'use strict';
 var utils = require('./../utils');
 var buildURL = require('../helpers/buildURL');
@@ -289,11 +290,11 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 });
 
 module.exports = Axios;
+```
 
-/**
- * InterceptorManager 拦截器源码
- *      lib/core/InterceptorManage.js
- */
+## 拦截器源码
+```JavaScript
+// lib/core/InterceptorManage.js
 
 'use strict';
 var utils = require('../../utils');
@@ -329,12 +330,11 @@ InterceptorManager.prototype.forEach = function forEach(fn) {
 };
 
 module.exports = InterceptorManager;
+```
 
-/**
- * dispatchRequest 源码
- *      lib/core/dispatchRequest.js
- */
-
+## dispatchRequest 源码
+```JavaScript
+// lib/core/dispatchRequest.js
 'use strict';
 var utils = require('./../utils');
 var transformData = require('./transformData');
@@ -402,11 +402,11 @@ module.exports = function dispatchRequest(config) {
         return Promise.reject(reason);
     })
 }
+```
 
-/**
- * var axios = createInstance(defaults)
- *      lib/defaults.js
- */
+## var axios = createInstance(defaults)
+```JavaScript
+// lib/defaults.js
 'use strict';
 
 var utils = requires('./utils');
@@ -511,3 +511,7 @@ utils.forEach(['post', 'put', 'patch'], function nforEachMethodWithData(method) 
 });
 
 module.exports = defaults;
+```
+
+
+参考文档：https://juejin.cn/post/6844903824583294984#heading-7

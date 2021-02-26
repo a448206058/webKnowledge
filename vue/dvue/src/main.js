@@ -16,11 +16,6 @@ var dVues = new dVue({
 			// dVues.object.cc = '3'
 			dVues.object = 222
 		},
-		changeObjectValue(){
-			dVues.object.cc = '3'
-			console.log(dVues.object.cc)
-			// dVues.object = 222
-		},
 		changeArray() {
 			dVues.array[0].c1 = '333';
 		}

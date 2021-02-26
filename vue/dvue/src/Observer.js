@@ -60,6 +60,7 @@ export default class Observer {
                 that.walk(newValue)
                 // debugger
                 // data里面的数据发生了变化，调用dev对象的notify方法，通知观察者去更新视图
+                console.log(222)
                 dep.notify()
             }
         })

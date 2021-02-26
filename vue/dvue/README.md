@@ -1,7 +1,6 @@
-## 轮子哥说过，检验学习的最好办法就是造轮子，定个计划，造起来
-	本系列文章最主要的目的是为了巩固学习的vue源码知识，提高自身的开发水平，
-	加强开发思路，熟悉造轮子的过程
-	
+# dVue
+Two way binding wheel for vue
+ 
 ## vue轮子系列一：双向绑定
 ## 开发的道是思想、思路，术是代码，所以造轮子之前，先想清楚思路
 
@@ -469,39 +468,3 @@ export default class Compiler {
     }
 }
 ```
-
-##造轮子系列：虚拟dom
-[](https://juejin.cn/post/6844903895467032589)
-什么是虚拟dom?
-虚拟dom就是virtual DOM 是用一个原生JS对象去描述一个DOM节点
-Vnode的核心属性是标签名、数据、子节点、键值
-
-Vnode映射到真实节点需要经历Vnode的create、diff、patch等过程
-
-首先创建一个vnode.js，进行vnode节点的定义
-
-```JavaScript
-export default class VNode{
-    constructor(tag, data, children, text, elm, context){
-        this.tag = tag;
-        this.data = data;
-        this.children = children;
-        this.text = text;
-        this.elm = elm;
-        this.context = context;
-    }
-}
-```
-
-接着创建一个create-element.js，实现vnode的create过程
-
-
-##造轮子系列：compile
-
-## 造轮子系列： 数据渲染
-思路：通过虚拟节点VNode对节点进行构建，构建DOM Tree
-在通过遍历DOM Tree 通过createElement创建元素
-
-https://github.com/answershuto/learnVue
-    
-		
