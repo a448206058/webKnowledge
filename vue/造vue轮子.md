@@ -472,6 +472,7 @@ export default class Compiler {
 
 ##造轮子系列：虚拟dom
 [](https://juejin.cn/post/6844903895467032589)
+
 什么是虚拟dom?
 虚拟dom就是virtual DOM 是用一个原生JS对象去描述一个DOM节点
 Vnode的核心属性是标签名、数据、子节点、键值
