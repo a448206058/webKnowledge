@@ -72,41 +72,67 @@
      * @param {number} k
      * @return {ListNode}
      */
-    var reverseKGroup = function(head, k) {
+    // var insertionSortList = function(head) {
+    //     var newHead = new ListNode(null);
+    //     newHead.next = head;
+    //     var curr = newHead;
+    //
+    //     while(curr.next && curr.next.next){
+    //
+    //         var now = curr;
+    //         var p1 = curr.next;
+    //         var p2 = p1.next;
+    //         var next = p2.next;
+    //
+    //         if(p2.val < p1.val){
+    //             p2.next = p1;
+    //             p1.next = next;
+    //             curr.next = p2;
+    //             curr = newHead;
+    //
+    //         } else {
+    //             curr = curr.next;
+    //         }
+    //     }
+    //     return newHead.next;
+    // };
+
+    var insertionSortList = function(head) {
+        if(head === null) {
+            return head;
+        }
         head = creatrLink(head);
         var newHead = new ListNode(null);
         newHead.next = head;
-        var cur = newHead;
+        var curr = head.next;
+        var now = head;
 
-        var arr = new Array(k);
-        for(let i = 0; i < k; i++){
-            arr[i] = cur.next;
-            cur = cur.next;
-        }
+        while(curr != null){
+            if(now.val <= curr.val){
+                now = now.next;
+            } else {
+                let prev = newHead;
+                while(prev.next.val <= curr.val){
+                    prev = prev.next;
+                }
+                now.next = curr.next;
+                curr.next = prev.next;
+                prev.next = curr;
+            }
 
-
-        while(cur.next && cur.next.next){
-            var node1 = cur.next;
-            var node2 = cur.next.next;
-            var next = node2.next;
-
-            node2.next = node1;
-            node1.next = next;
-            cur.next = node2;
-
-            cur = node1;
+            curr = now.next;
         }
         return newHead.next;
     };
 
 
-    var head = [1,2,3,4,5], k = 2;
+    var head = [4, 2, 1, 3];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(reverseKGroup(head, k))
+    console.log(insertionSortList(head))
 </script>
 </body>
 </html>
