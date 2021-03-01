@@ -1,16 +1,19 @@
-import dVue from './index'
+import dVue from "./index";
 
-var dVues = new dVue({
+var vm = new dVue({
 	el: '#app',
-	render: function (createElement) {
-		return createElement('div', {
-			attrs: {
-				id: 'app',
-				class: "class_box"
-			},
-		}, this.message)
-	},
 	data: {
-		message: 'Hello Vue!'
+		items: [
+			'item1',
+			'item2',
+			'item3',
+		]
+	},
+	render(h) {
+		var children = this.$data.items.map(item => h('li', item))
+		var vnode = h('ul', null, children)
+		return vnode
+	},
+	methods: {
 	}
 });

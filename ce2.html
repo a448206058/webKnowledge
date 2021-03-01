@@ -62,77 +62,36 @@
 	  return newHead.next;
 	}
 
-    /**
-     * @param {ListNode} l1
-     * @param {ListNode} l2
-     * @return {ListNode}
-     */
-    /**
-     * @param {ListNode} head
-     * @param {number} k
-     * @return {ListNode}
-     */
-    // var insertionSortList = function(head) {
-    //     var newHead = new ListNode(null);
-    //     newHead.next = head;
-    //     var curr = newHead;
-    //
-    //     while(curr.next && curr.next.next){
-    //
-    //         var now = curr;
-    //         var p1 = curr.next;
-    //         var p2 = p1.next;
-    //         var next = p2.next;
-    //
-    //         if(p2.val < p1.val){
-    //             p2.next = p1;
-    //             p1.next = next;
-    //             curr.next = p2;
-    //             curr = newHead;
-    //
-    //         } else {
-    //             curr = curr.next;
-    //         }
-    //     }
-    //     return newHead.next;
-    // };
-
-    var insertionSortList = function(head) {
-        if(head === null) {
-            return head;
-        }
-        head = creatrLink(head);
-        var newHead = new ListNode(null);
-        newHead.next = head;
-        var curr = head.next;
-        var now = head;
-
-        while(curr != null){
-            if(now.val <= curr.val){
-                now = now.next;
-            } else {
-                let prev = newHead;
-                while(prev.next.val <= curr.val){
-                    prev = prev.next;
-                }
-                now.next = curr.next;
-                curr.next = prev.next;
-                prev.next = curr;
-            }
-
-            curr = now.next;
-        }
-        return newHead.next;
+    var removeNthFromEnd = function(head, n) {
+		head = creatrLink(head)
+         var newHead = new ListNode(null);
+         newHead.next = head;
+         var p = newHead;
+         var q = newHead;
+         while(n >= 0){
+             q = q.next;
+			 n--;
+         }
+		
+         
+         while(q != null) {
+			 p = p.next;
+             q = q.next;
+         }
+		 
+		 var next = p.next;
+		 p.next = next.next;
+		 next = null;
+         return newHead.next;
     };
 
-
-    var head = [4, 2, 1, 3];
+    var head = [1,2,3,4,5], n = 2;
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(insertionSortList(head))
+    console.log(removeNthFromEnd(head, n))
 </script>
 </body>
 </html>

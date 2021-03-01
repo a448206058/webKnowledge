@@ -6065,3 +6065,814 @@ export function genFor(
 }
 ```
 
+```JavaScript
+//event
+let Child = {
+	template: '<button @click="clickHandler($event)">' +
+	'click me' +
+	'</button>',
+	methods: {
+		clickHandler(e) {
+			console.log('Button clicked!', e)
+			this.$emit('select')
+		}
+	}
+}
+
+let vm = new Vue({
+	el: '#app',
+	template: '<div>' +
+	'<child @select="selectHandler" @click.native.prevent="clickHandler"></child>' +
+	'</div>',
+	methods: {
+		clickHandler() {
+			console.log('Child clicked!')
+		},
+		selectHandler() {
+			console.log('Child select!')
+		}
+	},
+	components: {
+		Child
+	}
+})
+
+// 编译
+// src/compiler/parse/index.js
+export const onRE = /^@|^v-on:/
+export const dirRE = /^v-|^@|^:/
+export const bindRE = /^:|^v-bind:/
+
+function processAttrs (el) {
+	const list = el.attrsList
+	let i, l, name, rawName, value, modifiers, isProp
+	for (i = 0, l = list.length; i < l; i++) {
+		name = rawName = list[i].name
+		value = list[i].value
+		if (dirRE.test(name)) {
+			el.hasBindings = true
+			modifiers = parseModifiers(name)
+			// 解析出修饰符
+			if (modifiers) {
+				name = name.replace(modifierRE, '')
+			}
+			if (bindRE.test(name)) {
+				// ..
+			} else if(onRE.test(name)) {
+				name = name.replace(onRE, '')
+				// 如果事件的指令
+				addHandler(el, name, value, modifiers, false, warn)
+			} else {
+				// ...
+			}
+		} else {
+			// ...
+		}
+	}
+}
+
+function parseModifiers (name: string): Object | void {
+	const match = name.match(modifierRE)
+	if (match) {
+		const ret = {}
+		match.forEach(m => { ret[m.slice(1)] = true})
+		return ret
+	}
+}
+
+// src/compiler/helpers.js
+// 根据modifier 修饰符对事件名name做处理
+// 接着根据modifier.native 判断是一个纯原生事件还是普通事件，分别对应el.nativeEvents 和 el.events
+// 最后按照name对事件做归类，并把回调函数的字符串保留到对应的事件中。
+export function addHandler (
+	el: ASTElement,
+	name: string,
+	value: string,
+	modifiers: ?ASTModifiers,
+	important?: boolean,
+	warn?: Function
+) {
+	modifiers = modifiers || emptyObject
+	// warn prevent and passive modifier
+	/* istanbul ignore if */
+	if (
+		process.env.NODE_ENV !== 'production' && warn &&
+		modifiers.prevent && modifiers.passive
+	) {
+		warn(
+			'passive and prevent can\'t be used together. ' +
+			'Passive handler can\'t prevent default event.'
+		)
+	}
+	
+	// check capture modifier
+	if (modifiers.capture) {
+		delete modifiers.capture
+		name = '!' + name // mark the event as captured
+	}
+	if (modifiers.once) {
+		delete modifiers.once
+		name = '~' + name // mark the event as once
+	}
+	/* istanbul ignore if */
+	if (modifiers.passive) {
+		delete modifiers.passive
+		name = '&' + name // mark the event as passive
+	}
+	
+	// normalize click.right and click.middle since they don't actually,fire
+	// this is technically browser-specific, but at least for now browsers are
+	// the only target envs that have right/middle clicks.
+	if (name === 'click') {
+		if (modifiers.right) {
+			name = 'contextmenu'
+			delete modifiers.right
+		} else if (modifiers.middle) {
+			name = 'mouseup'
+		}
+	}
+	
+	let events
+	if (modifiers.native) {
+		delete modifiers.native
+		events = el.nativeEvents || (el.nativeEvents = {})
+	} else {
+		events = el.events || (el.events = {})
+	}
+	
+	cosnt newHandler: any = {
+		value: value.trim()
+	}
+	if (modifiers !== emptyObject) {
+		newHandler.modifiers = modifiers
+	}
+	const handlers = events[name]
+	/* istanbul ignore if */
+	if (Array.isArray(handlers)) {
+		important ? handlers.unshift(newHandler) : handlers.push(newHandler)
+	} else if (handlers) {
+		events[name] = important ? [newHandler, handlers] : [handlers, newHandler]
+	} else {
+		events[name] = newHandler
+	}
+	
+	el.plain = false
+}
+```
+
+然后在codegen阶段，会在genData函数中根据AST元素节点上的events和nativeEvents生成data数据
+```JavaScript
+// src/compiler/codegen/index.js
+export function genData (el: ASTElement, state: CodegenState): string {
+	let data = '{'
+	// ...
+	if (el.events) {
+		data += `${genHandlers(el.events, false, state.warn)},`
+	}
+	if (el.nativeEvents) {
+		data += `${genHandlers(el.nativeEvents, true, state.warn)},`
+	}
+	// ... 
+	return data
+}
+
+// 对于这俩个属性，会调用genHandlers函数，定义在src/compiler/codegen/events.js中：
+export function genHandlers (
+	events: ASTElementHandlers,
+	isNative: boolean,
+	warn: Function
+): string {
+	let res = isNative ? 'nativeOn:{' : 'on:{'
+	for (const name in events) {
+		res += `"{name}":${genHandler(name, events[name])},`
+	}
+	return res.slice(0, -1) + '}'
+}
+
+const fnExpRE = /^\s*([\w$_]+|\([^)]*?\))\s*=>|^function\s*\(/
+const simplePathRE = /^\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['.*?']|\[".*?"]|\ [\d+]|\[[A-Za-z_$][\w$]*])*\s*$/
+function genHandler (
+  name: string,
+  handler: ASTElementHandler | Array<ASTElementHandler>
+): string {
+  if (!handler) {
+    return 'function(){}'
+  }
+  // 遍历事件对象events
+if (Array.isArray(handler)) {
+return `[${handler.map(handler => genHandler(name, handler)).join(',')}]`
+  }
+  const isMethodPath = simplePathRE.test(handler.value)
+  const isFunctionExpression = fnExpRE.test(handler.value)
+  if (!handler.modifiers) {
+    if (isMethodPath || isFunctionExpression) {
+      return handler.value
+    }
+    /* istanbul ignore if */
+    if (__WEEX__ && handler.params) {
+		return genWeexHandler(handler.params, handler.value)
+	}
+	return `function($event){${handler.value}}` // inline statement
+} else {
+	let code = ''
+	let genModifierCode = ''
+	const keys = []
+	for (const key in handler.modifiers) {
+		if (modifierCode[key]) {
+			genModifierCode += modifierCode[key]
+			// left/right
+			if (keyCodes[key]) {
+				keys.push(key)
+			}
+		} else if (key === 'exact') {
+			const modifiers: ASTModifiers = (handler.modifiers: any)
+			genModifierCode += genGuard(
+				['ctrl', 'shift', 'alt', 'meta']
+					.filter(keyModifier => !modifiers[keyModifier])
+					.map(keyModifier => `$event.${keyModifier}key`)
+					.join('||')
+			)
+		} else {
+			keys.push(key)
+		}
+	}
+	if (keys.length) {
+		code += genKeyFilter(keys)
+	}
+	// Make sure modifiers like prevent and stop get executed after key firtering
+	if (genModifierCode) {
+		code += genModifierCode
+	}
+	const handlerCode = isMethodPath
+		? `return ${handler.value}($event)`
+		: isFunctionExpression
+			? `return (${handler.value})($event)`
+			: handler.value
+	/* istanbul ignore if */
+	if (__WEEX__ && handler.params) {
+		return genWeexHandler(handler.params.code + handlerCode)
+	}
+	return `function($event){${code}${handlerCode}}`
+}
+```
+
+vue事件有2种，一种是原生DOM事件，一种是用户自定义事件
+## DOM事件
+在patch过程种的创建阶段和更新阶段都会执行updateDOMListeners:
+```JavaScript
+let target: any
+function updateDOMListeners (oldVnode: VNodeWithData, vnode: VNodeWithData) {
+	if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
+		return
+	}
+	// 首先获取vnode.data.on
+	const on = vnode.data.on || {}
+	const oldOn = oldVnode.data.on || {}
+	// 当前vnode对应的DOM对象
+	target = vnode.elm
+	normalizeEvents(on)
+	updateListeners(on, oldOn, add, remove, vnode.context)
+	target = undefined
+}
+
+// src/core/vdom/helpers/update-listeners.js
+export function updateListeners(
+	on: Object,
+	oldOn: Object,
+	add: Function,
+	remove: Function,
+	vm: Component
+) {
+	let name, def, cur, old, event
+	// 遍历on去添加事件监听
+	for (name in on) {
+		def = cur = on[name]
+		old = oldOn[name]
+		event = normalizeEvent(name)
+		/* istanbul ignore if */
+		if (__WEEX__ && isPlainObject(def)) {
+			cur = def.handler
+			event.params = def.params
+		}
+		if (isUndef(cur)) {
+			process.env.NODE_ENV !== 'production' && warn(
+				`Invalid handler for event "${event.name}": got ` + String(cur),
+				vm
+			)
+		} else if (isUndef(old)) {
+			if (isUndef(cur.fns)) {
+				// 创建一个回调函数
+				cur = on[name] = createFnInvoker(cur)
+			}
+			// 完成一次事件绑定
+			add(event.name, cur, event.once, event.capture, event.passive, event.params)
+		} else if (cur !== old) {
+			old.fns = cur
+			on[name] = old
+		}
+	}
+	// 遍历oldOn去移除事件监听
+	for (name in oldOn) {
+		if (isUndef(on[name])) {
+			event = normalizeEvent(name)
+			remove(event.name, oldOn[name], event.capture)
+		}
+	}
+}
+
+//关于监听和移除事件的方法都是外部传入的，因为它即处理原生DOM事件的添加删除
+//也处理自定义事件的添加删除
+
+const normalizeEvent = cached((name: string): {
+	name: string,
+	once: boolean,
+	capture: boolean,
+	passive: boolean,
+	handler?: Function,
+	params?: Array<any>
+} =>{
+	const passive = name.charAt(0) === '&'
+	name = passive ? name.slice(1) : name
+	const once = name.charAt(0) === '~'
+	name = once ? name.slice(1) : name
+	const capture = name.charAt(0) === '!'
+	name = capture ? name.slice(1) : name
+	return {
+		name,
+		once,
+		capture,
+		passive
+	}
+})
+
+// createFnInvoker
+export function createFnInvoker(fns: Function | Array<Function>): Function {
+	function invoker() {
+		const fns = invoker.fns
+		if (Array.isArray(fns)) {
+			const cloned = fns.slice()
+			for (let i = 0; i < cloned.length; i++) {
+				cloned[i].apply(null, arguments)
+			}
+		} else {
+			return fns.apply(null, arguments)
+		}
+	}
+	invoker.fns = fns
+	return invoker
+}
+```
+
+add
+```JavaScript
+// src/platforms/web/runtime/modules/event.js
+function add (
+	event: string,
+	handler: Function,
+	once: boolean,
+	capture: boolean,
+	passive: boolean
+) {
+	handler = withMacroTask(handler)
+	if (once) handler = createOnceHandler(handler, event, capture)
+	target.addEventListener(
+		event,
+		handler,
+		supportsPassive
+			? {capture, passive}
+			: capture
+	)
+}
+
+function remove (
+	event: string,
+	handler: Function,
+	capture: boolean,
+	_target?: HTMLElement
+) {
+	(_target || target).removeEventListener(
+		event,
+		handler._withTask || handler,
+		capture
+	)
+}
+
+// withMacroTask(handler)
+// src/core/util/next-tick.js
+export function withMacroTask(fn: Function): Function {
+	return fn._withTask || (fn._withTask = function (){
+		useMacroTask = true
+		const res = fn.apply(null, arguments)
+		useMacroTask = false
+		return res
+	})
+}
+```
+
+## 自定义事件
+除了原生DOM事件，Vue还支持来自定义事件，并且自定义事件只能作用于组件上，如果在组件上使用原生事件，
+需要加.native修饰符，普通元素上使用.native修饰符无效
+```JavaScript
+// render
+// scr/core/vdom/create-component.js
+export function createComponent(
+	Ctor: Class<Component> | Function | Object | void,
+	data: ?VNodeData,
+	context: Component,
+	children: ?Array<VNode>,
+	tag?: string
+): VNode | Array<VNode> | void {
+	// ...
+	const listeners = data.on
+	
+	data.on = data.nativeOn
+	
+	// ...
+	const name = Ctor.options.name || tag
+	// 把listeners作为vnode的componentOptions传入
+	// 它是在子组件初始化阶段中处理的，所以它的处理环境是子组件。
+	const vnode = new VNode(
+		`vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
+		data, undefined, undefined, undefined, context,
+		{ Ctor, propsData, listeners, tag, children },
+		asyncFactory
+	)
+	
+	return vnode
+}
+
+// initInternalComponent
+// src/core/instance/init.js
+export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+	const opts = vm.$options = Object.create(vm.constructor.options)
+	// ...
+	const vnodeComponentOptions = parentVnode.componentOptions
+	
+	opts._parentListeners = vnodeComponentOptions.listeners
+}
+
+// initEvents
+// src/core/instance/event.js
+export function initEvents(vm: Component) {
+	vm._events = Object.create(null)
+	vm._hasHookEvent = false
+	// init parent attached events
+	const listeners = vm.$options._parentListeners
+	if (listeners) {
+		updateComponentListeners(vm, listeners)
+	}
+}
+
+
+let target: any
+export function updateComponentListeners(
+	vm: Component,
+	listeners: Object,
+	oldListeners: ?Object
+) {
+	target = vm
+	// 自定义事件和原生DOM事件处理的差异就在事件添加和删除的实现上
+	updateListeners(listeners, oldListeners || {}, add, remove, vm)
+	target = undefined
+}
+
+function add(event, fn, once) {
+	if (once) {
+		target.$once(event, fn)
+	} else {
+		target.$on(event, fn)
+	}
+}
+
+function remove (event, fn) {
+	target.$off(event, fn)
+}
+
+// Vue事件中心
+export function eventsMixin(Vue: Class<Component>) {
+	const hookRE = /^hook:/
+	Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
+		const vm: Component = this
+		if (Array.isArray(event)) {
+			for (let i = 0, l = event.length; i < l; i++) {
+				this.$on(event[i], fn)
+			}
+		} else {
+			(vm._events[event] || (vm._events[event] = [])).push(fn)
+			// optimize hook:event cost by using a boolean flag marked at registration
+			// instead of a hash lookup
+			if (hookRE.test(event)) {
+				vm._hasHookEvent = true
+			}
+		}
+		return vm
+	}
+	
+	Vue.prototype.$once = function (event: string, fn: Function): Component {
+		const vm: Component = this
+		function on () {
+			vm.$off(event, on)
+			fn.apply(vm, arguments)
+		}
+		on.fn = fn
+		vm.$on(event, on)
+		return vm
+	}
+	
+	Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
+		const vm: Component = this
+		// all
+		if (!arguments.length) {
+			vm._events = Object.create(null)
+			return vm
+		}
+	}
+	// array of events
+	if (Array.isArray(event)) {
+		for (let i = 0, l = event.length; i < l; i++) {
+			this.$off(event[i], fn)
+		}
+		return vm
+	}
+	// specific event
+	const cbs = vm._events[event]
+	if (!cbs) {
+		return vm
+	}
+	if (!fn) {
+		vm._events[event] = null
+		return vm
+	}
+	if (fn) {
+		// specific handler
+		let cb
+		let i = cbs.length
+		while (i--) {
+			cb = cbs[i]
+			if (cb === fn || cb.fn === fn) {
+				cbs.splice(i, 1)
+				break
+			}
+		}
+	}
+	return vm
+}
+
+Vue.prototype.$emit = function (event: string): Component {
+	const vm: Component = this
+	if (process.env.NODE_ENV !== 'production') {
+		const lowerCaseEvent = event.toLowerCase()
+		if (lowerCaseEvent !== event && vm._events[lowerCaseEvent]) {
+			tip(
+				`Event "${lowerCaseEvent}" is emitted in component ` +
+				`${formatComponentName(vm)} but the handler is registered for "${event}".`
+				+
+				`Note that HTML attributes are case-insensitive and you cannot use ` +
+				`v-on to listen to camelCase events when using in-DOM templates. ` +
+				`You should probably use "${hyphenate(event)}" instead of "${event}".`
+			)
+		}
+	}
+	let cbs = vm._events[event]
+	if (cbs) {
+		cbs = cbs.length > 1 ? toArray(cbs) : cbs
+		const args = toArray(arguments, 1)
+		for (let i = 0, l = cbs.length; i < l; i++) {
+			try {
+				cbs[i].apply(vm, args)
+			} catch (e) {
+				handleError(e, vm, `event handler for "${event}"`)
+			}
+		}
+	}
+	return vm
+}
+```
+Vue支持2种事件类型，原生DOM事件和自定义事件，它们主要的区别在于添加和删除事件的方式不一样，并且自定义事件的派发
+是往当前实例上派发，但是可以利用在父组件环境定义回调函数来实现父子组件的通讯。
+
+## v-model
+vue的数据响应式原理，都是通过数据的改变去驱动DOM视图的变化，而双向绑定除了数据驱动DOM外，DOM的变化反过来影响数据，
+是一个双向关系，在Vue中，我们可以通过v-model来实现双向绑定。
+
+v-model即可以作用在普通表单元素上，🈶️可以作用在组件上，它其实是一个语法糖。
+```JavaScript
+// genDirectives(el, state)
+// src/compiler/codegen/index.js
+
+function genDirectives(el: ASTElement, state: CodegenState): string | void {
+	const dirs = el.directives
+	if (!dirs) return
+	let res = 'directives:['
+	let hasRuntime = false
+	let i, l, dir, needRuntime
+	// 遍历el.directives
+	for (i = 0, l = dirs.length; i < l; i++){
+		dir = dirs[i]
+		needRuntime = true
+		const gen: DirectiveFunction = state.directives[dir.name]
+		if (gen) {
+			// compile-time directive that manipulates AST.
+			// returns true if it also needs a runtime counterpart.
+			needRuntime = !!gen(el, dir, state.warn)
+		}
+		if (needRuntime) {
+			hasRuntime = true
+			res += `{name:"${dir.name}",rawName:"${dir.rawName}"${
+				dir.value ? `,value:(${dir.value}),expression:${JSON.stringify(dir.value)}`
+			: ''
+			}${
+				dir.arg ? `,arg:"${dir.arg}"` : ''
+			}${
+				dir.modifiers ? `,modifiers:${JSON.stringify(dir.modifiers)}` : ''
+			}},`
+		}
+	}
+	if (hasRuntime) {
+		return res.slice(0, -1) + ']'
+	}
+}
+
+// baseOptions: CompilerOptions
+// src/platforms/web/compiler/options
+export const baseOptions: CompilerOptions = {
+	expectHTML: true,
+	modules,
+	directives,
+	isPreTag,
+	isUnaryTag,
+	mustUseProp,
+	canBeLeftOpenTag,
+	isReservedTag,
+	getTagNamespace,
+	staticKeys: genStaticKeys(modules)
+}
+
+// directives
+// src/platforms/web/compiler/directives/index.js
+export default {
+	model,
+	text,
+	html
+}
+
+//v-model directives
+export default function model (
+	el: ASTElement,
+	dir: ASTDirective,
+	_warn: Function
+): ?boolean {
+	warn = _warn
+	const value = dir.value
+	const modifiers = dir.modifiers
+	const tag = el.tag
+	const type = el.attrsMap.type
+	
+	if (process.env.NODE_ENV !== 'production') {
+		// inputs with type="file" are read only and setting the input's
+		// value will throw an error.
+		if (tag === 'input' && type === 'file') {
+			warn(
+				`<${el.tag} v-model="${value}" type="file">:\n` +
+				`File inputs are read only. Use a v-on:change listener instead.`
+			)
+		}
+	}
+	
+	if (el.component) {
+		genComponentModel(el, value, modifiers)
+		// component v-model doesn't need extra runtime
+		return false
+	} else if (tag === 'select') {
+		genSelect(el, value, modifiers)
+	} else if (tag === 'input' && type === 'checkbox') {
+		genCheckboxModel(el, value, modifiers)
+	} else if (tag === 'input' && type === 'radio') {
+		genRadioModel(el, value, modifiers)
+	} else if (tag === 'input' || tag === 'textarea') {
+		genDefaultModel(el, value, modifiers)
+	} else if (!config.isReservedTag(tag)) {
+		genComponentModel(el, value, modifiers)
+		// component v-model doesn't need extra runtime
+		return false
+	} else if (process.env.NODE_ENV !== 'production'){
+		warn(
+			`<${el.tag} v-model="${value}">` +
+			`v-model is not supported on this element type. ` +
+			'If you are working with contenteditable, it\'s recommended to ' +
+			'wrap a library dedicated for that purpose inside a custom component.'
+		)
+	}
+	//ensure runtime directive metadata
+	return true
+}
+
+// genDefaultModel
+function genDefaultModel (
+	el: ASTElement,
+	value: string,
+	modifiers: ?ASTModifiers
+): ?boolean {
+	const type = el.attrsMap.type
+	
+	// warn if v-bind:value conflicts with v-model
+	// except for inputs with v-bind:type
+	if (process.env.NODE_ENV !== 'production') {
+		const value = el.attrsMap['v-bind:value'] || el.attrsMap[':value']
+		const typeBinding = el.attrsMap['v-bind:type'] || el.attrsMap[':type']
+		if (value && !typeBinding) {
+			const binding = el.attrsMap['v-bind:value'] ? 'v-bind:value' : ':value'
+			warn(
+				`${binding}="${value}" conflicts with v-model on the same element ` +
+				'because the latter already expands to a value binding internally'
+			)
+		}
+	}
+	
+	const { lazy, number, trim } = modifiers || {}
+	const needCompositionGuard = !lazy && type !== 'range'
+	const event = lazy
+		? 'change'
+		: type === 'range'
+			? RANGE_TOKEN
+			: 'input'
+			
+	let valueExpression = '$event.target.value'
+	if (trim) {
+		valueExpression = `$event.target.value.trim()`
+	}
+	if (number) {
+		valueExpression = `_n(${valueExpression})`
+	}
+	
+	let code = genAssignmentCode(value, valueExpression)
+	if (needCompositionGuard) {
+		// message=$event.target.value
+		code = `if($event.target.composing)return;${code}`
+	}
+	addProp(el, 'value', `(${value})`)
+	addHandler(el, event, code, null, true)
+	if (trim || number) {
+		addHandler(el, 'blur', '$forceUpdate()')
+	}
+}	
+
+// genAssignmentCode
+// src/compiler/directives/model.js
+/**
+ * Cross-platform codegen helper for generating v-model value assignment code.
+ */
+export function genAssignmentCode (
+	value: string,
+	assignment: string
+): string {
+	const res = parseModel(value)
+	if (res.key === null) {
+		return `${value}=${assignment}`
+	} else {
+		return `$set(${res.exp}, ${res.ley}, ${assignment})`
+	}
+}
+```
+input实现v-model的精髓，通过修改AST元素，给el添加一个prop,相当于我们在input上动态绑定了value,
+又给el添加了事件处理，相当于在input上绑定了input事件
+<input v-bind:value="message" v-on:input="message=$event.target.value">
+动态绑定了input的value指向了message变量，并且在触发input事件的时候去动态把message设置为目标值，
+这样实际上就完成了数据双向绑定了，所以说v-model实际上就是语法糖
+```JavaScirpt
+let vm = new Vue({
+	el: '#app',
+	template: '<div>'
+	+ '<input v-model="message" placeholder="edit me">' +
+	'<p>Message is: {{ message }}</p>' +
+	'</div>',
+	data() {
+		return {
+			message: ''
+		}
+	}
+})
+
+with(this) {
+	return _c('div', [_c('input', {
+		directives: [{
+			name: "model",
+			rawName: "v-model",
+			value: (message),
+			expression: "message"
+		}],
+		attrs: {"placeholder": "edit me"},
+		domProps: {"value": (message)},
+		on: {"input": function($event){
+			if($event.target.composiong)
+				return;
+			message=$event.target.value
+		}}
+	}),_c('p', [_v("Message is: " + _s(message))])
+	])
+}
+```
+
+## 组件
+```JavaScript
+```
