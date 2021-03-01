@@ -6,17 +6,345 @@ VNode是对真实DOM的一种抽象描述，它的核心定义无非就几个关
 
 Virtual DOM除了它的数据结构的定义，映射到真实DOM实际上要经历VNode的create、diff、patch等过程
 
+实现思路：
+初始化页面index.html, 用 webpack 引入main.js
+```JavaScript
+// index.html
+/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div id="app"></div>
+</body>
+</html>
+*/
+
+// main.js
+import dVue from "./index";
+
+var vm = new dVue({
+	el: '#app',
+	data: {
+		items: [
+			'item1',
+			'item2',
+			'item3',
+		]
+	},
+	render(h) {
+		var children = this.$data.items.map(item => h('li', item))
+		var vnode = h('ul', null, children)
+		return vnode
+	},
+	methods: {
+	}
+});
+
+```
+1.首先定义一个vnode.js 简单定义一下vnode的属性
+```JavaScript
+export default class VNode{
+    constructor(tag, data, children, text){
+        this.tag = tag;
+        this.data = data;
+        this.children = children;
+        this.text = text;
+    }
+}
+```
+
+2.定义一个index.js 初始化dVue，和reactive过程中的类似，有兴趣的可以看一下
+```JavaScript
+import vnode from './vnode'
+
+export default class dVue {
+    constructor(options) {
+		let vm = this;
+        // 1、保存vue实例传递过来的数据
+        vm.$options = options // options是vue实例传递过来的对象
+        vm.$data = options.data // 传递过来的data数据
+        // el 是字符串还是对象
+        vm.$el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
+    }
+}
+```
+
+3.接下来通过render函数初始化vnode节点，调用$mount挂载$el
+```JavaScript
+import vnode from './vnode'
+
+export default class dVue {
+    constructor(options) {
+		let vm = this;
+        // 1、保存vue实例传递过来的数据
+        vm.$options = options // options是vue实例传递过来的对象
+        vm.$data = options.data // 传递过来的data数据
+        // el 是字符串还是对象
+        vm.$el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
+
+        var render = options.render
+        vm.vnode = render.call(vm, createVNode)
+		
+        vm.$mount(vm.$el);
+    }
+}
+
+function createVNode(tag, data, children) {
+    var vnodes = new vnode(tag, undefined, undefined, undefined)
+    // {tag: tag, data: undefined, children: undefined, text: undefined}
+    if (typeof data === 'string') {
+        vnodes.text = data
+    } else {
+        vnodes.data = data;
+        if (Array.isArray(children)) {
+            vnodes.children = children
+        } else {
+            vnodes.children = [ children ]
+        }
+    }
+    return vnodes
+}
+```
+
+4.$mount实现
+```JavaScript
+dVue.prototype.$mount = function (ref) {
+    var refElm = ref
+    var parentElm = refElm.parentNode
+
+	let vm = this;
+
+	let updateComponent = () => {
+		const vnode = vm._render()
+		vm._update(vnode, true)
+	}
+	updateComponent()
+
+    return this
+}
+
+function patch(oldVnode, vnode, hydrating, removeOnly) {
+	if (!isNode(oldVnode)) {
+		// 当oldVnode不存在时，创建新的节点
+		// isInitialPatch = true
+		createElm(vnode, oldVnode.parentNode, oldVnode);
+	} else {
+		// 对oldVnode和vnode进行diff,并对oldVnode打patch
+		const isRealElement = isDef(oldVnode.nodeType)
+		if (!sameVnode(oldVnode, vnode)) {
+			// patch existing root node
+			patchVnode(oldVnode, vnode, null, null, removeOnly)
+		}
+		patchVnode(oldVnode, vnode, null, null, removeOnly)
+	}
+}
 
 
+```
 
-[](https://juejin.cn/post/6844903895467032589)
+5.接下来通过createElm来实现真实节点的渲染
+```JavaScript
+function createElm(vnode, parentElm, refElm) {
+    var elm
+    // 创建真实DOM节点
+    if (vnode.tag) {
+        elm = document.createElement(vnode.tag)
+    } else if (vnode.text) {
+        elm = document.createTextNode(vnode.text)
+    }
 
-##造轮子系列：compile
+    // 将真实DOM节点插入到文档中
+    if (refElm) {
+        parentElm.insertBefore(elm, refElm)
+        parentElm.removeChild(refElm)
+    } else {
 
-## 造轮子系列： 数据渲染
-思路：通过虚拟节点VNode对节点进行构建，构建DOM Tree
-在通过遍历DOM Tree 通过createElement创建元素
+        parentElm.appendChild(elm)
+    }
 
-https://github.com/answershuto/learnVue
+    // 递归创建子节点
+    if (Array.isArray(vnode.children)) {
+        for (var i = 0, l = vnode.children.length; i < l; i++) {
+            var childVNode = vnode.children[i]
+            createElm(childVNode, elm)
+        }
+    } else if (vnode.text) {
+        elm.textContent = vnode.text
+    }
+
+	vnode.elm = elm;
+
+    return elm
+}
+```
+至此其实也就完成了第一次的渲染
+然后为了改变实例，了解下diff和patch的过程
+```JavaScript
+export default class dVue {
+    constructor(options) {
+		let vm = this;
+        // 1、保存vue实例传递过来的数据
+        vm.$options = options // options是vue实例传递过来的对象
+        vm.$data = options.data // 传递过来的data数据
+        // el 是字符串还是对象
+        vm.$el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
+
+        var render = options.render
+        vm.vnode = render.call(vm, createVNode)
+
+        vm.$mount(vm.$el);
+
+		setTimeout(function(){
+			vm.$data.items = ['cc1', 'cc2', 'cc3']
+			vm.vnode = render.call(vm, createVNode)
+			vm.$mount(vm.$el);
+		}, 1000)
+    }
+}
+```
+
+6.diff
+patch方法中分为俩种情况，一种是当oldVnode不存在时，会创建新的节点;
+另一种是已经存在oldVnode，那么会对oldVnode和vnode进行diff及patch的过程。
+其中patch过程中会调用sameVnode方法来对传入的2个vnode节点进行基本属性的比较，只有当基本属性相同的情况下才认为这2个
+vnode只是局部发生了更新，然后才会对这2个vnode进行diff，如果2个vnode的基本属性存在不一致的情况，那么就会直接跳过diff的
+过程，进而依据vnode新建一个真实的dom，同时删除老的dom节点。
+
+```JavaScript
+function patch(oldVnode, vnode, hydrating, removeOnly) {
+	if (!isNode(oldVnode)) {
+		// 当oldVnode不存在时，创建新的节点
+		// isInitialPatch = true
+		createElm(vnode, oldVnode.parentNode, oldVnode);
+	} else {
+		// 对oldVnode和vnode进行diff,并对oldVnode打patch
+		const isRealElement = isDef(oldVnode.nodeType)
+		if (!sameVnode(oldVnode, vnode)) {
+			// patch existing root node
+			patchVnode(oldVnode, vnode, null, null, removeOnly)
+		}
+		patchVnode(oldVnode, vnode, null, null, removeOnly)
+	}
+}
+
+function sameVnode (a, b) {
+	return (
+		a.key === b.key &&
+		a.tag === b.tag &&
+		a.isComment === b.isComment &&
+		isDef(a.data) === isDef(b.data) &&
+		sameInputType(a, b)
+	)
+}
+
+function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
+	const elm = vnode.elm = oldVnode.elm
+	const oldCh = oldVnode.children
+	const ch = vnode.children
+	// 如果vnode没有文本节点
+	if (isUndef(vnode.text)) {
+		// 如果oldVnode的children属性存在且vnode的children属性也存在
+		if (isDef(oldCh) && isDef(ch)) {
+			// updateChildren,对子节点进行diff
+			if (oldCh !== ch) updateChildren(elm, oldCh, ch, removeOnly)
+		} else if (isDef(ch)) {
+			// 如果oldVnode的text存在，首先清空text的内容，然后将vnode的children添加进去
+			if (isDef(oldVnode.text)) setTextContent(elm, '')
+			addVnodes(elm, null, ch, 0, ch.length - 1)
+		} else if (isDef(oldCh)) {
+			// 删除elm下的oldchildren
+			removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+		} else if (isDef(oldVnode.text)) {
+			// oldVnode有子节点，而vnode没有，那么就清空这个节点
+			setTextContent(elm, '')
+		}
+	} else if (oldVnode.text !== vnode.text) {
+		// 如果oldVnode和vnode文本属性不同，那么直接更新真的dom节点文本元素
+		setTextContent(elm, vnode.text)
+	}
+}
+```
+
+子节点diff流程
+在开始遍历diff前，首先给oldCh和newCh分别分配一个startIndex和endIndex来作为遍历的索引，当oldCh或者newCh遍历完后（遍历完的条件就是
+oldCh或者newCh的startIndex >= endIndex)，就停止oldCh和newCh的diff过程。
+
+1.无key的diff过程
+    首先从第一个节点开始比较，
+
+```JavaScript
+function updateChildren (parentElm, oldCh, newCh, removeOnly) {
+    // 为oldCh和newCh分别建立索引，为之后遍历的依据
+    let oldStartIdx = 0
+    let newStartIdx = 0
+    let oldEndIdx = oldCh.length - 1
+    let oldStartVnode = oldCh[0]
+    let oldEndVnode = oldCh[oldEndIdx]
+    let newEndIdx = newCh.length - 1
+    let newStartVnode = newCh[0]
+    let newEndVnode = newCh[newEndIdx]
+    let oldKeyToIdx, idxInOld, vnodeToMove, refElm
+
+    // 直到oldCh或者newCh被遍历完后跳出循环
+    while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+      if (isUndef(oldStartVnode)) {
+        oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
+      } else if (isUndef(oldEndVnode)) {
+        oldEndVnode = oldCh[--oldEndIdx]
+      } else if (sameVnode(oldStartVnode, newStartVnode)) {
+        patchVnode(oldStartVnode, newStartVnode, newCh, newStartIdx)
+        oldStartVnode = oldCh[++oldStartIdx]
+        newStartVnode = newCh[++newStartIdx]
+      } else if (sameVnode(oldEndVnode, newEndVnode)) {
+        patchVnode(oldEndVnode, newEndVnode, newCh, newEndIdx)
+        oldEndVnode = oldCh[--oldEndIdx]
+        newEndVnode = newCh[--newEndIdx]
+      } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
+        patchVnode(oldStartVnode, newEndVnode, newCh, newEndIdx)
+        nodeOps.insertBefore(parentElm, oldStartVnode.elm, nextSibling(oldEndVnode.elm))
+        oldStartVnode = oldCh[++oldStartIdx]
+        newEndVnode = newCh[--newEndIdx]
+      } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
+        patchVnode(oldEndVnode, newStartVnode, newCh, newStartIdx)
+        nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+        oldEndVnode = oldCh[--oldEndIdx]
+        newStartVnode = newCh[++newStartIdx]
+      } else {
+        if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+        idxInOld = isDef(newStartVnode.key)
+          ? oldKeyToIdx[newStartVnode.key]
+          : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
+        if (isUndef(idxInOld)) { // New element
+          createElm(newStartVnode, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+        } else {
+          vnodeToMove = oldCh[idxInOld]
+          if (sameVnode(vnodeToMove, newStartVnode)) {
+            patchVnode(vnodeToMove, newStartVnode, newCh, newStartIdx)
+            oldCh[idxInOld] = undefined
+            nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+          } else {
+            // same key but different element. treat as new element
+            createElm(newStartVnode, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+          }
+        }
+        newStartVnode = newCh[++newStartIdx]
+      }
+    }
+    if (oldStartIdx > oldEndIdx) {
+      refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
+      addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx)
+    } else if (newStartIdx > newEndIdx) {
+      removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
+    }
+  }
+```
+
+5.实现一下diff
+比较prevVnode 和 vnode 并根据需要操作的vdom节点 patch，最后生成新的真实dom节点完成视图的更新
+通过patch进行比较 首先比较父节点是否相同，不同的情况下比较子节点
     
 		

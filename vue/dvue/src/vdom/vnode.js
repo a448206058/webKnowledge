@@ -7,13 +7,3 @@ export default class VNode{
     }
 
 }
-
-export const createEmptyVNode = (text) => {
-    const node = new VNode()
-    node.text = text
-    return node
-}
-
-export function createTextVNode (val) {
-    return new VNode(undefined, undefined, undefined, String(val))
-}

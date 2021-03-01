@@ -11,9 +11,9 @@ export default class dVue {
 
         var render = options.render
         vm.vnode = render.call(vm, createVNode)
-		
+
         vm.$mount(vm.$el);
-		
+
 		setTimeout(function(){
 			vm.$data.items = ['cc1', 'cc2', 'cc3']
 			vm.vnode = render.call(vm, createVNode)
@@ -52,7 +52,7 @@ function createElm(vnode, parentElm, refElm) {
         parentElm.insertBefore(elm, refElm)
         parentElm.removeChild(refElm)
     } else {
-		
+
         parentElm.appendChild(elm)
     }
 
@@ -65,7 +65,7 @@ function createElm(vnode, parentElm, refElm) {
     } else if (vnode.text) {
         elm.textContent = vnode.text
     }
-	
+
 	vnode.elm = elm;
 
     return elm
@@ -74,15 +74,15 @@ function createElm(vnode, parentElm, refElm) {
 dVue.prototype.$mount = function (ref) {
     var refElm = ref
     var parentElm = refElm.parentNode
-	
+
 	let vm = this;
-	
+
 	let updateComponent = () => {
 		const vnode = vm._render()
 		vm._update(vnode, true)
 	}
 	updateComponent()
-	
+
     return this
 }
 
@@ -97,18 +97,12 @@ dVue.prototype._update = function(vnode, hydrating) {
 	const vm = this;
 	const prevVnode = vm._vnode;
 	vm._vnode = this.vnode;
-	
-	console.log(prevVnode)
+
 	if(!prevVnode) {
 		// 第一个参数为真实的node节点，则为初始化
-		// vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false)
-		// vm.$el = patch(vm.$el, vm.vnode, hydrating, false)
 		patch(vm.$el, vm.vnode, hydrating, false)
 	} else {
-		console.log('第一次')
 		// 如果需要diff的prevVnode存在，那么对prevVnode和vnode进行diff
-		// vm.$el = vm.__patch__(prevVnode, vnode)
-		// vm.$el = patch(prevVnode, vnode)
 		patch(prevVnode, vnode)
 	}
 }
@@ -119,16 +113,9 @@ function patch(oldVnode, vnode, hydrating, removeOnly) {
 		// isInitialPatch = true
 		createElm(vnode, oldVnode.parentNode, oldVnode);
 	} else {
-		console.log('第二次')
 		// 对oldVnode和vnode进行diff,并对oldVnode打patch
 		const isRealElement = isDef(oldVnode.nodeType)
-		// if (!isRealElement && sameVnode(oldVnode, vnode)) {
-		console.log(oldVnode)
-		console.log(vnode)
-		
-		console.log(sameVnode(oldVnode, vnode))
 		if (!sameVnode(oldVnode, vnode)) {
-			console.log('第三次')
 			// patch existing root node
 			patchVnode(oldVnode, vnode, null, null, removeOnly)
 		}
@@ -154,14 +141,12 @@ function sameInputType (a, b) {
   return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
 }
 
-// 
+//
 
 function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
 	const elm = vnode.elm = oldVnode.elm
 	const oldCh = oldVnode.children
 	const ch = vnode.children
-	console.log(oldVnode)
-	console.log(vnode)
 	// 如果vnode没有文本节点
 	if (isUndef(vnode.text)) {
 		// 如果oldVnode的children属性存在且vnode的children属性也存在
@@ -170,19 +155,17 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
 			if (oldCh !== ch) updateChildren(elm, oldCh, ch, removeOnly)
 		} else if (isDef(ch)) {
 			// 如果oldVnode的text存在，首先清空text的内容，然后将vnode的children添加进去
-			if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+			if (isDef(oldVnode.text)) setTextContent(elm, '')
 			addVnodes(elm, null, ch, 0, ch.length - 1)
 		} else if (isDef(oldCh)) {
 			// 删除elm下的oldchildren
 			removeVnodes(elm, oldCh, 0, oldCh.length - 1)
 		} else if (isDef(oldVnode.text)) {
 			// oldVnode有子节点，而vnode没有，那么就清空这个节点
-			nodeOps.setTextContent(elm, '')
+			setTextContent(elm, '')
 		}
 	} else if (oldVnode.text !== vnode.text) {
 		// 如果oldVnode和vnode文本属性不同，那么直接更新真的dom节点文本元素
-		console.log(vnode.text)
-		console.log(vnode)
 		setTextContent(elm, vnode.text)
 	}
 }
@@ -215,12 +198,12 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
         patchVnode(oldStartVnode, newEndVnode, newCh, newEndIdx)
-        canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+        nodeOps.insertBefore(parentElm, oldStartVnode.elm, nextSibling(oldEndVnode.elm))
         oldStartVnode = oldCh[++oldStartIdx]
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
         patchVnode(oldEndVnode, newStartVnode, newCh, newStartIdx)
-        canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+        nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
         oldEndVnode = oldCh[--oldEndIdx]
         newStartVnode = newCh[++newStartIdx]
       } else {
@@ -235,7 +218,7 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
           if (sameVnode(vnodeToMove, newStartVnode)) {
             patchVnode(vnodeToMove, newStartVnode, newCh, newStartIdx)
             oldCh[idxInOld] = undefined
-            canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+            nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
           } else {
             // same key but different element. treat as new element
             createElm(newStartVnode, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
@@ -252,7 +235,7 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
     }
   }
 
-  
+
   function isNode(v) {
 	  return v.tag
   }
@@ -260,15 +243,19 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
   function isUndef (v) {
     return v === undefined || v === null
   }
-  
+
   function isDef (v) {
     return v !== undefined && v !== null
   }
-  
+
 class nodeOps {
 	insertBefore (parentNode, newNode, referenceNode) {
 	  parentNode.insertBefore(newNode, referenceNode)
 	}
+}
+
+function nextSibling (node) {
+    return node.nextSibling
 }
 
 function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
@@ -280,6 +267,19 @@ function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQu
 function setTextContent (node, text) {
 	console.log(node)
 	 node.textContent = text
+}
+
+export const isTextInputType = makeMap('text,number,password,search,email,tel,url')
+
+export function makeMap (str, expectsLowerCase){
+    const map = Object.create(null)
+    const list = str.split(',')
+    for (let i = 0; i < list.length; i++) {
+        map[list[i]] = true
+    }
+    return expectsLowerCase
+        ? val => map[val.toLowerCase()]
+        : val => map[val]
 }
 
 export function createElementNS (namespace, tagName) {
@@ -312,3 +312,31 @@ function removeVnodes (vnodes, startIdx, endIdx) {
       }
     }
   }
+
+function removeNode (el) {
+    const parent = nodeOps.parentNode(el)
+    // element may have already been removed due to v-html / v-text
+    if (isDef(parent)) {
+        nodeOps.removeChild(parent, el)
+    }
+}
+
+
+
+function findIdxInOld (node, oldCh, start, end) {
+    for (let i = start; i < end; i++) {
+        const c = oldCh[i]
+        if (isDef(c) && sameVnode(node, c)) return i
+    }
+}
+
+
+function createKeyToOldIdx (children, beginIdx, endIdx) {
+    let i, key
+    const map = {}
+    for (i = beginIdx; i <= endIdx; ++i) {
+        key = children[i].key
+        if (isDef(key)) map[key] = i
+    }
+    return map
+}
