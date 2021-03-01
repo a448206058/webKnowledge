@@ -41,57 +41,59 @@
 			curNode = curNode.next;
 		}
 	}
-
-    var addTwoNumbers = function(l1, l2) {
-	 let newHead = new ListNode( null ),
-	      prev = newHead,
-	      curr = head;
-	  newHead.next = head;
-
-	  while (curr) {
-	    if (curr.val === val) {
-	      prev.next = curr.next;
-	      curr = prev.next;
-	    }
-	    else {
-	      prev = curr;
-	      curr = curr.next;
-	    }
-	  }
-
-	  return newHead.next;
-	}
-
-    var removeNthFromEnd = function(head, n) {
-		head = creatrLink(head)
-         var newHead = new ListNode(null);
-         newHead.next = head;
-         var p = newHead;
-         var q = newHead;
-         while(n >= 0){
-             q = q.next;
-			 n--;
-         }
+	// var ccs = false;
+    var rotateRight = function(head, k) {
+		debugger
+		// if(!ccs){
+			head = creatrLink(head);
+		// 	ccs = true;
+		// }
+		var newHead = new ListNode(null);
+		newHead.next = head;
+		// head = creatrLink(head);
+		var p = head;
+		var q = head;
+		while(k--){
+			if(p && p.next) p = p.next;
+			else p = head;
+		}
+		if(p == q){
+			return head
+		}
+		while(p.next){
+			p = p.next;
+			q = q.next;
+		}
 		
-         
-         while(q != null) {
-			 p = p.next;
-             q = q.next;
-         }
-		 
-		 var next = p.next;
-		 p.next = next.next;
-		 next = null;
-         return newHead.next;
+		
+		
+		// p.next = head;
+		// head = q.next;
+		// q.next = null;
+		
+		var sk = new ListNode(0);
+				var cc = q.next;
+				q.next = null;
+				
+				sk.next = cc;
+				var kk = sk;
+				while(kk.next !=null){
+					kk = kk.next;
+				}
+				kk.next = newHead.next;
+				return sk.next;
+		return head;
     };
-
-    var head = [1,2,3,4,5], n = 2;
+	
+	// var head = [0, 1, 2], n = 7;
+	// var head = [1], n = 0;
+    var head = [0, 1, 2], n = 5;
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(removeNthFromEnd(head, n))
+    console.log(rotateRight(head, n))
 </script>
 </body>
 </html>
