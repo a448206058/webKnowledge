@@ -41,59 +41,29 @@
 			curNode = curNode.next;
 		}
 	}
-	// var ccs = false;
-    var rotateRight = function(head, k) {
-		debugger
-		// if(!ccs){
-			head = creatrLink(head);
-		// 	ccs = true;
-		// }
-		var newHead = new ListNode(null);
-		newHead.next = head;
-		// head = creatrLink(head);
-		var p = head;
-		var q = head;
-		while(k--){
-			if(p && p.next) p = p.next;
-			else p = head;
+	
+	var reorderList = function(head) {
+	    head = creatrLink(head);
+		var num = 0;
+		var cc = head;
+		while(cc != null) {
+			cc = cc.next;
+			num++;
 		}
-		if(p == q){
-			return head
+		if(num%2===0){
+			
 		}
-		while(p.next){
-			p = p.next;
-			q = q.next;
-		}
-		
-		
-		
-		// p.next = head;
-		// head = q.next;
-		// q.next = null;
-		
-		var sk = new ListNode(0);
-				var cc = q.next;
-				q.next = null;
-				
-				sk.next = cc;
-				var kk = sk;
-				while(kk.next !=null){
-					kk = kk.next;
-				}
-				kk.next = newHead.next;
-				return sk.next;
-		return head;
-    };
+	};
 	
 	// var head = [0, 1, 2], n = 7;
 	// var head = [1], n = 0;
-    var head = [0, 1, 2], n = 5;
+    var head = [1, 2, 3, 4];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(rotateRight(head, n))
+    console.log(reorderList(head))
 </script>
 </body>
 </html>

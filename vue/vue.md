@@ -6875,4 +6875,251 @@ with(this) {
 
 ## 组件
 ```JavaScript
+let Child = {
+	template: '<div>'
+	+ '<input :value="value" @input="updateValue" placeholder="edit me">' +
+	'</div>',
+	props: ['value'],
+	methods: {
+		updateValue(e) {
+			this.$emit('input', e.target.value)
+		}
+	}
+}
+
+let vm = new Vue({
+	el: '#app',
+	templage: '<div>' +
+	'<child v-model="message"></child>' +
+	'<p>Message is: {{ message }}</p>' +
+	'</div>',
+	data() {
+		return {
+			message: ''
+		}
+	},
+	components: {
+		Child
+	}
+})
 ```
+对于父组件而言，在编译阶段会解析v-model指令，依然会执行genData函数中的genDirectives函数
+接着执行src/platforms/web/compiler/directives/model.js
+```JavaScript
+else if (!config.isReservedTag(tag)) {
+	genComponentModel(el, value, modifiers);
+	return false
+}
+
+// genComponentModel
+// src/compiler/directives/model.js
+export function genComponentModel(
+	el: ASTElement,
+	value: string,
+	modifiers: ?ASTModifiers
+): ?boolean {
+	const { number, trim } = modifiers || {}
+	
+	const baseValueExpression = '$$v'
+	let valueExpression = baseValueExpression
+	if (trim) {
+		valueExpression =
+			`(typeof ${baseValueExpression} === 'string'` +
+			`? ${baseValueExpression}.trim()` +
+			`: ${baseValueExpression})`
+	}
+	if (number) {
+		valueExpression = `_n(${valueExpression})`
+	}
+	const assignment = genAssignmentCode(value, valueExpression)
+	
+	el.model = {
+		value: `(${value})`,
+		expression: `"${value}"`,
+		callback: `function (${baseValueExpression}) {${assignment}}`
+	}
+	
+	// 对应例子而言
+	/**
+	 * el.model = {
+			callback: 'function ($$v) {message=$$v}',
+			expression: '"message"',
+			value: '(message)'
+	   }
+	 */
+}
+```
+
+父组件最终生成的render代码如下：
+```JavaScript
+with(this) {
+	return _c('div', [_c('child', {
+		model: {
+			value: (message),
+			callback: function ($$v) {
+				message=$$v
+			},
+			expression:"message"
+		}
+	}),
+	_c('p', [_v("Message is: "+_s(message))])],1)
+}
+```
+创建子组件vnode阶段，会执行createComponent函数
+src/core/vdom/create-component.js
+```JavaScript
+export function createComponent (
+	Ctor: Class<Component> | Function | Object | void,
+	data: ?VNodeData,
+	context: Component,
+	children: ?Array<VNode>,
+	tag?: string
+): VNode | Array<VNode> | void {
+	// transform component v-model data into props & events
+	if (isDef(data.model)) {
+		transformModel(Ctor.options, data)
+	}
+	
+	// extract props
+	const propsData = extractPropsFromVNodeData(data, Ctor, tag)
+	// extract listeners, since these needs to be treated as
+	// child component listeners instead of DOM listeners
+	const listeners = data.on
+	
+	const vnode = new VNode(
+		`vue-componet-${Ctor.cid}${name ? `-${name}` : ''}`,
+		data, undefined, undefined, undefined, context,
+		{ Ctor, propsData, listeners, tag, children},
+		asyncFactory
+	)
+	
+	return vnode
+}
+
+// transformModel(Ctor.options, data)
+// transform component v-model info (value and callback) into
+// prop and event handler respectively.
+function transformModel (options, data: any) {
+	const prop = (options.model && options.model.prop) || 'value'
+	const event = (options.model && options.model.event) || 'input'
+	;(data.props || (data.props = {}))[prop] = data.model.value
+	const on = data.on || (data.on = {})
+	if (isDef(on[event])) {
+		on[event] = [data.model.callback].concat(on[event])
+	} else {
+		on[event] = data.model.callback
+	}
+}
+```
+transformModel 给data.props添加data.model.value，并且给dagta.on添加data.model.callback
+```JavaScript
+data.props = {
+	value: (message),
+}
+data.on = {
+	input: function ($$v) {
+		message = $$v
+	}
+}
+```
+v-model是Vue双向绑定的真正实现，但本质上就是一种语法糖，它即可以支持原生表单元素，也可以支持自定义组件。
+在组件的实现中，我们是可以配置子组件接收的prop名称，以及派发的事件名称。
+
+## slot
+## 编译
+编译是发生在调用vm.$mount的时候，所以编译的顺序是先编译父组件，再编译子组件。
+首先编译父组件，在parse阶段，执行processSlot处理slot
+```JavaScript
+// src/compiler/parse/index.js
+// 当解析到标签上有slot属性的时候，会给对应的AST元素节点添加slotTarget属性，
+// 然后在codegen阶段，在genData中会处理slotTarget
+function processSlot (el) {
+	if (el.tag === 'slot') {
+		el.slotName = getBindingAttr(el, 'name')
+		if (process.env.NODE_ENV !== 'production' && el.key) {
+			warn(
+				`\`key\` dose not work on <slot> because slots are abstract outlets ` +
+				`and can possibly expand into multiple elements. ` +
+				`Use the key on a wrapping element instead.`
+			)
+		}
+	} else {
+		let slotScope
+		if (el.tag === 'template') {
+			slotScope = getAndRemoveAttr(el, 'scope')
+			/* istanbul ignore if */
+			if (process.env.NODE_ENV !== 'production' && slotScope) {
+				warn(
+					`the "scope" attribute for scoped slots have been deprecated and ` +
+					`replaced by "slot-scope" since 2.5. The new "slot-scope" attribute ` +
+					`can also be used on plain elements in addition to <template> to ` +
+					`denote scoped slots.`
+					true
+				)
+			}
+			el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope')
+		} else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
+			/* istanbul ignore if */
+			if (process.env.NODE_ENV !== 'production' && el.attrsMap['v-for']) {
+				warn(
+					`Ambiguous combined usage of slot-scope and v-for on <${el.tag}> ` +
+					`(v-for takes higher priority). Use a wrapper <template> for the ` +
+					`scoped slot to make it clearer.`,
+					true
+				)
+			}
+			el.slotScope = slotScope
+		}
+		const slotTarget = getBindingAttr(el, 'slot')
+		if (slotTarget) {
+			el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget
+			// preserve slot as an attribute for native shadow DOM compat
+			// only for non-scoped slots.
+			if (el.tag !== 'template' && !el.slotScope) {
+				addAttr(el, 'slot', slotTarget)
+			}
+		}
+	}
+}
+
+//src/compiler/codegen/index.js
+// 会给data添加一个slot属性，并指向slotTarget
+if (el.slotTarget && !el.slotScope) {
+	data += `slot:${el.slotTarget},`
+}
+
+// 编译子组件，在parse阶段会执行processSlot处理函数
+// src/compiler/parse/index.js
+function processSlot (el) {
+	if (el.tag === 'slot') {
+		el.slotName = getBindingAttr(el, 'name')
+	}
+}
+
+// 在codegen阶段会判断如果当前AST元素节点是slot标签，则执行genSlot函数
+// src/compiler/codegen/index.js
+function genSlot (el: ASTElement, state: CodegenState): string {
+	const slotName = el.slotName || '"default"'
+	const children = genChildren(el, state)
+	let res = `_t(${slotName}${children ? `,${children}` : ''})`
+	const attrs = el.attrs && `{${el.attrs.map(a => `${camelize(a.name)}:${a.value}`).join(',')}}`
+	const bind = el.attrsMap['v-bind']
+	if ((attrs || bind) && !children) {
+		res += `,null`
+	}
+	if (attrs) {
+		res += `,${attrs}`
+	}
+	if (bind) {
+		res += `${attrs ? '' : ',null'},${bind}`
+	}
+	return res + ')'
+}
+
+// 先不考虑slot标签上有attrs以及v-bind的情况
+const slotName = el.slotName || '"default"'
+const children = genChildren(el, state)
+let res = `_t(${slotName}${children ? `,${children}` : ''})`
+```
+
+
