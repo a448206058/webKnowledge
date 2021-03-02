@@ -207,7 +207,7 @@ export default class dVue {
 }
 ```
 
-6.diff
+6.patch
 patch方法中分为俩种情况，一种是当oldVnode不存在时，会创建新的节点;
 另一种是已经存在oldVnode，那么会对oldVnode和vnode进行diff及patch的过程。
 其中patch过程中会调用sameVnode方法来对传入的2个vnode节点进行基本属性的比较，只有当基本属性相同的情况下才认为这2个
@@ -269,12 +269,37 @@ function patchVnode (oldVnode, vnode, ownerArray, index, removeOnly) {
 }
 ```
 
-子节点diff流程
-在开始遍历diff前，首先给oldCh和newCh分别分配一个startIndex和endIndex来作为遍历的索引，当oldCh或者newCh遍历完后（遍历完的条件就是
-oldCh或者newCh的startIndex >= endIndex)，就停止oldCh和newCh的diff过程。
+7.实现一下diff
+比较prevVnode 和 vnode 并根据需要操作的vdom节点 patch，最后生成新的真实dom节点完成视图的更新
+通过patch进行比较 首先比较父节点是否相同，不同的情况下比较子节点
 
-1.无key的diff过程
-    首先从第一个节点开始比较，
+diff算法是通过同层的树节点进行比较而非对树进行逐层搜索遍历的方式，所以时间复杂度只有O(n)，
+是一种非常高效的算法。
+
+参考snabbdom
+
+对于同层的子节点，主要有删除、创建的操作，同时通过移位的方法，达到最大复用存在节点的目的，
+其中需要维护四个索引
+oldStartIdx => 旧头索引
+oldEndIdx => 旧尾索引
+newStartIdx => 新头索引
+newEndIdx => 新尾索引
+
+然后将旧子节点组和新子节点组进行逐一比对，直到遍历完任一子节点组，比对策略有5种：
+oldStartVnode和newStartVnode进行比对，如果相似，则进行patch，然后新旧头索引都后移
+oldEndVnode和newEndVnode进行比对，如果相似，则进行patch，然后新旧尾索引前移
+oldStartVnode和newEndVnode进行比对，如果相似，则进行patch，旧旧节点移位到最后
+oldEndVnode和newStartVnode进行比对，处理和上面类似，只不过改为左移
+如果以上情况都失败来，旧只能复用key相同的节点了。首先我们要通过createKeyToOldIdx
+
+创建key-index的映射，如果新节点在旧节点中不存在，我们将它插入到旧头索引节点前，然后
+新头索引向后；如果新节点在旧节点组中存在，先找到对应的旧节点，然后patch，并将旧节点组中
+对应节点设置为undefined，代表已经遍历过了，不再遍历，否则可能存在重复插入的问题，最后
+将节点移位到旧头索引之前，新头索引向后
+
+遍历完之后，当旧头索引大于旧尾索引是，代表旧节点组已经遍历完，将剩余的新Vnode添加到
+最后一个新节点的位置后
+如果新节点组先遍历完，那么代表旧节点组中剩余节点都不需要，所以直接删除
 
 ```JavaScript
 function updateChildren (parentElm, oldCh, newCh, removeOnly) {
@@ -343,8 +368,6 @@ function updateChildren (parentElm, oldCh, newCh, removeOnly) {
   }
 ```
 
-5.实现一下diff
-比较prevVnode 和 vnode 并根据需要操作的vdom节点 patch，最后生成新的真实dom节点完成视图的更新
-通过patch进行比较 首先比较父节点是否相同，不同的情况下比较子节点
+
     
 		
