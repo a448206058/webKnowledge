@@ -470,7 +470,10 @@ export default class Compiler {
 ```
 
 ##造轮子系列：虚拟dom
-先弄个vnode节点
+
+##造轮子系列：template
+template编译
+在$mount的过程中，
 
 
 [](https://juejin.cn/post/6844903895467032589)
@@ -482,5 +485,27 @@ export default class Compiler {
 在通过遍历DOM Tree 通过createElement创建元素
 
 https://github.com/answershuto/learnVue
+
+Vue.js响应式原理
+
+Vue.js依赖收集
+
+从Vue.js源码角度再看数据绑定
+
+Vue.js事件机制
+
+VNode节点(Vue.js实现)
+
+Virtual DOM与diff(Vue.js实现)
+
+聊聊Vue.js的template编译
+
+Vue.js异步更新DOM策略及nextTick
+
+从template到DOM（Vue.js源码角度看内部运行机制）
+
+Vuex源码解析
+
+聊聊keep-alive组件的使用及其实现原理
     
 		
