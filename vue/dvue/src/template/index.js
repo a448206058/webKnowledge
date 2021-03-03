@@ -16,21 +16,294 @@ export default class dVue {
     }
 }
 
-
-dVue.prototype.$mount = function (ref) {
-    var refElm = ref
-    var parentElm = refElm.parentNode
-
-	let vm = this;
-
-	let updateComponent = () => {
-		const vnode = vm._render()
-		vm._update(vnode, true)
+const mount = dVue.prototype.$mout
+dVue.prototype.$mount = function (el, hydrating) {
+    const options = this.$options
+	if (!options.render) {
+		let template = options.template
+		// template存在的时候取template，不存在的时候取el的outerHTML
+		if(template){
+			if(typeof template === 'string'){
+				if (template.charAt(0) === '#') {
+					template = idToTemplate(template)
+				}
+			} else if (template.nodeType) {
+				// 当template为DOM节点的时候
+				template = template.innerHTML
+			} else {
+				return this
+			}
+		}else if (el) {
+			/* 获取element的outerHTML*/
+			template = getOuterHTML(el)
+		}
+		if (template) {
+			const { render, staticRenderFns } = compileToFunctions(template, {
+				shouldDecodeNewlines,
+				delimiters: options.delimiters
+			}, this)
+			options.render = render
+			options.staticRenderFns = staticRenderFns
+		}
 	}
-	updateComponent()
 
-    return this
+    return mount.call(this, el, hydrating)
 }
+
+const idToTemplate = cached(id => {
+  const el = query(id)
+  return el && el.innerHTML
+})
+
+function cached (fn) {
+  var cache = Object.create(null);
+  return (function cachedFn (str) {
+    var hit = cache[str];
+    return hit || (cache[str] = fn(str))
+  })
+}
+
+function getOuterHTML (el) {
+  if (el.outerHTML) {
+    return el.outerHTML
+  } else {
+    const container = document.createElement('div')
+    container.appendChild(el.cloneNode(true))
+    return container.innerHTML
+  }
+}
+
+function query (el) {
+  if (typeof el === 'string') {
+    const selected = document.querySelector(el)
+    if (!selected) {
+      return document.createElement('div')
+    }
+    return selected
+  } else {
+    return el
+  }
+}
+
+export const compileToFunctions = createCompilerCreator(function baseCompile(
+	template,
+	options
+) {
+	const ast = parse(template.trim(), options)
+	if (options.optimize !== false) {
+		optimize(ast, options)
+	}
+	const code = generate(ast, options)
+	return {
+		ast,
+		render: code.render,
+		staticRenderFns: code.staticRenderFns
+	}
+})
+
+export function createCompilerCreator(baseCompile: Function): Function{
+	return function createCompiler (baseOptions: CompilerOptions) {
+		function compile(
+			template: string,
+			options?: CompilerOptions
+		): CompiledResult {
+			const finalOptions = Object.create(baseOptions)
+			const errors = []
+			const tips = []
+			finalOptions.warn = (msg, tip) => {
+				(tip ? tips : errors).push(msg)
+			}
+			
+			if (options) {
+				// merge custom modules
+				if (options.modules) {
+					finalOptions.modules = 
+						(baseOptions.modules || []).concat(options.modules)
+				}
+				// merge custom directives
+				if (options.directives) {
+					finalOptions.directives = extend(
+						Object.create(baseOptions.directives || null),
+						options.directives
+					)
+				}
+				// copy other options
+				for (const key in options) {
+					if (key !== 'modules' && key !== 'directives') {
+						finalOptions[key] = options[key]
+					}
+				}
+			}
+			
+			const compiled = baseCompile(template, finalOptions)
+			if (process.env.NODE_ENV !== 'production') {
+				errors.push.apply(errors, detectErrors(compiled.ast))
+			}
+			compiled.errors = errors
+			compiled.tips = tips
+			return compiled
+		}
+		
+		return {
+			compile,
+			compileToFunctions: createCompileToFunctionFn(compile)
+		}
+	}
+}
+
+export function createCompileToFunctionFn (compile: Function):Function {
+	const cache = Object.create(null)
+	
+	return function compileToFunctions (
+		template: string,
+		options?: CompilerOptions,
+		vm?: Component
+	): CompiledFunctionResult {
+		options = extend({}, options)
+		const warn = options.warn || baseWarn
+		delete options.warn
+		
+		/* istanbul ignore if */
+		if (process.env.NODE_ENV !== 'production') {
+			// delect possible CSP restriction
+			try {
+				new Function('return 1')
+			} catch (e) {
+				if (e.toString().match(/unsafe-eval|CSP/)) {
+					warn(
+						'It seems you are using the standalone build of Vue.js in an ' +
+						'environment with Content Security Policy that prohibits unsafe-eval. ' +
+						'The template compiler cannnot work in this environment. Consider ' +
+						'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
+						'templates into render functions.'
+					)
+				}
+			}
+		}
+		
+		// check cache
+		const key = options.delimiters
+			? String(options.delimiters) + template
+			: template
+		if (cache[key]) {
+			return cache[key]
+		}
+		
+		// compile
+		// 核心代码
+		const compiled = compile(template, options)
+		
+		// check compilation errors/tips
+		if (process.env.NODE_ENV !== 'production') {
+			if (compiled.errors && compiled.errors.length) {
+				warn(
+					`Error compiling template: \n\n${template}\n\n` + 
+					compiled.errors.map(e => `- ${e}`).join('\n') + '\n',
+					vm
+				)
+			}
+			if (compiled.tips && compiled.tips.length) {
+				compiled.tips.forEach(msg => tip(msg, vm))
+			}
+		}
+		
+		// turn code into functions
+		const res = {}
+		const fnGenErrors = []
+		res.render = createFunction(compiled.render, fnGenErrors)
+		res.staticRenderFns = compiled.staticRenderFns.map(code => {
+			return createFunction(code, fnGenErrors)
+		})
+		
+		// check function generation errors.
+		// this should only happen if there is a bug in the compiler itself.
+		// mostly for codegen development use
+		/* instanbul ignore if */
+		if (process.env.NODE_ENV !== 'production') {
+			if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
+				warn(
+					`Failed to generate render function:\n\n` +
+					fnGenErrors.map(({err, code}) => `${err.toString()} in \n\n${code}\n`).join('\n'),
+					vm
+				)
+			}
+		}
+		
+		return (cache[key] = res)
+	}
+}
+
+function compile(
+	template: string,
+	options?: CompilerOptions
+): CompiledResult{
+	const finalOptions = Object.create(baseOptions)
+	const errors = []
+	const tips = []
+	finalOptions.warn = (msg, tip) => {
+		(tip ? tips: errors).push(msg)
+	}
+	
+	if (options) {
+		// merge custom modules
+		if (options.modules) {
+			finalOptions.modules = 
+				(baseOptions.modules || []).concat(options.modules)
+		}
+		// merge custom directives
+		if (options.directives) {
+			finalOptions.directives = extend(
+				Object.create(baseOptions.directives || null),
+				options.directives
+			)
+		}
+		// copy other options
+		for (const key in options) {
+			if (key !== 'modules' && key !== 'directives') {
+				finalOptions[key] = options[key]
+			}
+		}
+	}
+	//执行编译
+	const compiled = baseCompile(template, finalOptions)
+	if (process.env.NODE_ENV !== 'production') {
+		errors.push.apply(errors, detectErrors(compiled.ast))
+	}
+	compiled.errors = errors
+	compiled.tips = tips
+	return compiled
+}
+
+// baseCompile在执行createCompilerCreator方法时作为参数传入
+export const createCompiler = createCompilerCreator(function baseCompiler(
+	template: string,
+	options: CompilerOptions
+): CompiledResult{
+	// 解析模版字符串生成ast
+	const ast = parse(template.trim(), options)
+	// 优化语法树
+	optimize(ast, options)
+	// 生成代码
+	const code = generate(ast, options)
+	return {
+		ast,
+		render: code.render,
+		staticRenderFns: code.staticRenderFns
+	}
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 dVue.prototype._render = function(){
 	const vm = this;

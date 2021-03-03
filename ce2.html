@@ -55,15 +55,50 @@
 		}
 	};
 	
+	var isPalindrome = function(head) {
+		head = creatrLink(head);
+		// debugger
+		if(head == null || head.next == null){
+			return true;
+		}
+		var p = head;
+		var q = head;
+		var newHead = JSON.stringify(head);
+		
+		var revest = null;
+		var num = 0;
+		while(q != null){
+			let next = q.next;
+			q.next = revest;
+			revest = q;
+			q = next;
+			num++;
+		}
+		var center = parseInt(num/2);
+		p = JSON.parse(newHead);;
+		while(center > 0){
+			if(p.val != revest.val){
+				return false;
+			}
+			p = p.next;
+			revest = revest.next;
+			center--;
+		}
+		return true
+	};
+	head = [1, 0, 2]
+	// head = [1, 1, 2, 1]
+	// head = [0, 0]
 	// var head = [0, 1, 2], n = 7;
 	// var head = [1], n = 0;
-    var head = [1, 2, 3, 4];
+    // var head = [1, 2, 3, 4, 4, 3, 2, 1];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
-	// var head =  [1,2,3,3,4,4,5];
-    console.log(reorderList(head))
+	// var head =  [1,2,3,4,4,5,2,1];
+	// var head = [1, 0, 0];
+    console.log(isPalindrome(head))
 </script>
 </body>
 </html>

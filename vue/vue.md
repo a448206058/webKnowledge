@@ -7121,5 +7121,227 @@ const slotName = el.slotName || '"default"'
 const children = genChildren(el, state)
 let res = `_t(${slotName}${children ? `,${children}` : ''})`
 ```
+子组件最终生成的代码：
+```JavaScript
+with(this) {
+	return _c('div', {
+		staticClass: "container"
+	}, [
+		_c('header', [_t("header")], 2),
+		_c('main', [_t("default", [_v("默认内容")])], 2),
+		_c('footer', [_t("footer")],2)
+	])
+}
+```
 
+_t对应的就是renderSlot方法
+src/core/instance/render-helpers/render-slot.js
+```JavaScript
+/**
+ * Runtime helper for rendering <slot>
+ */
+export function renderSlot (
+	// 插槽名称
+	name: string,
+	// 插槽默认内容生成的vnode数组
+	fallback: ?Array<VNode>,
+	props: ?Object,
+	bindObject: ?Object
+): ?Array<VNode> {
+	const scopedSlotFn = this.$scopedSlots[name]
+	let nodes
+	if (scopedSlotFn) { // scoped slot
+		props = props || {}
+		if (bindObject) {
+			if (process.env.NODE_ENV !== 'production' && !isObject(bindObject)) {
+				warn(
+					'slot v-bind without argument expects an Object',
+					this
+				)
+			}
+			props = extend(extend({}, bindObject), props)
+		}
+		nodes = scopedSlotFn(props) || fallback
+	} else {
+		const slotNodes = this.$slots[name]
+		// warn duplicate slot usage
+		if (slotNodes) {
+			if (process.env.NODE_ENV !== 'production' && slotNodes._rendered) {
+				warn(
+					`Duplicate presence of slot "${name}" found in the same render tree ` +
+					`- this will likely cause render errors.`,
+					this
+				)
+			}
+			slotNodes._rendered = true
+		}
+		nodes = slotNodes || fallback
+	}
+	
+	const target = props && props.slot
+	if (target) {
+		return this.$createElement('template', { slot: target }, nodes)
+	} else {
+		return nodes
+	}
+}
+
+// initRender
+// src/core/instance/render.js
+export function initRender (vm: Component) {
+	// ...
+	const parentVnode = vm.$vnode = options._parentVnode
+	// the placeholder node in parent tree
+	const renderContext = parentVnode && parentVnode.context
+	vm.$slots = resolveSlots(options._renderChildren, renderContext)
+}
+
+// resolveSlots
+// src/core/instance/render-helpers/resolve-slot.js
+/**
+ * Runtime helper for resolving raw children VNodes into a slot object.
+ */
+// 遍历 children
+export function resolveSlots (
+	// 父vnode的children
+	children: ?Array<VNode>,
+	// 父vnode的上下文
+	context: ?Component
+): { [key: string]: Array<VNode> } {
+	const slots = {}
+	if (!children) {
+		return slots
+	}
+	for (let i = 0, l = children.length; i < l; i++) {
+		const child = chilldren[i]
+		const data = child.data
+		// remove slot attribute if the node is resolved as a Vue slot node
+		if (data && data.attrs && data.attrs.slot) {
+			delete data.attrs.slot
+		}
+		// named slots should only be respected if the vnode was rendered in the
+		// same context.
+		if ((child.context === context || child.fnCcontext === context) &&
+			data && data.slot != null
+		) {
+			const name = data.slot
+			const slot = (slots[name] || (slots[name] = []))
+			if (child.tag === 'template') {
+				slot.push.apply(slot, child.children || [])
+			} else {
+				slot.push(child)
+			}
+		} else {
+			(slots.default || (slots.default = [])).push(child)
+		}
+	}
+	// ignore slots that contains only whitespace
+	for (const name in slots) {
+		if (slots[name].every(isWhitespace)) {
+			delete slots[name]
+		}
+	}
+	return slots
+}
+```
+
+## 作用域插槽
+<slot text="hello" :msg="msg"></slot>
+<template slot-scope="props"></template>
+子组件的slot标签多了text属性，以及msg属性。父组件实现插槽的部分多了一个template标签，
+以及scope-slot属性，其实在Vue2.5，scoped-slot可以作用在普通元素上。
+
+先编译父组件，同样是通过processSlot函数去处理scoped-slot，它的定义在
+```JavaScript
+// src/compiler/parse/index.js
+function processSlot (el) {
+	// ...
+	if (el.tag === 'template') {
+		slotScope = getAndRmoveAttr(el, 'scope')
+		/* istanbul ignore if */
+		if (process.env.NODE_ENV !== 'production' && slotScope) {
+			warn(
+				`the "scope" attribute for scoped slots have been deprecated and ` +
+				`replaced by "slot-scope" since 2.5. The new "slot-scope" attribute ` +
+				`can also be used on plain elements in addition to <template> to ` +
+				`denote scoped slots.`,
+				true
+			)
+		}
+		el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope')
+	} else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
+		/* istanbul ignore if */
+		if (process.env.NODE_ENV !== 'production' && el.attrsMap['v-for']) {
+			warn(
+				`Ambiguous combined usage of slot-scope and v-for on <${el.tag}> ` +
+				`(v-for takes higher priority). Use a wrapper <template> for the ` +
+				`scoped slot to make it clearer.`,
+				true
+			)
+		}
+		el.slotScope = slotScope
+	}
+}
+```
+
+读取scoped-slot 属性并赋值给当前ast元素节点的slotScope属性，
+构建ast
+
+对于用于scopedSlot属性的AST元素节点而言，是不会作为children添加到当前AST树中，
+而是存到父AST元素节点的scopedSlots属性上，它是一个对象，以插槽名称name为key
+```JavaScript
+if （element.elseif || element.else) {
+	processIfConditions(element, currentParent)
+} else if (element.slotScope) {
+	currentParent.plain = false
+	const name = element.slotTarget || '"default"'
+	;(currentParent.scopedSlots || (currentParent.scopedSlotss = {}))[name] = element
+} else {
+	currentParent.children.push(element)
+	element.parent = currentParent
+}
+```
+
+genData
+```JavaScript
+if (el.scopedSlots) {
+	data += `${genScopedSlots(el.scopedSlots, state)},`
+}
+
+function genScopedSlots (
+	slots: { [key: string]: ASTElement },
+	state: CodegenState
+): string {
+	return `scopedSlots:_u([${
+		Object.keys(slots).map(key => {
+			return genScopedSlot(key, slots[key], state)
+		}).join(',')
+	}])`
+}
+
+// genScopedSlots就是对scopedSlots对象遍历，执行genScopedSLOT
+function genScopedSlot (
+	key: string,
+	el: ASTElement,
+	state: CodegenState
+): string {
+	if (el.for && !el.forProcessed) {
+		return genForScopedSlot(key, el, state)
+	}
+	const fn = `function(${String(el.slotScope)}){` +
+	`return ${el.tag === 'template'
+		? el.if
+			? `${el.if}?${genChildren(el, state) || 'undefined'}:undefined`
+			: genChildren(el, state) || 'undefined'
+		: genElement(el, state)
+	}}`
+	return `{key:{key}, fn:${fn}}`
+}
+```
+
+普通插槽和作用域插槽的实现。它们有一个很大的差别是数据作用域，普通插槽是在父组件编译和渲染阶段生成vnodes，
+所以数据的作用域是父组件实例，子组件渲染的时候直接拿到这些渲染好的vnodes。而对于作用域插槽，父组件在编译
+和渲染阶段并不会直接生成vnodes，而是在父节点vnode的data中保留一个scopedSlots对象，存储着不同名称的插槽
+以及它们对应的渲染函数，只有在编译和渲染子组件阶段才会执行这个渲染函数生成Vnodes，由于是在子组件环境执行的，
+所以对应的数据作用域是子组件实例。
 
