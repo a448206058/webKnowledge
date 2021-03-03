@@ -41,29 +41,63 @@
 			curNode = curNode.next;
 		}
 	}
-	
-	var reorderList = function(head) {
+
+	// var reorderList = function(head) {
+	//     head = creatrLink(head);
+	// 	var num = 0;
+	// 	var cc = head;
+	// 	while(cc != null) {
+	// 		cc = cc.next;
+	// 		num++;
+	// 	}
+	// 	if(num%2===0){
+	//
+	// 	}
+	// };
+
+    var isPalindrome = function(head) {
 	    head = creatrLink(head);
-		var num = 0;
-		var cc = head;
-		while(cc != null) {
-			cc = cc.next;
-			num++;
-		}
-		if(num%2===0){
-			
-		}
-	};
-	
+
+	    var p = head;
+	    var q = null;
+
+        let control = false;
+	    while(p.next && (p.val != p.next.val)){
+            let next = p.next;
+	        p.next = q;
+	        q = p;
+	        p = next;
+	        if(p.next && (p.val == p.next.val)){
+                control = true;
+            }
+        }
+        if(!control) return false;
+
+        p = p.next.next;
+        while(q.next && p.next){
+            if(q.val != p.val){
+                return false;
+            }
+            if(q.next.val != p.next.val){
+                return false;
+            }
+            q = q.next;
+            p = p.next;
+        }
+        if(p.next != null) return false;
+        if(q.next != null) return false;
+	    return true;
+    };
+
 	// var head = [0, 1, 2], n = 7;
 	// var head = [1], n = 0;
-    var head = [1, 2, 3, 4];
+    var head = [1, 2, 3, 4, 4, 3, 2, 1];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,3,4,4,5];
-    console.log(reorderList(head))
+    console.log(isPalindrome(head))
 </script>
 </body>
 </html>
