@@ -1,5 +1,25 @@
 import vnode from './vnode'
 
+export const baseOptions = {
+	expectHTML: true,
+	// modules,
+	// directives,
+	// isPreTag,
+	// isUnaryTag,
+	// mustUseProp,
+	// canBeLeftOpenTag,
+	// isReservedTag,
+	// getTagNamespace,
+	// staticKeys: genStaticKeys(modules)
+}
+
+function genStaticKeys (keys){
+	return makeMap(
+	`'type, tag, attrsList, attrsMap, plain, parent, children, attrs' +
+	 (keys ? ',' + keys : '')`
+	)
+}
+
 export default class dVue {
     constructor(options) {
 		let vm = this;
@@ -9,12 +29,34 @@ export default class dVue {
         // el 是字符串还是对象
         vm.$el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
 
-        var render = options.render
-        vm.vnode = render.call(vm, createVNode)
+        // var render = options.render
+        // vm.vnode = render.call(vm, createVNode)
 
         vm.$mount(vm.$el);
     }
 }
+
+// baseCompile在执行createCompilerCreator方法时作为参数传入
+
+const { compiler, compileToFunctions } = createCompiler(baseOptions);
+
+// createCompiler创建编译器，返回值是compile以及compileToFunctions
+const createCompiler = createCompilerCreator(function baseCompiler(
+	template,
+	options
+){
+	// 解析模版字符串生成ast
+	const ast = parse(template.trim(), options)
+	// 优化语法树
+	optimize(ast, options)
+	// 生成代码
+	const code = generate(ast, options)
+	return {
+		ast,
+		render: code.render,
+		staticRenderFns: code.staticRenderFns
+	}
+})
 
 const mount = dVue.prototype.$mout
 dVue.prototype.$mount = function (el, hydrating) {
@@ -38,17 +80,36 @@ dVue.prototype.$mount = function (el, hydrating) {
 			template = getOuterHTML(el)
 		}
 		if (template) {
-			const { render, staticRenderFns } = compileToFunctions(template, {
+			// compileToFunctions(template, {shouldDecodeNewlines, delimiters: options.delimiters}, this)
+			// const { render, staticRenderFns } = compileToFunctions(template, {
+			// 	shouldDecodeNewlines,
+			// 	delimiters: options.delimiters
+			// }, this)
+			
+			console.log(compileToFunctions(template, {
 				shouldDecodeNewlines,
 				delimiters: options.delimiters
-			}, this)
+			}, this))
 			options.render = render
 			options.staticRenderFns = staticRenderFns
 		}
+		
 	}
 
     return mount.call(this, el, hydrating)
 }
+
+const inBrowser = typeof window !== 'undefined';
+
+let div;
+function getShouldDecode (href) {
+  div = div || document.createElement('div')
+  div.innerHTML = href ? `<a href="\n"/>` : `<div a="\n"/>`
+  return div.innerHTML.indexOf('&#10;') > 0
+}
+
+// #3663: IE encodes newlines inside attribute values while other browsers don't
+const shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false;
 
 const idToTemplate = cached(id => {
   const el = query(id)
@@ -85,28 +146,15 @@ function query (el) {
   }
 }
 
-export const compileToFunctions = createCompilerCreator(function baseCompile(
-	template,
-	options
-) {
-	const ast = parse(template.trim(), options)
-	if (options.optimize !== false) {
-		optimize(ast, options)
-	}
-	const code = generate(ast, options)
-	return {
-		ast,
-		render: code.render,
-		staticRenderFns: code.staticRenderFns
-	}
-})
 
-export function createCompilerCreator(baseCompile: Function): Function{
-	return function createCompiler (baseOptions: CompilerOptions) {
+export function createCompilerCreator(baseCompile){
+	console.log(baseCompile)
+	return function createCompiler (baseOptions) {
 		function compile(
-			template: string,
-			options?: CompilerOptions
-		): CompiledResult {
+			template,
+			options
+		){
+			console.log(baseOptions)
 			const finalOptions = Object.create(baseOptions)
 			const errors = []
 			const tips = []
@@ -137,8 +185,6 @@ export function createCompilerCreator(baseCompile: Function): Function{
 			
 			const compiled = baseCompile(template, finalOptions)
 			if (process.env.NODE_ENV !== 'production') {
-				errors.push.apply(errors, detectErrors(compiled.ast))
-			}
 			compiled.errors = errors
 			compiled.tips = tips
 			return compiled
@@ -149,37 +195,21 @@ export function createCompilerCreator(baseCompile: Function): Function{
 			compileToFunctions: createCompileToFunctionFn(compile)
 		}
 	}
+	}
 }
 
-export function createCompileToFunctionFn (compile: Function):Function {
+
+function createCompileToFunctionFn (compile) {
 	const cache = Object.create(null)
 	
 	return function compileToFunctions (
-		template: string,
-		options?: CompilerOptions,
-		vm?: Component
-	): CompiledFunctionResult {
+		template,
+		options,
+		vm
+	){
 		options = extend({}, options)
 		const warn = options.warn || baseWarn
 		delete options.warn
-		
-		/* istanbul ignore if */
-		if (process.env.NODE_ENV !== 'production') {
-			// delect possible CSP restriction
-			try {
-				new Function('return 1')
-			} catch (e) {
-				if (e.toString().match(/unsafe-eval|CSP/)) {
-					warn(
-						'It seems you are using the standalone build of Vue.js in an ' +
-						'environment with Content Security Policy that prohibits unsafe-eval. ' +
-						'The template compiler cannnot work in this environment. Consider ' +
-						'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
-						'templates into render functions.'
-					)
-				}
-			}
-		}
 		
 		// check cache
 		const key = options.delimiters
@@ -193,20 +223,6 @@ export function createCompileToFunctionFn (compile: Function):Function {
 		// 核心代码
 		const compiled = compile(template, options)
 		
-		// check compilation errors/tips
-		if (process.env.NODE_ENV !== 'production') {
-			if (compiled.errors && compiled.errors.length) {
-				warn(
-					`Error compiling template: \n\n${template}\n\n` + 
-					compiled.errors.map(e => `- ${e}`).join('\n') + '\n',
-					vm
-				)
-			}
-			if (compiled.tips && compiled.tips.length) {
-				compiled.tips.forEach(msg => tip(msg, vm))
-			}
-		}
-		
 		// turn code into functions
 		const res = {}
 		const fnGenErrors = []
@@ -215,28 +231,14 @@ export function createCompileToFunctionFn (compile: Function):Function {
 			return createFunction(code, fnGenErrors)
 		})
 		
-		// check function generation errors.
-		// this should only happen if there is a bug in the compiler itself.
-		// mostly for codegen development use
-		/* instanbul ignore if */
-		if (process.env.NODE_ENV !== 'production') {
-			if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
-				warn(
-					`Failed to generate render function:\n\n` +
-					fnGenErrors.map(({err, code}) => `${err.toString()} in \n\n${code}\n`).join('\n'),
-					vm
-				)
-			}
-		}
-		
 		return (cache[key] = res)
 	}
 }
 
 function compile(
-	template: string,
-	options?: CompilerOptions
-): CompiledResult{
+	template,
+	options
+){
 	const finalOptions = Object.create(baseOptions)
 	const errors = []
 	const tips = []
@@ -266,32 +268,10 @@ function compile(
 	}
 	//执行编译
 	const compiled = baseCompile(template, finalOptions)
-	if (process.env.NODE_ENV !== 'production') {
-		errors.push.apply(errors, detectErrors(compiled.ast))
-	}
 	compiled.errors = errors
 	compiled.tips = tips
 	return compiled
 }
-
-// baseCompile在执行createCompilerCreator方法时作为参数传入
-export const createCompiler = createCompilerCreator(function baseCompiler(
-	template: string,
-	options: CompilerOptions
-): CompiledResult{
-	// 解析模版字符串生成ast
-	const ast = parse(template.trim(), options)
-	// 优化语法树
-	optimize(ast, options)
-	// 生成代码
-	const code = generate(ast, options)
-	return {
-		ast,
-		render: code.render,
-		staticRenderFns: code.staticRenderFns
-	}
-})
-
 
 
 
@@ -488,9 +468,9 @@ function setTextContent (node, text) {
 	 node.textContent = text
 }
 
-export const isTextInputType = makeMap('text,number,password,search,email,tel,url')
+const isTextInputType = makeMap('text,number,password,search,email,tel,url')
 
-export function makeMap (str, expectsLowerCase){
+function makeMap (str, expectsLowerCase){
     const map = Object.create(null)
     const list = str.split(',')
     for (let i = 0; i < list.length; i++) {
@@ -501,19 +481,19 @@ export function makeMap (str, expectsLowerCase){
         : val => map[val]
 }
 
-export function createElementNS (namespace, tagName) {
+function createElementNS (namespace, tagName) {
 	return document.createElementNS(namespaceMap[namespace], tagName)
 }
 
-export function createTextNode(text) {
+function createTextNode(text) {
 	return document.createTextNode(text)
 }
 
-export function insertBefore(parentNode, newNode, referenceNode) {
+function insertBefore(parentNode, newNode, referenceNode) {
 	parentNode.insertBefore(newNode, referenceNode)
 }
 
-export function removeChild (node, child) {
+function removeChild (node, child) {
 	node.removeChild(child)
 }
 

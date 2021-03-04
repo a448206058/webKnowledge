@@ -27,13 +27,13 @@ module.exports = {
     hot: true,
     open: true
   },
-  entry: ['./src/test/index.js', './src/test/main.js'],
+  entry: ['./src/template/index.js', './src/template/main.js'],
   plugins: [
     new HtmlWebpackPlugin({
       // 打包输出HTML
       title: 'dVue',
       filename: 'index.html',
-      template: 'src/test/index.html'
+      template: 'src/template/index.html'
     })
   ]
 }
