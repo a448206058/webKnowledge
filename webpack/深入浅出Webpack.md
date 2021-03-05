@@ -303,5 +303,67 @@ Plugin是用来扩展Webpack功能的，通过在构建流程里注入钩子实�
     压缩输出结果
 
 ##  懒加载
-    
+
+
+## 进阶篇
+
+### 静态资源拷贝
+npm install copy-webpack-plugin -D
+```JavaScript
+//webpack.config.js
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+module.exports = {
+    //...
+    plugins: [
+        new CopyWebpackPlugin([
+            {
+                from: 'public/js/*.js',
+                to: path.resolve(__dirname, 'dist', 'js'),
+                flatten: true,
+            },
+            //还可以继续配置其它要拷贝的文件
+        ])
+    ]
+}
+```
+
+### ProvidePlugin
+全局遍历
+```JavaScript
+//webpack.config.js
+const webpack = require('webpack')
+module.exports = {
+    plugins: [
+        new webpack.ProvidePlugin({
+            React: 'react',
+            Component: ['react', 'Component'],
+            Vue: ['vue/dist/vue.esm.js', 'default'],
+            $: 'jquery',
+            _map: ['lodash', 'map']
+        })
+    ]
+}
+```
+
+### 抽离CSS
+npm install mini-css-extract-plugin -D
+
+mini-css-extract-plugin 和extract-text-webpack-plugin相比
+1.异步加载
+2.不会重复编译
+3.更容易使用
+4.只适用CSS
+
+```JavaScript
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+module.exports = {
+    plugins: [
+        new MiniCssExtractPlugin({
+            filename: 'css/[name].css'
+        })
+    ]
+}
+
+```
+
     

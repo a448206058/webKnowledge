@@ -57,46 +57,60 @@
 
     var isPalindrome = function(head) {
 	    head = creatrLink(head);
+		var num = 0;
+		var cc = head;
+		while(cc != null) {
+			cc = cc.next;
+			num++;
+		}
+		if(num%2===0){
 
-	    var p = head;
-	    var q = null;
+		}
+	};
 
-        let control = false;
-	    while(p.next && (p.val != p.next.val)){
-            let next = p.next;
-	        p.next = q;
-	        q = p;
-	        p = next;
-	        if(p.next && (p.val == p.next.val)){
-                control = true;
-            }
-        }
-        if(!control) return false;
+	var isPalindrome = function(head) {
+		head = creatrLink(head);
+		// debugger
+		if(head == null || head.next == null){
+			return true;
+		}
+		var p = head;
+		var q = head;
+		var newHead = JSON.stringify(head);
 
-        p = p.next.next;
-        while(q.next && p.next){
-            if(q.val != p.val){
-                return false;
-            }
-            if(q.next.val != p.next.val){
-                return false;
-            }
-            q = q.next;
-            p = p.next;
-        }
-        if(p.next != null) return false;
-        if(q.next != null) return false;
-	    return true;
-    };
-
+		var revest = null;
+		var num = 0;
+		while(q != null){
+			let next = q.next;
+			q.next = revest;
+			revest = q;
+			q = next;
+			num++;
+		}
+		var center = parseInt(num/2);
+		p = JSON.parse(newHead);;
+		while(center > 0){
+			if(p.val != revest.val){
+				return false;
+			}
+			p = p.next;
+			revest = revest.next;
+			center--;
+		}
+		return true
+	};
+	head = [1, 0, 2]
+	// head = [1, 1, 2, 1]
+	// head = [0, 0]
 	// var head = [0, 1, 2], n = 7;
 	// var head = [1], n = 0;
-    var head = [1, 2, 3, 4, 4, 3, 2, 1];
+    // var head = [1, 2, 3, 4, 4, 3, 2, 1];
     // var l1 = [7,2,4,3],l2 = [5,6,4];
     // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
     // var head = [1, 1]
     // var head = [0,0,0,0,0];
-	// var head =  [1,2,3,3,4,4,5];
+	// var head =  [1,2,3,4,4,5,2,1];
+	// var head = [1, 0, 0];
     console.log(isPalindrome(head))
 </script>
 </body>

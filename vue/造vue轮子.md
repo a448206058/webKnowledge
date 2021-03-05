@@ -471,6 +471,9 @@ export default class Compiler {
 
 ##造轮子系列：虚拟dom
 
+render就是通过createVNode节点，再通过_mount,_update的过程，
+通过patch,diff的过程创建真实节点
+
 ##造轮子系列：template
 template编译
 在$mount的过程中，如果是使用独立构建，则会在此过程中将template编译成render function。
