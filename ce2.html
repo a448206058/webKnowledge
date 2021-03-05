@@ -68,38 +68,63 @@
 		}
 	};
 
-	var isPalindrome = function(head) {
-		head = creatrLink(head);
-		// debugger
-		if(head == null || head.next == null){
-			return true;
+	var reorderList = function(head) {
+		if(!head){
+			return head
 		}
-		var p = head;
-		var q = head;
-		var newHead = JSON.stringify(head);
 
-		var revest = null;
+		var p = new ListNode(null);
+		var p1 = p;
+		var q = new ListNode(null);
+		var q1 = q;
+		var c = head;
 		var num = 0;
-		while(q != null){
-			let next = q.next;
-			q.next = revest;
-			revest = q;
-			q = next;
+		while(c != null){
+			c = c.next;
 			num++;
 		}
-		var center = parseInt(num/2);
-		p = JSON.parse(newHead);;
-		while(center > 0){
-			if(p.val != revest.val){
-				return false;
+
+		c = head;
+		num = Math.ceil(num/2)
+		while(num > 0){
+			p1.next = c;
+			p1 = p1.next;
+
+			c = c.next;
+			num--;
+			if(num == 0){
+				p1.next = null;
+				q1 = c;
 			}
-			p = p.next;
-			revest = revest.next;
-			center--;
 		}
-		return true
+		p1 = p.next;
+		var heads = null;
+		while(q1){
+			var next = q1.next;
+			q1.next = heads;
+			heads = q1;
+			q1 = next;
+		}
+		q1 = heads;
+
+		var newHead = new ListNode(null);
+		var newHeads = newHead;
+		num = 0;
+		while(p1 || q1){
+			if(num % 2 == 0){
+				newHeads.next = p1;
+				newHeads = newHeads.next;
+				p1 = p1.next;
+			}else{
+				newHeads.next = q1;
+				newHeads = newHeads.next;
+				q1 = q1.next;
+			}
+			num++;
+		}
+		return newHead.next;
 	};
-	head = [1, 0, 2]
+	head = [1, 2, 3, 4 , 5]
 	// head = [1, 1, 2, 1]
 	// head = [0, 0]
 	// var head = [0, 1, 2], n = 7;
@@ -111,7 +136,7 @@
     // var head = [0,0,0,0,0];
 	// var head =  [1,2,3,4,4,5,2,1];
 	// var head = [1, 0, 0];
-    console.log(isPalindrome(head))
+    console.log(reorderList(head))
 </script>
 </body>
 </html>

@@ -9,12 +9,7 @@ var vm = new dVue({
 			'item3',
 		]
 	},
-	template: 
-	render(h) {
-		var children = this.$data.items.map(item => h('li', item))
-		var vnode = h('ul', null, children)
-		return vnode
-	},
+	template: '<ul><li>11</li><li>222</li><li>333</li></ul>',
 	methods: {
 	}
 });

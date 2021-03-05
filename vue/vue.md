@@ -7345,3 +7345,206 @@ function genScopedSlot (
 以及它们对应的渲染函数，只有在编译和渲染子组件阶段才会执行这个渲染函数生成Vnodes，由于是在子组件环境执行的，
 所以对应的数据作用域是子组件实例。
 
+## keep-alive
+内置组件
+keep-alive 组件的实现也是一个对象，它有一个属性abstract为true，是一个抽象组件
+```JavaScript
+export default {
+	name: 'keep-alive',
+	abstract: true,
+	
+	props: {
+		// 只有匹配的组件会被缓存
+		include: patternTypes,
+		// 任何匹配的组件都不会被缓存
+		exclude: patternTypes,
+		// 缓存大小
+		max: [String, Number]
+	},
+	
+	// 它就是去缓存已经创建过的vnode
+	created () {
+		this.cache = Object.create(null)
+		this.keys = []
+	},
+	
+	destroyed () {
+		for (const key in this.cache) {
+			pruneCacheEntry(this.cache, key, this.keys)
+		}
+	},
+	
+	mounted () {
+		this.$watch('include', val=> {
+			pruneCache(this, name => matches(val, name))
+		})
+		this.$watch('exclude', val => {
+			pruneCache(this, name => !matches(val, name))
+		})
+	},
+	
+	render () {
+		// 获取第一个子元素的 vnode:
+		const slot = this.$slot.default
+		const vnode: VNode = getFirstComponentChild(slot)
+		const componentOptions: ?VNodeComponentOptions = vnode && vnode.componentOptions
+		if (componentOptions) {
+			// check pattern
+			const name: ?string = getComponentName(componentOptions)
+			const { include, exclude } = this
+			if (
+				// not included
+				(include && (!name || !matches(include, name))) ||
+				// excluded
+				(exclude && name && matches(exclude, name))
+			) {
+				return vnode
+			}
+			
+			const { cache, keys } = this
+			const key: ?string = vnode.key == null
+			// same constructor may get registered as different local components
+			// so cid alone is not enough
+			? componentOptions.Ctor.cid + (componentOptions.tag ? `::${componentOptions.tag}` : '')
+			: vnode.key
+			if (cache[key]) {
+				vnode.componentInstance = cache[key].componentInstance
+				// make current key freshest
+				remove(keys, key)
+				keys.push(key)
+			} else {
+				cache[key] = vnode
+				keys.push(key)
+				// prune oldest entry
+				if (this.max && keys.length > parseInt(this.max)) {
+					pruneCacheEntry(cache, keys[0], keys, this._vnode)
+				}
+			}
+			
+			vnode.data.keepAlive = true
+		}
+		return vnode || (slot && slot[0])
+	}
+}
+
+// 判断当前组件的名称和include、exclude的关系
+// check pattern
+const name: ?string = getComponentName(componentOptions)
+const { include, exclude } = this
+if (
+	// not included
+	(include && (!name || !matches(include, name))) ||
+	// excluded
+	(exclude && name && matches(exclude, name))
+) {
+	return vnode
+}
+
+// 判断是否是数组、字符串、正则表达式 匹配的话直接返回这个组件的vnode,否则的话走下一步缓存；
+function matches (pattern: stringb| RegExp | Array<string>, name: string): boolean {
+	if(Array.isArray(pattern)) {
+		return pattern.indexOf(name) > -1
+	} else if (typeof pattern === 'string') {
+		return pattern.split(',').indexOf(name) > -1
+	} else if (isRegExp(pattern)) {
+		return pattern.test(name)
+	}
+	return false
+}
+
+const {cache, keys} = this
+const key: ?string = vnode.key == null
+// same constructor may get registered as different local components
+// so cid alone is not enough
+	? componentOptions.Ctor.cid + (componentOptions.tag ? `::${componentOptions.tag}`
+	: '')
+		: vnode.key
+	// 如果命中缓存，则直接从缓存中拿vnode的组件实例，并且重新调整了key的顺序放在最后一个
+	if (cache[key]) {
+		vnode.componentInstance = cache[key].componentInstance
+		// make current key freshest
+		remove(keys, key)
+		keys.push(key)
+	} else {
+		// 否则把vnode设置进缓存
+		cache[key] = vnode
+		keys.push(key)
+		// prune oldest entry
+		// 如果配置了max并且max的长度超过了this.max，还要从缓存中删除第一个；
+		if (this.max && keys.length > parseInt(this.max)) {
+			pruneCacheEntry(cache, keys[0], keys, this._vnode)
+		}
+	}
+
+// 判断如果删除的缓存中的组件tag不是当前渲染组件tag，也执行
+// 删除缓存的组件实例的$destroy方法
+// 最后设置vnode.data.keepAlive = true
+function pruneCacheEntry (
+	cache: VNodeCache,
+	key: string,
+	keys: Array<string>,
+	current?: VNode
+) {
+	const cached = cache[key]
+	if (cached && (!current || cached.tag !== current.tag)) {
+		cached.componentInstance.$destroy()
+	}
+	cache[key] = null
+	remove(keys, key)
+}
+
+// <keep-alive>组件也是为观测include和exclude的变化，对缓存做处理：
+watch: {
+	include (val: string | RegExp | Array<string>) {
+		pruneCache(this, name => matches(val, name))
+	},
+	exclude (val: string | RegExp | Array<string>) {
+		pruneCache(this, name => !matches(val, name))
+	}
+}
+
+// 对cache 遍历，发现缓存的节点名称和新的规则没有匹配上的时候，就把这个缓存节点从缓存中摘除。
+function pruneCache (keepAliveInstance: any, filter: Function){
+	const { cache, keys, _vnode } = keepAliveInstance
+	for (const key in cache) {
+		const cachedNode: ?VNode = cache[key]
+		if (cachedNode) {
+			const name: ?string = getComponentName(cachedNode.componentOptions)
+			if (name && !filter(name)) {
+				pruneCacheEntry(cache, key, keys, _vnode)
+			}
+		}
+	}
+}
+```
+
+## 组件渲染
+keep-alive组件包裹的子组件渲染，首次渲染和缓存渲染
+
+## 首次渲染
+Vue的渲染最后都会到patch过程，而组件的patch过程会执行createComponent方法
+src/core/vdom/patch.js
+```JavaScript
+function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+	let i = vnode.data
+	if (isDef(i)) {
+		// 第一次渲染的时候 vnode.componentInstance为undefined
+		const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
+		if (isDef(i = i.hook) && isDef(i = i.init)) {
+			i(vnode, false)
+		}
+		// after calling the init hook, if the vnode is a child component
+		// it should've created a child instance and mounted it. the child
+		// component also has set the placeholder vnode's elm.
+		// in that case we can just return the element and be done.
+		if (isDef(vnode.componentInstance)) {
+			initComponent(vnode, insertedVnodeQueue)
+			insert(parentElm, vnode.elm, refElm)
+			if (isTrue(isReactivated)) {
+				reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
+			}
+			return true
+		}
+	}
+}
+```

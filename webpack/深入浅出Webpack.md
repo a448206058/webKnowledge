@@ -361,9 +361,490 @@ module.exports = {
         new MiniCssExtractPlugin({
             filename: 'css/[name].css'
         })
-    ]
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.(le|c)ss$/,
+                use: [
+                    MinCssExtractPlugin.loader,
+                    'css-loader', {
+                        loader: 'postcss-loader',
+                        options: {
+                            plugins: function () {
+                                return [
+                                    require('autoprefixer')({
+                                        "overrideBrowserslist": [
+                                            "defaults"
+                                        ]
+                                    })      
+                                ]
+                            }
+                        }   
+                    }, 'less-loader'
+                ],
+                exclude: /node_modules/
+            }
+        ]
+    }
 }
 
 ```
 
-    
+.browserslistrc 文件，可以多个loader共享配置
+```
+last 2 version
+> 0.25%
+not dead
+```
+```JavaScript
+// webpack.config.js
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+module.exports = {
+    plugins: [
+        new MiniCssExtractPlugin({
+            filename: 'css/[name].css'
+        })
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.(c|le)ss$/,
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    'css-loader', {
+                        loader: 'postcss-loader',
+                        options: {
+                            plugins: function (){
+                                return [
+                                    require('autoprefixer')()
+                                ]
+                            }
+                        }
+                    }, 'less-loader'
+                ],
+                exclude: /node_modules/
+            }
+        ]
+    }
+}
+```
+
+### 将抽离出来的css文件进行压缩
+配置optimization
+npm install optimize-css-assets-webpack-plugin -D
+```JavaScript
+// webpack.config.js
+const OptimizeCssPlugin = require('optimize-css-assets-webpack-plugin');
+
+module.exports = {
+    entry: './src/index.js',
+    plugins: [
+        new OptimizeCssPlugin()
+    ],
+    rules: [
+        {
+            test: /\.(c|le)ss$/,
+            use: [
+                {
+                    loader: MiniCssExtractPlugin.loader,
+                    options: {
+                        hmr: isDev,
+                        reloadAll: true
+                    }
+                },
+            ],
+            exclude: /node_modules/
+        }
+    ]
+}
+```
+
+### 按需加载
+import @babel/plugin-syntax-dynamic-import
+@babel/preset-env 已经包含了 @babel/plugin-syntax-dynamic-import
+webpack遇到Import(****)
+    以****为入口新生成一个chunk
+    当代码执行到import所在的语句时，才会加载该chunk所对应的文件
+
+### 热更新
+首先配置devServer的hot为true
+并且在plugins中增加new webpack.HotModuleReplacementPlugin()
+```JavaScript
+// webpack.config.js
+const webpack = require('webpack')
+module.exports = {
+    devServer: {
+        hot: true
+    },
+    plugins: [
+        new webpack.HotModuleReplacementPlugin() // 热更新插件
+    ]
+}
+```
+
+### 多页应用打包
+```JavaScript
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+module.exports = {
+    entry: {
+        index: './src/index.js',
+        login: './src/login.js'
+    },
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: '[name].[hash:6].js'
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './public/index.html',
+            filename: 'index.html', // 打包后的文件名
+            chunks: ['index']
+        }),
+        new HtmlWebpackPlugin({
+            template: './public/login.html',
+            filename: 'login.html', // 打包后的文件名
+            chunks: ['login']
+        })
+    ]
+}
+```
+
+### resolve配置
+resolve配置webpack如何寻找模块所对应的文件。
+1.modules
+```JavaScript
+// webpack.config.js
+module.exports = {
+    resolve: {
+        modules: ['./src/components', 'node_modules']
+    }
+}
+```
+
+2. alias
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    resolve: {
+        alias: {
+            'react-native': '@my/react-native-web'
+        }
+    }
+}
+```
+
+3.extensions
+层层寻找
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    resolve: {
+        extensions: ['web.js', '.js']
+    }
+}
+```
+
+4.enforceExtension
+如果配置了resolve.enforceExtension为true,那么导入语句不能缺省文件后缀
+
+5.mainFields
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    resolve: {
+        mainFields: ['style', 'main']
+    }
+}
+
+// 对应package.json
+{
+    "style": "dist/css/bootstrap.css",
+    "sass": "scss/bootstrap.scss",
+    "main": "dist/js/bootstrap",
+}
+```
+
+## 区分不同的环境
+webpack.base.js 定义公共的配置
+webpack.dev.js 定义开发环境的配置
+webpack.prop.js 定义生产环境的配置
+webpack-merge 提供一个merge函数，用于连接数组，合并对象
+npm install webpack-merge -D
+```JavaScript
+const merge = require('webpack-merge');
+merge({
+    devtool: 'cheap-module-eval-source-map',
+    module: {
+        rules: [
+            {a: 1}
+        ]
+    },
+    plugins: [1, 2, 3]
+}, {
+    devtool: 'none',
+    mode: "production",
+    module: {
+        rules: [
+            {a: 2},
+            {b: 1}
+        ]
+    },
+    plugins: [4, 5, 6]
+});
+// 合并后的结果为
+{
+    devtool: 'none',
+    mode: "production",
+    module: {
+        rules: [
+            {a: 1},
+            {a: 2},
+            {b: 1}
+        ]
+    },
+    plugins: [1, 2, 3 ,4 ,5 ,6]
+}
+```
+
+## 定义环境变量
+使用webpack内置插件DefinePlugin来定义环境变量
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    plugins: [
+        new webpack.DefinePlugin({
+            DEV: JSON.stringify('dev'), //字符串
+            FLAG: 'true' // FLAG是个布尔类型
+        })
+    ]
+}
+
+// index.js
+if(DEV === 'dev'){
+
+} else{
+
+}
+```
+
+## 利用webpack解决跨域问题
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    devServer: {
+        proxy: {
+            "/api": {
+                target: 'http://localhost:4000',
+                pathRewrite: {
+                    '/api': ''
+                }
+             }
+        }
+    }
+}
+```
+
+### 前端模拟数据
+1.npm install mocker-api -D
+2.新建mock文件夹，新建mocker.js
+```JavaScript
+module.exports = {
+    'GET /user': {name: ''},
+    'POST /login/account': (req, res) => {
+        const { password, username } = req.body
+        if (password === '1' && username = '1') {
+            return res.send({
+            
+            })
+        } else {
+            return res.send({ status: 'error', code: 403 })
+        } 
+    }
+}
+```
+3.修改webpack.config.base.js
+```JavaScript
+const apiMocker = require('mocker-api')
+module.export = {
+    devServer: {
+        before(app) {
+            apiMocker(app, path.resolve('./mock/mocker.js'))
+        }
+    }
+}
+```
+
+## 优化
+## 量化
+speed-measure-webpack-plugin 可以测量各个插件heloader所花费的时间
+```JavaScript
+// webpack.config.js
+const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
+const smp = new SpeedMeasurePlugin();
+
+const config = {
+    //.. webpack 配置
+}
+
+module.exports = smp.wrap(config);
+```
+
+## exclude/include
+exclude指定要排除的文件
+include指定要包含的文件
+exclude优先级高于include，在include和exclude中使用绝对路径数组，尽量避免exclude，更倾向于使用include
+```JavaScript
+// webpack.config.js
+const path = require('path');
+module.exports = {
+    // ...
+    module: {
+        rules: [
+            {
+                test: /\.js[x]?$/,
+                use: ['babel-loader'],
+                include: [path.resolve(__dirname, 'src')]
+            }
+        ]
+    }
+}
+```
+
+### cache-loader
+在一些性能开销较大的loader之前添加cache-loader
+默认保存在node_modules/.cache/cache-loader下
+npm install cache-loader -D
+```JavaScript
+// webpack.config.js
+const path = require('path');
+module.exports = {
+    // ...
+    module: {
+        rules: [
+            {
+                test: /\.jsx?$/,
+                use: ['cache-loader', 'babel-loader']
+            }
+        ]
+    }
+}
+```
+
+### happypack
+HappyPack把任务分解给多个子进程去并发的执行，子进程处理完后再把结果发送给主进程
+npm install happypack -D
+```JavaScript
+// webpack.config.js
+const Happypack = require('happypack')
+module.exports = {
+    // ...
+    module: {
+        rules: [
+            {
+                test: /\.js[x]?$/,
+                use: 'Happypack/loader?id=js',
+                include: [path.resolve(__dirname, 'src')]
+            },
+            {
+                test: /\.css$/,
+                use: 'Happypack/loader?id=css',
+                include: [
+                    path.resolve(__dirname, 'src'),
+                    path.resolve(__dirname, 'node_modules', 'bootstrap', 'dist')
+                ]
+            }
+        ]
+    },
+    plugins: [
+        new Happypack({
+            id: 'css', // 和rule中的id=css对应
+            use: ['style-loader', 'css-loader', 'postcss-loader']
+        })
+    ]
+}
+
+// 当postcss-loader 配置在Happypack 必须在项目中创建postcss.config.js
+
+// postcss.config.js
+module.exports = {
+    plugins: [
+        require('autoprefixer')()
+    ]
+}
+```
+
+### thread-loader
+把thread-loader放置在其它loader之前，那么放置在这个loader之后的loader就会在一个单独的worker池
+中运行
+在worker池中运行的loader是受到限制的
+这些loader不能产生新的文件
+这些loader不能使用定制的loader API
+这些loader无法获取webpack的选项设置
+npm install thread-loader -D
+```JavaScript
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.jsx?$/,
+                use: ['thread-loader', 'cache-loader', 'babel-loader']
+            }
+        ]
+    }
+}
+```
+
+### 开启JS多进程压缩
+webpack默认使用的是TerserWebpackPlugin 默认开启了多进程和缓存，构建时
+你的项目中可以看到terser的缓存文件 node_modules/.cache/terser-webpack-plugin
+
+### HardSourceWebpackPlugin
+为模块提供中间缓存
+缓存的路径 node_modules/.cache/hard-source
+npm install hard-source-webpack-plugin -D
+```JavaScript
+// webpack.config.js
+var HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
+module.exports =  {
+    // ...
+    plugins: [
+        new HardSourceWebpackPlugin()
+    ]
+}
+```
+
+### noParse
+没有AMD/CommonJs规范版本
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    module: {
+        noParse: /jquery|lodash|
+    }
+}
+```
+
+### resolve
+```JavaScript
+// webpack.config.js
+module.exports = {
+    // ...
+    resolve: {
+        modules: [path.resolve(__dirname, 'node_modules')]
+    }
+}
+```
+
+### IgnorePlugin
+webpack的内置插件，作用是忽略第三方包指定目录。
+```JavaScript
+
+```

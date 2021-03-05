@@ -36,3 +36,5 @@ optimize的主要作用是标记static静态节点，这是Vue在编译过程中
 ### generate
 generate是将AST语法树转化成render function字符串的过程，得到结果是render的字符串
 以及staticRenderFns字符串。
+
+[](https://github.com/answershuto/learnVue/blob/master/docs/%E8%81%8A%E8%81%8AVue%E7%9A%84template%E7%BC%96%E8%AF%91.MarkDown)
