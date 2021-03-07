@@ -1,4 +1,5 @@
 import vnode from './vnode'
+import {parse} from './parse.js'
 
 export const baseOptions = {
 	expectHTML: true,
@@ -36,15 +37,15 @@ export default class dVue {
     }
 }
 
-// baseCompile在执行createCompilerCreator方法时作为参数传入
 
-const { compiler, compileToFunctions } = createCompiler(baseOptions);
 
 // createCompiler创建编译器，返回值是compile以及compileToFunctions
 const createCompiler = createCompilerCreator(function baseCompiler(
 	template,
 	options
 ){
+	console.log(template.trim())
+	console.log(options)
 	// 解析模版字符串生成ast
 	const ast = parse(template.trim(), options)
 	// 优化语法树
@@ -57,6 +58,10 @@ const createCompiler = createCompilerCreator(function baseCompiler(
 		staticRenderFns: code.staticRenderFns
 	}
 })
+
+// baseCompile在执行createCompilerCreator方法时作为参数传入
+
+const { compiler, compileToFunctions } = createCompiler(baseOptions);
 
 const mount = dVue.prototype.$mout
 dVue.prototype.$mount = function (el, hydrating) {
@@ -148,7 +153,6 @@ function query (el) {
 
 
 export function createCompilerCreator(baseCompile){
-	console.log(baseCompile)
 	return function createCompiler (baseOptions) {
 		function compile(
 			template,
@@ -185,16 +189,15 @@ export function createCompilerCreator(baseCompile){
 			
 			const compiled = baseCompile(template, finalOptions)
 			if (process.env.NODE_ENV !== 'production') {
-			compiled.errors = errors
-			compiled.tips = tips
-			return compiled
+				compiled.errors = errors
+				compiled.tips = tips
+				return compiled
+			}
 		}
-		
 		return {
 			compile,
 			compileToFunctions: createCompileToFunctionFn(compile)
 		}
-	}
 	}
 }
 
@@ -208,7 +211,7 @@ function createCompileToFunctionFn (compile) {
 		vm
 	){
 		options = extend({}, options)
-		const warn = options.warn || baseWarn
+		const warn = options.warn
 		delete options.warn
 		
 		// check cache
@@ -538,4 +541,11 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
         if (isDef(key)) map[key] = i
     }
     return map
+}
+
+export function extend (to, _from) {
+  for (const key in _from) {
+    to[key] = _from[key]
+  }
+  return to
 }

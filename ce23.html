@@ -5,6 +5,45 @@
     <title>Title</title>
 </head>
 <body>
-
+<div id="time"></div>
+<script>
+    /**
+     * @param {string} s
+     * @return {boolean}
+     */
+    var isValid = function(s) {
+		var stack = [];
+		    s = s.split("");
+		    for(let i = 0; i < s.length; i++){
+		        if(s[i] == "(" || s[i] == "{" || s[i] == "["){
+		            stack.push(s[i]);
+		        }else{
+		            if(stack.length == 0){
+		                return false;
+		            }else{
+		                let match;
+		                let top = stack.shift();
+		                if(top == "("){
+		                    match = ")"
+		                }else if(top == "{"){
+		                    match = "}"
+		                }else if(top == "["){
+		                    match = "]"
+		                }
+		                if(s[i] != match){
+		                    return false
+		                }
+		            }
+		        }
+		    }
+			if(stack.length == 0){
+			    return true;
+			}else{
+				return false
+			}
+    };
+	
+	console.log(isValid("([)]"))
+</script>
 </body>
 </html>

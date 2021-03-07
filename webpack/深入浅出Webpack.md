@@ -846,5 +846,121 @@ module.exports = {
 ### IgnorePlugin
 webpack的内置插件，作用是忽略第三方包指定目录。
 ```JavaScript
+//webpack.config.js
+module.exports = {
+	//...
+	plugins: [
+		//忽略 moment 下的./locale目录
+		new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)
+	]
+}
+```
 
+### externals
+将一些JS文件存储在CDN上（减少Webpack打包出来的js体积），在index.html中通过<script>标签引入
+希望在使用时，仍然可以通过import的方式去引用，并且webpack不会对其进行打包，此时就可以配置externals
+```JavaScript
+//webpack.config.js
+module.exports = {
+	//...
+	externals: {
+		//jquery通过script引入之后，全局中即有了jQuery变量
+		'jquery': 'jQuery'
+	}
+}
+```
+
+### DllPlugin
+DllPlugin 和 DLLReferencePlugin 可以实现拆分bundles，并且可以大大提升构建速度，
+DllPlugin和DLLReferencePlugin都是webpack的内置模块
+新建一个webpack的配置文件，来专门用于编译动态链接库
+webpack.config.dll.js 
+```JavaScript
+//webpack.config.dll.js
+const webpack = require('webpack')
+const path = require('path')
+
+module.exports = {
+	entry: {
+		react: ['react', 'react-dom']
+	},
+	mode: 'production',
+	output: {
+		filename: '[name].dll.[hash:6],js',
+		path: path.resolve(__dirname, 'dist', 'dll'),
+		library: '[name]_dll' // 暴露给外部使用
+		// libraryTarget 指定如何暴露内容，缺省时就是var
+	}
+	//...
+	plugins: [
+		new webpack.DllPlugin({
+			//name和library一致
+			name: '[name]_dll',
+			path: path.resolve(__dirname, 'dist', 'dll', 'manifest.json')
+		})
+	]
+}
+
+// 在package.json
+{
+	"scripts": {
+		"dev": "NODE_ENV=development webpack-dev-server",
+		"build": "NODE_ENV=production webpack",
+		"build:dll": "webpack --config webpack.config.dll.js"
+	}
+}
+```
+
+### 抽离公共代码
+配置在optimization.splitChunks中
+```JavaScript
+//webpack.config.js
+module.exports = {
+	optimization: {
+		splitChunks: { // 分割代码块
+			cacheGroups: {
+				vendor: {
+					// 第三方依赖
+					priority: 1, // 设置优先级，首先抽离第三方魔窟奥
+					name: 'vendor',
+					test: /node_modules/,
+					chunks: 'initial',
+					minSize: 0,
+					minChunks: 1 // 最少引用1次
+				},
+				//缓存组
+				common: {
+					// 公共模块
+					chunks: 'initial',
+					name: 'common',
+					minSize: 100, // 大小超过100个字节
+					minChunks: 3 //最少引入3次
+				}
+			}
+		}，
+		// 将包含chunk映射关系的列表从main.js中抽离出来，在配置了splitChunk是，记得配置runtimeChunk
+		runtimeChunk: {
+			name: 'manifest'
+		}
+	}
+}
+```
+
+### webpack自身的优化
+tree-shaking
+如果使用ES6的import语法，那么在生产环境下，会自动移除没有使用到的代码
+
+scope hosting作用域提升
+
+babel配置的优化
+在.babelrc中增加@babel/plugin-transform-runtime的配置
+```JavaScript
+{
+	"presets": [],
+	"plugins": [
+		[
+			"@babel/plugin-transform-runtime"
+		]
+	]
+}
 ```

@@ -8,135 +8,40 @@
 <div id="time"></div>
 <script>
     /**
-     * Definition for singly-linked list.
-     * function ListNode(val, next) {
-     *     this.val = (val===undefined ? 0 : val)
-     *     this.next = (next===undefined ? null : next)
-     * }
+     * @param {string[]} tokens
+     * @return {number}
      */
-	function ListNode(val, next) {
-		 var head = {};
-	     head.val = (val===undefined ? 0 : val)
-	     head.next = (next===undefined ? null : next)
-		 return head
-	}
-
-	function creatrLink(arr){
-		if(arr.length === 0) {
-			return null;
+    var evalRPN = function(tokens) {
+		let all = 0;
+		var cs = [];
+		if(tokens.length == 1){
+			return tokens[0]
 		}
-		var head = new ListNode(arr[0]);
-		var curNode = head;
-		for (var i = 1; i < arr.length; i++){
-			curNode.next = new ListNode(arr[i]);
-			curNode = curNode.next;
-		}
-		return head;
-	}
-
-	function printLink(head){
-		var curNode = head;
-		while(curNode != null) {
-			console.log(curNode.val)
-			curNode = curNode.next;
-		}
-	}
-
-	// var reorderList = function(head) {
-	//     head = creatrLink(head);
-	// 	var num = 0;
-	// 	var cc = head;
-	// 	while(cc != null) {
-	// 		cc = cc.next;
-	// 		num++;
-	// 	}
-	// 	if(num%2===0){
-	//
-	// 	}
-	// };
-
-    var isPalindrome = function(head) {
-	    head = creatrLink(head);
-		var num = 0;
-		var cc = head;
-		while(cc != null) {
-			cc = cc.next;
-			num++;
-		}
-		if(num%2===0){
-
-		}
-	};
-
-	var reorderList = function(head) {
-		if(!head){
-			return head
-		}
-
-		var p = new ListNode(null);
-		var p1 = p;
-		var q = new ListNode(null);
-		var q1 = q;
-		var c = head;
-		var num = 0;
-		while(c != null){
-			c = c.next;
-			num++;
-		}
-
-		c = head;
-		num = Math.ceil(num/2)
-		while(num > 0){
-			p1.next = c;
-			p1 = p1.next;
-
-			c = c.next;
-			num--;
-			if(num == 0){
-				p1.next = null;
-				q1 = c;
-			}
-		}
-		p1 = p.next;
-		var heads = null;
-		while(q1){
-			var next = q1.next;
-			q1.next = heads;
-			heads = q1;
-			q1 = next;
-		}
-		q1 = heads;
-
-		var newHead = new ListNode(null);
-		var newHeads = newHead;
-		num = 0;
-		while(p1 || q1){
-			if(num % 2 == 0){
-				newHeads.next = p1;
-				newHeads = newHeads.next;
-				p1 = p1.next;
+		tokens.map((item, index)=>{
+			if(item == "+" || item == "-" || item == "*" || item == "/"){
+				let val1 = cs.pop();
+				let val2 = cs.pop();
+				if(item == "+"){
+					all = val1 + val2
+				}else if(item == "-"){
+					all = val2 - val1
+				}else if(item == "*"){
+					all = val2 * val1
+				}else if(item == "/"){
+					all = parseInt(val2 / val1)
+				}
+				cs.push(all)
 			}else{
-				newHeads.next = q1;
-				newHeads = newHeads.next;
-				q1 = q1.next;
+				cs.push(parseInt(item));
 			}
-			num++;
-		}
-		return newHead.next;
-	};
-	head = [1, 2, 3, 4 , 5]
-	// head = [1, 1, 2, 1]
-	// head = [0, 0]
-	// var head = [0, 1, 2], n = 7;
-	// var head = [1], n = 0;
-    // var head = [1, 2, 3, 4, 4, 3, 2, 1];
-    // var l1 = [7,2,4,3],l2 = [5,6,4];
-    // var l1 = [9,9,9,9,9,9,9], l2 = [9,9,9,9];
-    // var head = [1, 1]
-    // var head = [0,0,0,0,0];
-	// var head =  [1,2,3,4,4,5,2,1];
-	// var head = [1, 0, 0];
-    console.log(reorderList(head))
+		})
+		return all;
+    };
+	
+	// let value = ["2", "1", "+", "3", "*"];
+	// let value = ["4", "13", "5", "/", "+"]
+	let value = ["10", "6", "9", "3", "+", "-11", "*", "/", "*", "17", "+", "5", "+"]
+	console.log(evalRPN(value))
 </script>
 </body>
 </html>
