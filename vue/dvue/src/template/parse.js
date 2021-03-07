@@ -25,7 +25,17 @@ const doctype = /^<!DOCTYPE [^>]+>/i
 const comment = /^<!\--/
 const conditionalComment = /^<!\[/
 
+const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
+
+const isIgnoreNewlineTag = makeMap('pre,textarea', true)
+
+var isPlainTextElement = makeMap('script,style,textarea', true);
+
 const no = (a, b, c) => false
+
+let root
+let currentParent
+let inVPre = false
 
 export function parse(
 	template,
@@ -33,20 +43,105 @@ export function parse(
 ) {
 	// 从options中获取方法和配置
 	getFnsAndConfigFromOptions(options)
+	
+	const stack = []
 
 	parseHTML(template, {
 		// options ...
-		start(tag, attrs, unary) {
-			let element = createASTElement(tag, attrs)
-			processElement(element)
-			treeManagement()
+		start(tag, attrs, unary, start, end) {
+			// let element = createASTElement(tag, attrs)
+			// processElement(element)
+			// treeManagement()
+			
+			// check namespace.
+			// inherit parent ns if there is one
+			const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
+			
+			// handle IE svg bug
+			/* istanbul ignore if */
+			// if (isIE && ns === 'svg') {
+			//   attrs = guardIESVGBug(attrs)
+			// }
+			
+			let element = createASTElement(tag, attrs, currentParent)
+			if (ns) {
+			  element.ns = ns
+			}
+			
+			if (process.env.NODE_ENV !== 'production') {
+			  if (options.outputSourceRange) {
+			    element.start = start
+			    element.end = end
+			    element.rawAttrsMap = element.attrsList.reduce((cumulated, attr) => {
+			      cumulated[attr.name] = attr
+			      return cumulated
+			    }, {})
+			  }
+			  attrs.forEach(attr => {
+			    if (invalidAttributeRE.test(attr.name)) {
+			      warn(
+			        `Invalid dynamic argument expression: attribute names cannot contain ` +
+			        `spaces, quotes, <, >, / or =.`,
+			        {
+			          start: attr.start + attr.name.indexOf(`[`),
+			          end: attr.start + attr.name.length
+			        }
+			      )
+			    }
+			  })
+			}
+			
+			if (isForbiddenTag(element) && !isServerRendering()) {
+			  element.forbidden = true
+			  process.env.NODE_ENV !== 'production' && warn(
+			    'Templates should only be responsible for mapping the state to the ' +
+			    'UI. Avoid placing tags with side-effects in your templates, such as ' +
+			    `<${tag}>` + ', as they will not be parsed.',
+			    { start: element.start }
+			  )
+			}
+			
+			// apply pre-transforms
+			for (let i = 0; i < preTransforms.length; i++) {
+			  element = preTransforms[i](element, options) || element
+			}
+			
+			if (!inVPre) {
+			  processPre(element)
+			  if (element.pre) {
+			    inVPre = true
+			  }
+			}
+			if (platformIsPreTag(element.tag)) {
+			  inPre = true
+			}
+			if (inVPre) {
+			  processRawAttrs(element)
+			} else if (!element.processed) {
+			  // structural directives
+			  processFor(element)
+			  processIf(element)
+			  processOnce(element)
+			}
+			
+			if (!root) {
+			  root = element
+			  if (process.env.NODE_ENV !== 'production') {
+			    checkRootConstraints(root)
+			  }
+			}
+			
+			if (!unary) {
+			  currentParent = element
+			  stack.push(element)
+			} else {
+			  closeElement(element)
+			}
 		},
-
 		end() {
 			treeManagement()
 			closeElement()
 		},
-
 		chars(text) {
 			handleText()
 			createChildrenASTOfText()
@@ -637,3 +732,91 @@ function processAttrs (el) {
     }
   }
 }
+
+function isForbiddenTag (el) {
+  return (
+    el.tag === 'style' ||
+    (el.tag === 'script' && (
+      !el.attrsMap.type ||
+      el.attrsMap.type === 'text/javascript'
+    ))
+  )
+}
+
+function processPre (el) {
+  if (getAndRemoveAttr(el, 'v-pre') != null) {
+    el.pre = true
+  }
+}
+
+function processIf (el) {
+  const exp = getAndRemoveAttr(el, 'v-if')
+  if (exp) {
+    el.if = exp
+    addIfCondition(el, {
+      exp: exp,
+      block: el
+    })
+  } else {
+    if (getAndRemoveAttr(el, 'v-else') != null) {
+      el.else = true
+    }
+    const elseif = getAndRemoveAttr(el, 'v-else-if')
+    if (elseif) {
+      el.elseif = elseif
+    }
+  }
+}
+
+function processOnce (el) {
+  const once = getAndRemoveAttr(el, 'v-once')
+  if (once != null) {
+    el.once = true
+  }
+}
+
+export function processFor (el) {
+  let exp
+  if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+    const res = parseFor(exp)
+    if (res) {
+      extend(el, res)
+    } else if (process.env.NODE_ENV !== 'production') {
+      warn(
+        `Invalid v-for expression: ${exp}`,
+        el.rawAttrsMap['v-for']
+      )
+    }
+  }
+}
+
+function checkRootConstraints (el) {
+    if (el.tag === 'slot' || el.tag === 'template') {
+      warnOnce(
+        `Cannot use <${el.tag}> as component root element because it may ` +
+        'contain multiple nodes.',
+        { start: el.start }
+      )
+    }
+    if (el.attrsMap.hasOwnProperty('v-for')) {
+      warnOnce(
+        'Cannot use v-for on stateful component root element because ' +
+        'it renders multiple elements.',
+        el.rawAttrsMap['v-for']
+      )
+    }
+  }
+  
+  function makeMap (
+    str,
+    expectsLowerCase
+  ) {
+    var map = Object.create(null);
+    var list = str.split(',');
+    for (var i = 0; i < list.length; i++) {
+      map[list[i]] = true;
+    }
+    return expectsLowerCase
+      ? function (val) { return map[val.toLowerCase()]; }
+      : function (val) { return map[val]; }
+  }
