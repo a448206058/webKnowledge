@@ -1,4 +1,4 @@
-const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`
+const ncname = '[a-zA-Z_][\\w\\-\\.]*';
 const singleAttrIdentifier = /([^\s"'<>/=]+)/
 const singleAttrAssign = /(?:=)/
 const singleAttrValues = [
@@ -146,6 +146,7 @@ function processIf (el) {
     }
 }
 
+/*解析HTML*/
 function parseHTML () {
     while(html) {
         let textEnd = html.indexOf('<');
@@ -186,7 +187,7 @@ function parseHTML () {
                 continue;
             }
         } else {
-            text = html.substring(0, textEnd)
+            var text = html.substring(0, textEnd)
             advance(textEnd)
             let expression;
             if (expression = parseText(text)) {
@@ -207,52 +208,61 @@ function parseHTML () {
     return root;
 }
 
-function parse () {
-    return parseHTML();
+export function parse (html) {
+    return parseHTML(html);
 }
 
-function optimize (rootAst) {
+export function optimize (rootAst) {
     function isStatic (node) {
-        if (node.type === 2) {
-            return false
-        }
-        if (node.type === 3) {
-            return true
-        }
-        return (!node.if && !node.for);
+		if(node){
+			if (node.type === 2) {
+			    return false
+			}
+			if (node.type === 3) {
+			    return true
+			}
+			return (!node.if && !node.for);
+		}
+        return false
+        
     }
     function markStatic (node) {
-        node.static = isStatic(node);
-        if (node.type === 1) {
-            for (let i = 0, l = node.children.length; i < l; i++) {
-                const child = node.children[i];
-                markStatic(child);
-                if (!child.static) {
-                    node.static = false;
-                }
-            }
-        }
+		if(node){
+			node.static = isStatic(node);
+			if (node.type === 1) {
+			    for (let i = 0, l = node.children.length; i < l; i++) {
+			        const child = node.children[i];
+			        markStatic(child);
+			        if (!child.static) {
+			            node.static = false;
+			        }
+			    }
+			}
+		}
+        
     }
 
     function markStaticRoots (node) {
-        if (node.type === 1) {
-            if (node.static && node.children.length && !(
-            node.children.length === 1 &&
-            node.children[0].type === 3
-            )) {
-                node.staticRoot = true;
-                return;
-            } else {
-                node.staticRoot = false;
-            }
-        }
+		if(node){
+			if (node.type === 1) {
+			    if (node.static && node.children.length && !(
+			    node.children.length === 1 &&
+			    node.children[0].type === 3
+			    )) {
+			        node.staticRoot = true;
+			        return;
+			    } else {
+			        node.staticRoot = false;
+			    }
+			}
+		}
     }
 
     markStatic(rootAst);
     markStaticRoots(rootAst);
 }
 
-function generate (rootAst) {
+export function generate (rootAst) {
 
     function genIf (el) {
         el.ifProcessed = true;
@@ -321,6 +331,7 @@ function generate (rootAst) {
 }
 
 var html = '<div :class="c" class="demo" v-if="isShow"><span v-for="item in sz">{{item}}</span></div>';
+// var html = '<ul><li>11</li><li>222</li><li>333</li></ul>'
 
 const ast = parse();
 optimize(ast);

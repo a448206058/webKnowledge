@@ -1,5 +1,5 @@
 import vnode from './vnode'
-import {parse} from './parse.js'
+import {parse, optimize, generate} from './template.js'
 
 export const baseOptions = {
 	expectHTML: true,
@@ -34,6 +34,9 @@ export default class dVue {
         // vm.vnode = render.call(vm, createVNode)
 
         vm.$mount(vm.$el);
+		
+		var render = options.render
+		console.log(render)
     }
 }
 
@@ -44,26 +47,29 @@ const createCompiler = createCompilerCreator(function baseCompiler(
 	template,
 	options
 ){
-	console.log(template.trim())
-	console.log(options)
-	// 解析模版字符串生成ast
-	const ast = parse(template.trim(), options)
-	// 优化语法树
-	optimize(ast, options)
-	// 生成代码
-	const code = generate(ast, options)
-	return {
-		ast,
-		render: code.render,
-		staticRenderFns: code.staticRenderFns
+	if(template){
+		// 解析模版字符串生成ast
+		const ast = parse(template.trim(), options)
+		
+		// 优化语法树
+		optimize(ast, options)
+		// 生成代码
+		const code = generate(ast, options)
+		console.log(code)
+		return {
+			ast,
+			render: code.render,
+			staticRenderFns: code.staticRenderFns
+		}
 	}
+	
 })
 
 // baseCompile在执行createCompilerCreator方法时作为参数传入
 
 const { compiler, compileToFunctions } = createCompiler(baseOptions);
 
-const mount = dVue.prototype.$mout
+const mount = dVue.prototype.$mount
 dVue.prototype.$mount = function (el, hydrating) {
     const options = this.$options
 	if (!options.render) {
@@ -86,22 +92,18 @@ dVue.prototype.$mount = function (el, hydrating) {
 		}
 		if (template) {
 			// compileToFunctions(template, {shouldDecodeNewlines, delimiters: options.delimiters}, this)
-			// const { render, staticRenderFns } = compileToFunctions(template, {
-			// 	shouldDecodeNewlines,
-			// 	delimiters: options.delimiters
-			// }, this)
-			
-			console.log(compileToFunctions(template, {
+			const { render, staticRenderFns } = compileToFunctions(template, {
 				shouldDecodeNewlines,
 				delimiters: options.delimiters
-			}, this))
+			}, this)
 			options.render = render
+			console.log(render)
 			options.staticRenderFns = staticRenderFns
 		}
 		
 	}
 
-    return mount.call(this, el, hydrating)
+    // return mount.call(this, el, hydrating)
 }
 
 const inBrowser = typeof window !== 'undefined';
@@ -229,10 +231,17 @@ function createCompileToFunctionFn (compile) {
 		// turn code into functions
 		const res = {}
 		const fnGenErrors = []
+		console.log(compiled)
+		
 		res.render = createFunction(compiled.render, fnGenErrors)
-		res.staticRenderFns = compiled.staticRenderFns.map(code => {
-			return createFunction(code, fnGenErrors)
-		})
+		// res.rebder = compiled.render
+		console.log(compiled.staticRenderFns)
+		if(compiled.staticRenderFns){
+			res.staticRenderFns = compiled.staticRenderFns.map(code => {
+				return createFunction(code, fnGenErrors)
+			})
+		}
+		
 		
 		return (cache[key] = res)
 	}
@@ -549,3 +558,17 @@ export function extend (to, _from) {
   }
   return to
 }
+
+function createFunction (code, errors) {
+	 let fn = new Function('with(this){console.log(this)}');
+	 let cc = new Function("with(this){return _c('div,'{staticClass: c,class: demo,},_c('span,'{staticClass: undefined,class: undefined,},_v(_s(item))))))}");
+	try {
+		console.log(code)
+		return new Function("with(this){return _c('div,'{staticClass: c,class: demo,},_c('span,'{staticClass: undefined,class: undefined,},_v(_s(item))))}")
+	} catch (err) {
+		errors.push({ err, code })
+		return noop
+	}
+}
+
+export function noop (a, b, c) {}
