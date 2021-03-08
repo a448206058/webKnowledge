@@ -34,6 +34,8 @@ vue2.x响应式原理：[链接地址](https://github.com/a448206058/dVue)
 
 vue2.x虚拟DOM：[链接地址](https://github.com/a448206058/dVue)
 
+vue2.xtemplate转成render函数的过程：[链接地址](https://github.com/a448206058/dVue)
+
 ##日常学习：
 github
 
