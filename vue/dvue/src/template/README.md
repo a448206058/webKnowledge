@@ -75,8 +75,14 @@ var vm = new dVue({
 ### 第三步 建立构造函数 index.js
 第一步 建立构造函数dVue
 第二步 原型上绑定$mount 
+
     实现获取到template
-    然后通过compileToFunctions 获取到render函数
+    然后通过compileToFunctions把模版template编译生成render以及staticRenderFns
+    compileToFunctions实际上是createCompiler方法的返回值
+    createCompiler
+    实际上是通过调用createCompilerCreator方法返回的，该方法传入的参数是一个函数，真正的编译过程都在这个baseCompile
+    该方法返回了一个createCompiler函数，它接收一个baseOptions的参数，返回的是一个对象，包括compile方法属性
+    和compileToFunctions属性
 ```JavaScript
 import {parse, optimize, generate} from './template.js'
 
@@ -219,7 +225,8 @@ function query (el) {
   }
 }
 
-
+//该方法返回了一个createCompiler函数，它接收一个baseOptions的参数，返回的是一个对象，包括compile方法属性
+//和compileToFunctions属性
 export function createCompilerCreator(baseCompile){
 	return function createCompiler (baseOptions) {
 		function compile(
