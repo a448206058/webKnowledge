@@ -27,6 +27,8 @@ let currentParent, root;
 
 let index = 0;
 
+var html = ''
+
 function advance (n) {
     index += n
     html = html.substring(n)
@@ -82,7 +84,7 @@ function parseEndTag (tagName) {
             currentParent = null;
         }
         stack.length = pos;
-    }   
+    }
 }
 
 function parseText (text) {
@@ -97,7 +99,7 @@ function parseText (text) {
         if (index > lastIndex) {
         tokens.push(JSON.stringify(text.slice(lastIndex, index)))
         }
-        
+
         const exp = match[1].trim()
         tokens.push(`_s(${exp})`)
         lastIndex = index + match[0].length
@@ -117,7 +119,7 @@ function getAndRemoveAttr (el, name) {
             if (list[i].name === name) {
                 list.splice(i, 1)
                 break
-            }   
+            }
         }
     }
     return val
@@ -179,7 +181,7 @@ function parseHTML () {
                 if(currentParent){
                     currentParent.children.push(element);
                 }
-        
+
                 if(!startTagMatch.unarySlash) {
                     stack.push(element);
                     currentParent = element;
@@ -208,8 +210,9 @@ function parseHTML () {
     return root;
 }
 
-export function parse (html) {
-    return parseHTML(html);
+export function parse (htmls) {
+    html = htmls
+    return parseHTML();
 }
 
 export function optimize (rootAst) {
@@ -224,7 +227,7 @@ export function optimize (rootAst) {
 			return (!node.if && !node.for);
 		}
         return false
-        
+
     }
     function markStatic (node) {
 		if(node){
@@ -239,7 +242,7 @@ export function optimize (rootAst) {
 			    }
 			}
 		}
-        
+
     }
 
     function markStaticRoots (node) {
@@ -314,7 +317,7 @@ export function generate (rootAst) {
         } else {
             const children = genChildren(el);
             let code;
-            code = `_c('${el.tag},'{
+            code = `_c('${el.tag}',{
                 staticClass: ${el.attrsMap && el.attrsMap[':class']},
                 class: ${el.attrsMap && el.attrsMap['class']},
             }${
@@ -329,11 +332,4 @@ export function generate (rootAst) {
         render: `with(this){return ${code}}`,
     }
 }
-
-var html = '<div :class="c" class="demo" v-if="isShow"><span v-for="item in sz">{{item}}</span></div>';
-// var html = '<ul><li>11</li><li>222</li><li>333</li></ul>'
-
-const ast = parse();
-optimize(ast);
-const code = generate(ast);
 
