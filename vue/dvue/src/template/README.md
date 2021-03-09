@@ -76,6 +76,7 @@ var vm = new dVue({
 第一步 建立构造函数dVue
 第二步 原型上绑定$mount 
 
+    $mount的作用就是在没有render函数的情况下把template转化成render函数
     实现获取到template
     然后通过compileToFunctions把模版template编译生成render以及staticRenderFns
     compileToFunctions实际上是createCompiler方法的返回值

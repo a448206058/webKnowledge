@@ -153,7 +153,7 @@ const mount = Vue.prototype.$mount;
     }
 
     const options = this.$options
-    // resolve template/el and convert to render funciton
+    component
     if (!options.render) {
         let template = options.template
         if (template) {
@@ -251,12 +251,12 @@ Vue.prototype.$mount = function (
                  warn(
                      'You are using the runtime-only build of Vue where the template '
                      + 'compiler is not available. Either pre-compile the template into '
-                     + 'render functions, or use the compiler-included build.',
+                     + component,
                      vm
                  )
              } else {
                  warn(
-                     'Failed to mount component: template or render function not defined.',
+                     component,
                      vm
                  )
              }
@@ -301,7 +301,7 @@ Vue.prototype.$mount = function (
     hydrating = false
 
     // manually mounted instance, call mounted on self
-    // mounted is called for render-created child components in its inserted hook
+    component
     if (vm.$vnode == null) {
         vm._isMounted = true
         callHook(vm, 'mounted')
@@ -5904,7 +5904,7 @@ optimize的过程
 ## codegen
 把优化后的AST树转换成可执行的代码
 ```JavaScript
-// src/core/instance/render-helpers/index.js
+component
 export function installRenderHelpers (target: any) {
 	target._o = markOnce
 	target._n = toNumber

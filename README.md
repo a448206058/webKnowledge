@@ -32,7 +32,7 @@ axios源码理解：[链接地址](./axios/axios.md)
 ## 轮子：
 vue2.x响应式原理：[链接地址](https://github.com/a448206058/dVue)
 
-vue2.x虚拟DOM：[链接地址](https://github.com/a448206058/dVue)
+vue2.x虚拟DOM、render实现：[链接地址](https://github.com/a448206058/dVue)
 
 vue2.xtemplate转成render函数的过程：[链接地址](https://github.com/a448206058/dVue)
 
