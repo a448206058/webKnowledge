@@ -372,3 +372,49 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 // 栈 队列
 // 栈 最近的元素
 20 150 71
+
+// 栈和递归的紧密关系
+递归算法
+二叉树中的算法
+前序遍历 中序遍历 后序遍历
+144 94 145
+
+let result = []
+    var preOrderTraverseNode = (node) => {
+        if(node) {
+            // 先根节点
+            result.push(node.val)
+            // 然后遍历左子树
+            preOrderTraverseNode(node.left)
+            // 再遍历右子树
+            preOrderTraverseNode(node.right)
+        }
+    }
+    preOrderTraverseNode(root)
+    return result
+	
+	var postorderTraversal = function(root) {
+	    let result = []
+	    var postorderTraversalNode = (node) => {
+	        if(node) {
+	            // 先遍历左子树
+	            postorderTraversalNode(node.left)
+	            // 再遍历右子树
+	            postorderTraversalNode(node.right)
+	            // 最后根节点
+	            result.push(node.val)
+	        }
+	    }
+	    postorderTraversalNode(root)
+	    return result
+	};
+	
+	作者：user7746o
+	链接：https://leetcode-cn.com/problems/binary-tree-postorder-traversal/solution/javascriptjie-er-cha-shu-de-hou-xu-bian-li-by-user/
+	来源：力扣（LeetCode）
+	著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+作者：user7746o
+链接：https://leetcode-cn.com/problems/binary-tree-preorder-traversal/solution/javascriptjie-qian-xu-bian-li-er-cha-shu-by-user77/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
