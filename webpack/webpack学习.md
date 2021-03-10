@@ -965,4 +965,46 @@ babel配置的优化
 }
 ```
 
+## webpack5
+1.编译缓存
+提供了构建runtime，左右被webpack处理的模块都能得到有效的缓存，大大提高了缓存的覆盖率，因此性能比第三方更好。
+```JavaScript
+module.exports = {
+    cache: {
+       // 将缓存类型设置为文件系统
+        type: "filesystem",
+        buildDependencies: {
+            // 将你的config 添加为buildDependency,以便在改变config时获得缓存无效
+            config: [__filename],
+            // 如果有其它的东西被构建依赖，你可以在这里添加它们
+            // 注意，webpack.config,加载器和所有从你的配置中引用的模块都会被自动添加
+        },
+        // 默认情况下，更改配置文件都会导致重新开始缓存，也可通过主动设置version来控制花奴才能的更新
+        version: '1.0'
+    }
+}
+```
 
+2.长效缓存
+optimization.moduleIds = 'deteministic'
+optimization.chunkIds = 'deterministic'
+
+3.Node Polyfill脚本被移除
+
+4.更优的tree-shaking
+代码更简洁
+!function(){"use stict"; console.log("hello")}();
+
+5.Module Federation
+共享代码
+
+总结：
+1.构建性能大幅度提升，依赖核心代码层面的持久缓存，覆盖率更高，配置更简单。
+2.打包后的代码体积减少。
+3.默认支持浏览器长期缓存，减低配置门槛。
+4.令人激动的新特性Module Federation，蕴含极大的可能性。
+
+
+参考资料：
+
+https://mp.weixin.qq.com/s/P3foOrcu4StJDGdX9xavng
