@@ -8,9 +8,9 @@
     <h1>axios.get</h1>
     <ul id="people" class="list-unstyled"></ul>
 
-    <script src="/axios.min.js"></script>
+    <script src="./axios.js"></script>
     <script>
-      axios.get('/get/server')
+      axios.get('http://159.75.70.9:8081/pull?u=00001019751B08D11324FE0AD0889EC3')
         .then(function (response) {
           document.getElementById('people').innerHTML = response.data.map(function (person) {
             return (
@@ -26,6 +26,7 @@
           }).join('');
         })
         .catch(function (err) {
+          console.log(err)
           document.getElementById('people').innerHTML = '<li class="text-danger">' + err.message + '</li>';
         });
     </script>
