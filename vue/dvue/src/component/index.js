@@ -9,11 +9,48 @@ export default class dVue {
         // el 是字符串还是对象
         vm.$el = typeof options.el === 'string' ? document.querySelector(options.el) : options.el
 
+
+        this._init(options)
         vm.$mount(vm.$el);
 
         var render = options.render
 
         console.log(render)
+    }
+}
+
+/**
+ * _init
+ *        src/core/instance/init.js
+ */
+/**
+ * 合并配置
+ *        new Vue的过程通常有2种场景，一种是外部我们的代码主动调用new Vue(options)的方式实例化一个Vue对象；另一种是内部通过
+ *        new Vue(options)实例化子组件
+ *        无论哪种场景，都会执行实例的_init(options)方法，它首先会执行一个merge options的逻辑，
+ *        源码：src/core/instance/init.js
+ */
+dVue.prototype._init = function (options) {
+    const vm = this;
+    // merge options
+    if (options && options._isComponent) {
+        // optimize internal component instantiation
+        // since dynamic options merging is pretty slow, and none of the
+        // internal component options needs special treatment.
+        initInternalComponent(vm, options)
+    } else {
+        //实际上就是把resolveConstructorOptions(vm.constructor)的返回值和options做合并
+        // resolveConstructorOptions(vm.constructor)简单返回vm.constructor.options 相当于Vue.options
+        vm.$options = mergeOptions(
+            vm.$options,
+            options || {},
+            vm
+        )
+    }
+    // ...
+    // 由于组件初始化的时候不传el，因此组件是自己接管了$mount的过程
+    if (vm.$options.el) {
+        vm.$mount(vm.$options.el)
     }
 }
 
@@ -392,41 +429,6 @@ export function createComponentInstanceForVnode(
     // 实际上是继承于Vue的构造器Sub,相当于new Sub(options)
     // 子组件的实例化实际上就是在这个时机执行的，并且它会执行实例的_init方法
     return new vnode.componentOptions.Ctor(options)
-}
-
-/**
- * _init
- *        src/core/instance/init.js
- */
-/**
- * 合并配置
- *        new Vue的过程通常有2种场景，一种是外部我们的代码主动调用new Vue(options)的方式实例化一个Vue对象；另一种是内部通过
- *        new Vue(options)实例化子组件
- *        无论哪种场景，都会执行实例的_init(options)方法，它首先会执行一个merge options的逻辑，
- *        源码：src/core/instance/init.js
- */
-dVue.prototype._init = function (options) {
-    const vm = this;
-    // merge options
-    if (options && options._isComponent) {
-        // optimize internal component instantiation
-        // since dynamic options merging is pretty slow, and none of the
-        // internal component options needs special treatment.
-        initInternalComponent(vm, options)
-    } else {
-        //实际上就是把resolveConstructorOptions(vm.constructor)的返回值和options做合并
-        // resolveConstructorOptions(vm.constructor)简单返回vm.constructor.options 相当于Vue.options
-        vm.$options = mergeOptions(
-            resolveConstructorOptions(vm.constructor),
-            options || {},
-            vm
-        )
-    }
-    // ...
-    // 由于组件初始化的时候不传el，因此组件是自己接管了$mount的过程
-    if (vm.$options.el) {
-        vm.$mount(vm.$options.el)
-    }
 }
 
 export function initInternalComponent(vm, options) {
