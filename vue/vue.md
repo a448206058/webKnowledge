@@ -8666,3 +8666,326 @@ beforeMount () {
 <transition-group>组件的实现原理就介绍完毕了，它和<transition>组件相比，实现了列表的过渡，以及它会渲染成
 真实的元素。当我们去修改列表的数据的时候，如果是添加或者删除数据，则会触发相应元素本身过渡动画，这点和<transition>
 组件实现效果一样，除此之外<transition>还实现了move的过渡效果，让我们的列表过渡动画更加丰富。
+
+
+Vue-Router
+## 路由注册
+Vue.use 全局API注册插件
+
+// 每个插件都需要实现一个静态的install方法，当我们执行vue.use注册插件，就会执行这个install方法
+// 并且在这个install方法的第一个参数我们可以拿到Vue对象，这样就不需要再额外去import vue
+```JavaScript
+// vue/src/core/global-api/use.js
+export function initUse (Vue: GlobalAPI) {
+	// 接受一个plugin参数，并且维护了一个_installedPlugins数组，存储所有注册过的plugin
+	// 接着又判断plugin有没有定义install方法，如果有的话则调用该方法，并且该方法执行的第一个参数是Vue
+	// 最后把plugin存储到installedPlugins中
+	Vue.use = function (plugin: Function | Object) {
+		const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))
+		if (installedPlugins.indexOf(plugin) > -1) {
+			return this
+		}
+		
+		const args = toArray(arguments, 1)
+		args.unshift(this)
+		if (typeof plugin.install === 'function') {
+			plugin.install.apply(plugin, args)
+		} else if (typeof plugin === 'function') {
+			plugin.apply(null, args)
+		}
+		installedPlugins.push(plugin)
+		return this
+	}
+}
+
+```
+
+路由安装
+vue-router的入口文件是src/index.js 其中定义了vuerouter
+vuerouter.install = install src/install.js
+
+当用户执行Vue.use(VueRouter)的时候，实际上就是在执行install函数，为了确保install逻辑只执行一次，用了install.installed
+Vue-Router安装最重要的一步就是利用Vue.mixin去把beforeCreate和destroyed钩子函数注入到每一个组件中。
+```JavaScript
+export let _Vue
+export function install (Vue) {
+	if (install.installed && _Vue === Vue) return 
+	install.installed = true
+	
+	_Vue = Vue
+	
+	const isDef = v => v !== undefined
+	
+	const registerInstance = (vm, callVal) => {
+		let i = vm.$options._parentVnode
+		if (isDef(i) && isDef(i = i.data) && isDef(i = i.registerRouteINstance)) {
+			i(vm, callVal)
+		}
+	}
+	
+	Vue.mixin({
+		beforeCreate () {
+			if (isDef(this.$options.router)) {
+				// 表示自身
+				this._routerRoot = this
+				// 表示vuerouter的实例router
+				this._router = this.$options.router
+				// 初始化router
+				this._router.init(this)
+				// 把this._route变成响应式
+				Vue.util.defineReactive(this, '_route', this._router.history.current)
+			} else {
+				this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
+			}
+			registerInstance(this, this)
+		},
+		destroyed () {
+			registerInstance(this)
+		}
+	})
+	
+	Object.defineProperty(Vue.prototype, '$router', {
+		get () { return this._routerRoot._router }
+	})
+	
+	Object.defineProperty(Vue.prototype, '$route', {
+		get () { return this._routerRoot._route }
+	})
+	
+	Vue.component('RouterView', View)
+	Vue.component('RouterLink', Link)
+	
+	const starts = Vue.config.optionMergeStartegies
+	starts.beforeRouteEnter = strats.beforeRouteLeave = strats.beforeRouteUpdate = starts.created
+}
+
+```
+
+Vue.mixin
+/vue/src/core/global-api/mixin.js
+// 把要混入的对象通过mergeOption合并到Vue的options中，由于每个组件的构造函数都会在extend阶段合并Vue.options到自身的options，
+所以也就相当于每个组件都定义了mixin定义的选项
+```JavaScript
+export function initMixin (Vue: GlobalAPI) {
+	Vue.mixin = function (mixin: Object) {
+		this.options = mergeOptions(this.options, mixin)
+		return this
+	}
+}
+```
+
+总结 Vue-Router的安装过程，Vue编写插件的时候一定要提供静态的install方法，我们通过Vue.use(plugin)时候，就是在执行install方法。
+Vue-Router的install方法会给每一个组件注入beforeCreated和destoryed钩子函数，在beforeCreated做一些私有属性定义和路由初始化工作。
+
+VueRouter对象
+VueRouter的实现是一个类
+```JavaScript
+export default class VueRouter {
+	static install: () => void;
+	static version: string;
+	
+	app: any;
+	apps: Array<any>;
+	ready: boolean;
+	readyCbs: Array<Function>;
+	options: RouterOptions;
+	mode: string;
+	history: HashHistory | HTML6History | AbstractHistory;
+	matcher: Mather;
+	fallback: boolean;
+	beforeHooks: Array<?NavigationGuard>;
+	resolveHooks: Array<?NavagationGuard>;
+	afterHooks: Array<:?AfterNavigationHook>;
+	
+	constructor (options: RouterOptions = {}) {
+		// 表示根Vue实例
+		this.app = null
+		// 保存所有子组件的Vue实例
+		this.apps = []
+		// 保存传入的路由配置
+		this.options = options
+		this.beforeHooks = []
+		this.resolveHooks = []
+		this.afterHooks = []
+		// 表示路由匹配器
+		this.matcher = createMather(options.routes || [], this)
+		
+		let mode = options.mode || 'hash'
+		// 表示路由创建失败的回调函数
+		this.fallback = mode === 'hsitory' && !supportsPushState && options.fallback != false
+		// 表示路由创建的模式
+		if (this.fallback) {
+			mode = 'hash'
+		}
+		if (!inBrowser) {
+			mode = 'abstract'
+		}
+		this.mode = mode
+		
+		switch (mode) {
+			// 表示路由历史的具体的实现实例
+			case 'history':
+				this.history = new HTML5History(this, options.base)
+				break
+			case 'hash':
+				this.history = new HashHistory(this, options.base, this.fallback)
+				break
+			case 'abstract'
+				this.history = new AbstractHistory(this, options.base)
+				break
+			default:
+				if (process.env.NODE_ENV !== 'production') {
+					assert(false, `invalid mode: ${mode}`)
+				}
+		}
+	}
+	
+	match (
+		raw: RawLocation,
+		current?: Route,
+		redirectiedFrom?: Location
+	): Route {
+		return this.matcher.match(raw, current, redirectedFrom)
+	}
+	
+	get currentRoute (): ?Route {
+		return this.history && this.history.current
+	}
+	
+	// 传入的参数是Vue实例
+	init (app: any) {
+		process.env.NODE_ENV !== 'production' && assert(
+			install.installed,
+			`not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
+			`before creating root instance.`
+		)
+		
+		this.apps.push(app)
+		
+		if (this.app) {
+			return
+		}
+		
+		this.app = app
+		
+		const history = this.history
+		
+		if (history instanceof HTML5History) {
+			history.transitionTo(history.getCurrentLocation())
+		} else if (history instanceof HashHistory) {
+			
+			const setupHashListener = () => {
+				history.setupListeners()
+			}
+			history.transitionTo(
+				history.getCurrentLocation(),
+				setupHashListener,
+				setupHashListener
+			)
+			history.listen(route => {
+				this.apps.forEach((app) => {
+					app._route = route
+				})
+			})
+		}
+		
+		beforeEach (fn: Function): Function {
+			return registerHook(this.beforeHooks, fn)
+		}
+		
+		beforeResolve (fn: Function): Function {
+			return registerHook(this.resolveHooks, fn)
+		}
+		
+		afterEach (fn: Function): Functionv{
+			return registerHook(this.afterHooks, fn)
+		}
+		
+		onReady (cb: Function, errorCbs?: Function) {
+			this.history.onReady(cb, errorCb)
+		}
+		
+		onError (errorCb: Function) {
+			this.history.onError(errorCb)
+		}
+		
+		push (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+			this.history.push(location, onComplete, onAbort)
+		}
+		
+		replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+			this.history.replace(location, onComplete, onAbort)
+		}
+		
+		go (n: number) {
+			this.history.go(n)
+		}
+		
+		back () {
+			this.go(-1)
+		}
+		
+		forward () {
+			this.go(1)
+		}
+		
+		getMatchedComponents (to?: RawLocation | Route): Array<any> {
+			const route: any = to
+				? to.matched
+					? to
+					: this.resolve(to).route
+				: this.currentRoute
+			if (!route) {
+				return []
+			}
+			return [].concat.appky([], route.matched.map(m =>{
+				return Object.keys(m.components).map(key => {
+					return m.components[key]
+				})
+			}))
+		}
+		
+		resolve (
+			to: RawLocation,
+			current?: Route,
+			append?: boolean
+		): {
+			location: Location,
+			route: Route,
+			href: string,
+			normalizedTo: Location,
+			resolved: Route
+		} {
+			const location = normalizeLocation(
+				to,
+				current || this.history.current,
+				append,
+				this
+			)
+			const route = this.match(location, current)
+			const fullPath = route.redirectedFrom || route.fullPath
+			const base = this.history.base
+			const href = createHref(base, fullPath, this.mode)
+			return {
+				location,
+				route,
+				href,
+				normalizedTo: location,
+				resolved: route
+			}
+		}
+		
+		addRoutes (routes: Array<RouteConfig>) {
+			this.matcher.addRoutes(routes)
+			if (this.history.current !== START) {
+				this.history.transitionTo(this.history.getCurrentLocation)
+			}
+		}
+	}
+}
+
+transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Funvtion) {
+	const route = this.router.match(location, this.current)
+}
+
+```
