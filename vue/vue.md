@@ -9355,3 +9355,211 @@ function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
 }
 
 ```
+transitionTo
+src/history/base.js
+```JavaScript
+transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+	const route = this.router.match(location, this.current)
+	this.confirmTransition(route, () => {
+		this.updateRoute(route)
+		onComplete && onComplete(route)
+		this.ensureURL()
+		
+		if (!this.ready) {
+			this.ready = true
+			this.readyCbs.forEach(cb => { cb(route) })
+		}
+	}, err => {
+		if (onAbort) {
+			onAbort(err)
+		}
+		if (err && !this.ready) {
+			this.ready = true
+			this.readyErrorCbs.forEach(cb => { cb(err) })
+		}
+	})
+}
+
+
+// this.current 是 history维护的当前路径
+this.current = START
+
+// src/util/route.js
+export const START = createRoute(null, {
+	path: '/'
+})
+
+confirmTransition (route: Route, onComplete: Function, onAbort?: Function) {
+	const current = this.current
+	const abort = err => {
+		if (isError(err)) {
+			if (this.errorCbs.length) {
+				this.errorCbs.forEach(cb => { cb(err) })
+			} else {
+				warn(false, 'uncaught error during route navigation:')
+				console.error(err)
+			}
+		}
+		onAbort && onAbort(err)
+	}
+	if (
+		isSameRoute(route, current) &&
+		route.matched.length === current.matched.length
+	) {
+		this.ensureURL()
+		return abort()
+	}
+	
+	const {
+		updated,
+		deactivated,
+		activated
+	} = resolveQueue(this.current.matched, route.matched)
+	
+	// 1.在失活的组件里调用离开守卫。
+	// 2.调用全局的beforeEach 守卫
+	// 3.在重用的组件里调用beforeRouteUpdate守卫
+	// 4.在激活的路由配置里调用beforeEnter
+	// 5.解析异步路由组件
+	const queue: Array<?NavigationGuard> = [].concat(
+		extractLeaveGuards(deactivated),
+		this.router.beforeHooks,
+		extractUpdateHooks(updated),
+		activated.map(m => m.beforeEnter),
+		resolveAsyncComponents(activated)
+	)
+	
+	this.pending = route
+	const iterator = (hook: NavigationGuard, next) => {
+		if (this.pending !== route) {
+			return abort()
+		}
+		try {
+			hook(route, current, (to: any) => {
+				if (to === false || isError(to)) {
+					this.ensureURL(true)
+					abort(to)
+				} else if (
+					typeof to === 'string' ||
+					(typeof to === 'object' && (
+						typeof to.path === 'string' ||
+						typeof to.name === 'string'
+					))
+				) {
+					abort()
+					if (typeof to === 'object' && to.replace) {
+						this.replace(to)
+					} else {
+						this.push(to)
+					}
+				} else {
+					next(to)
+				}
+			})
+		} catch (e) {
+			abort(e)
+		}
+	}
+	
+	// src/util/async.js
+	runQueue(queue, iterator, () => {
+		const postEnterCbs = []
+		const isValid = () => this.current === route
+		const enterGuards = extractEnterGuards(activated, postEnterCbs, isValid)
+		const queue = enterGuards.concat(this.router.resolveHooks)
+		runQueue(queue, iterator, () => {
+			if (this.pending !== route) {
+				return abort()
+			}
+			this.pending = null
+			onComplete(route)
+			if (this.router.app) {
+				this.route.app.$nextTick(() => {
+					postEnterCbs.forEach(cb => { cb() })
+				})
+			}
+		})
+	})
+}
+
+// resolveQueue
+function resolveQueue (
+	current: Array<RouteRecord>,
+	next: Array<RouteRecord>
+): {
+	updated: Array<RouteRecord>,
+	activated: Array<RouteRecord>,
+	deactivated: Array<RouteRecord>
+} {
+	let i
+	const max = Math.max(current.length, next.length)
+	for (i = 0; i < max; i++) {
+		if (current[i] !== next[i]) {
+			break
+		}
+	}
+	return {
+		updated: next.slice(0, i),
+		activated: next.slice(i),
+		deactivated: current.slice(i)
+	}
+}
+
+// src/util/async.js
+export function runQueue (queue: Array<?NavigationGuard>, fn: Function, cb: Function){
+	const step = index => {
+		if (index >= queue.length) {
+			cb()
+		} else {
+			if (queue[index]) {
+				fn(queue[index], () => {
+					step(index + 1)
+				})
+			} else {
+				step(index + 1)
+			}
+		}
+	}
+	step(0)
+}
+
+function extractLeaveGuards (deactivated: Array<RouteRecord>): Array<?Function> {
+	return extractGuards(deactivated, 'beforeRouteLeave', bindGuard, true)
+}
+
+function extractGuards (
+	records: Array<RouteRecord>,
+	name: string,
+	bind: Function,
+	reverse?: boolean
+): Array<?Function> {
+	const guards = flatMapComponents(records, (def, instance, match, key) => {
+		const guard = extractGuard(def, name)
+		if (guard) {
+			return Array.isArray(guard)
+				? guard.map(guard => bind(guard, instance, match, key))
+				: bind(guard, instance, match, key)
+		}
+	})
+	return flatten(reverse ? guards.reverse() : guards)
+}
+
+//src/util/resolve-components.js
+export function flatMapComponents (
+	matched: Array<RouteRecord>,
+	fn: Function
+): Array<?Function> {
+	return flatten(matched.map(m => {
+		return Object.keys(m.components).map(key => fn(
+			m.components[key],
+			m.instances[key],
+			m, key
+		))
+	}))
+}
+
+export function flatten (arr: Array<any>): Array<any> {
+	return Array.prototype.concat.apply([], arr)
+}
+
+```

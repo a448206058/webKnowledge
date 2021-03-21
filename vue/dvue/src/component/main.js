@@ -5,9 +5,11 @@ dVue.component('my-button', {
 })
 
 var vm = new dVue({
+	el: '#app',
 	components: {
 		'my-button': {
 			template: '<button>world</button>'
 		}
 	},
 });
+

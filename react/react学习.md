@@ -429,5 +429,34 @@ ReactDOM.rener(
 )
 ```
 
+## 状态提升
+子组件的值交给父组件管理
+
+## 挂载阶段的组件生命周期
+constructor: 组件自身的状态的初始化工作
+
+componentWillMount：组件挂载开始之前，也就是在组件调用render方法之前调用
+组件的启动工作，例如Ajax数据拉取、定时器的启动
+
+componentDidMount: 组件挂载完成以后，也就是DOM元素已经插入页面后调用
+
+componentWillUnmount: 组件对应的DOM元素从页面中删除之前调用
+数据的清理
+
+更新阶段的组件生命周期：
+
+shouldComponentUpdate(nextProps, nextState): 你可以通过这个方法控制组件是否重新渲染。
+如果返回false组件就不会重新渲染。这个生命周期在React.js性能优化上非常有用。
+
+componentWillReceiveProps(nextProps): 组件从父组件接收到新的props之前调用
+
+componentWillUpdate(): 组件开始重新渲染之前调用
+
+componentDidUpdate(): 组件重新渲染并且把更改变更到真实的DOM以后调用。
+
+## ref和react.js中的dom操作
+
+
+
 参考资料：React.js 小书
 [](https://github.com/huzidaha/react-naive-book)
