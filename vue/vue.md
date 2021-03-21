@@ -8989,3 +8989,369 @@ transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Funvtion) 
 }
 
 ```
+
+
+```JavaScript
+// src/create-matcher.js
+export type Matcher = {
+	match: (raw: RawLocation, current?: Route, redirectedFrom?: Location) => Route;
+	addRoutes: (routes: Array<RouteConfig>) => void;
+};
+
+// Location
+// flow/declaration.js
+declare type Location = {
+	_normalized?: boolean;
+	name?: string;
+	path?: string;
+	hash?: string;
+	query?: Dictionary<string>;
+	params?: Dictionary<string>;
+	append?: boolean;
+	replace?: boolean;
+}
+
+// Route
+declare type Route = {
+	path: string;
+	name: ?string;
+	hash: string;
+	query: Dictionary<string>;
+	params: Dictionary<string>;
+	fullPath: string;
+	matched: Array<RouteRecord>;
+	redirectedFrom?: string;
+	meta?: any;
+}
+```
+vue-router定义的location数据结构和浏览器提供的window.locaiton的部分结构有点类似，
+它们都是对url的结构化描述
+
+route表示的是路由中的一条线路，除了描述类似Location的path、query、hash这些概念，
+还有matched表示匹配到的所有RouteRecord
+
+createMatcher
+```JavaScript
+export function creteMatcher (
+	// 用户定义的路由配置
+	routes: Array<RouteConfig>,
+	// new VueRouter返回的实例
+	router: VueRouter
+): Matcher {
+	const { pathList, pathMap, nameMap } = createRouteMap(routes)
+	
+	function addRoutes (routes) {
+		createRouteMap(routes, pathList, pathMap, nameMap)
+	}
+	
+	
+	function match (
+		// 可以是一个url字符串，也可以是一个Location对象
+		raw: RawLocation,
+		// Route类型，它表示当前的路径
+		currentRoute?: Route,
+		redirectedFrom?: Location
+	): Route {
+		const location = normalizeLocation(raw, currentRoute, false, router)
+		const { name } = location
+		
+		if (name) {
+			const record = nameMap[name]
+			if (process.env.NODE_ENV !== 'production') {
+				warn(record, `Route with name '${name}' does not exist`)
+			}
+			if (!record) return _createRoute(null, location)
+			const paramNames = record.regex.keys
+				.filter(key => !key.optional)
+				.map(key => key.name)
+			
+			if (typeof location.params !== 'object') {
+				location.params = {}
+			}
+			
+			if (currentRoute && typeof currentRoute.params === 'object') {
+				for (const key in currentRoute.params) {
+					if (!(key in location.params) && paramNames.indexOf(key) > -1) {
+						location.params[key] = currentRoute.params[key]
+					}
+				}
+			}
+			
+			if (record) {
+				location.path = fillParams(record.path, location.params, `named route "${name}"`)
+				return _createRoute(record, location, redirectedFrom)
+			}
+		} else if (location.path) {
+			location.params = {}
+			for (let i = 0; i < pathList.length; i++) {
+				const path = pathList[i]
+				const record = pathMap[path]
+				if (matchRoute(record.regex, location.path, location.params)) {
+					return _createRoute(record, location, redirectedFrom)
+				}
+			}
+		}
+		return _createRoute(null, location)
+	}
+	
+	function _createRoute(
+		record: ?RouteRecord,
+		location: Location,
+		redirectedFrom?: Location
+	): Route {
+		if (record && record.redirect) {
+			return redirect(record, redirectedFrom || location)
+		}
+		if (record && record.matchAs) {
+			return alias(record, location, record.matchAs)
+		}
+		return createRoute(record, location, redirectedFrom, router)
+	}
+	
+	return {
+		match,
+		addRoutes
+	}
+}
+
+// createRouteMap
+// src/create-route-map
+export function createRouteMap (
+	routes: Array<RouteConfig>,
+	oldPathList?: Array<string>,
+	oldPathMap?: Dictionary<RouteRecord>,
+	oldNameMap?: Dictionary<RouteRecord>
+) {
+	// 存储所有的path
+	pathList: Array<string>,
+	// path 到 RouteRecord的映射关系
+	pathMap: Dictionary<RouteRecord>;
+	// name 到 RouteReccord的映射关系
+	nameMap: Dictionary<RouteRecord>;
+} {
+	const pathList: Array<string> = oldPathList || []
+	const pathMap: Dictionary<RouteRecord> = oldPathMap || Object.create(null)
+	const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
+	
+	routes.forEach(route => {
+		addRouteRecord(pathList, pathMap, nameMap, route)
+	})
+	
+	for (let i = 0, l = pathList.length; i < l; i++) {
+		if (pathList[i] === '*') {
+			pathList.push(pathList.splice(i, 1)[0])
+			l--
+			i--
+		}
+	}
+	
+	return {
+		pathList,
+		pathMap,
+		nameMap
+	}
+}
+
+declare type RouteRecord = {
+	path: string;
+	regex: RouteRegExp;
+	components: Dictionary<any>;
+	instances: Dictionary<any>;
+	name: ?string;
+	parent: ?RouteRecord;
+	redirect: ?RedirectOptions;
+	matchAs: ?string;
+	beforeEnter: ?NavigationGuard;
+	meta: any;
+	props: boolean | Object | Function | Dictionary<boolean | Object | Function>;
+}
+
+function addRouteRecord (
+	pathList: Array<string>,
+	pathMap: Dictionary<RouteRecord>,
+	nameMap: Dictionary<RouteRecord>,
+	route: RouteConfig,
+	parent?: RouteRecord,
+	matchAs?: string
+) {
+	const { path, name } = route
+	if (process.env.NODE_ENV !== 'production') {
+		assert(path != null, `"path" is required in a route configuration.`)
+		assert(
+			typeof route.component !== 'string',
+			`route config "component" for path: ${String(path || name)} cannot be a ` +
+			`string id. Use an actual component installed.`
+		)
+	}
+	
+	const pathToRegexpOptions: PathToRegexpOptions = route.pathToRegexpOptions || {}
+	const normalizedPath = normalizePath(
+		path,
+		parent,
+		pathToRegexpOptions.strict
+	)
+	
+	if (typeof route.caseSensitive === 'boolean') {
+		pathToRegexpOptions.sensitive = route.caseSensitive
+	}
+	
+	const record: RouteRecord = {
+		path: normalizedPath,
+		regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
+		components: route.components || { default: route.component },
+		instances: {},
+		name,
+		parent,
+		matchAs,
+		redirect: route.redirect,
+		beforeEnter: route.beforeEnter,
+		meta: route.meta || {},
+		props: route.props == null
+			? {}
+			: route.components
+				? route.props
+				: { default: route.props }
+	}
+	
+	if (route.children) {
+		if (process.env.NODE_ENV !== 'production') {
+			if (route.name && !route.redirect && route.children.some(child => /^\/?$/.test(child.path))) {
+				warn(
+					false,
+					`Named Route '${route.name}' has a default child route. ` +
+					`When navigating to this named route (:to="{name: '${route.name}'}"), ` +
+					`the default child route will not be rendered. Remove the name from ` +
+					`this route and use the name of the default child route for named ` +
+					`links instead.`
+				)
+			}
+		}
+		route.children.forEach(child => {
+			const childMachAs = matchAs
+				? cleanPath(`${matchAs}/${child.path}`)
+				: undefined
+			addRouteRecord(pathList, pathMap, nameMap, child, record, childMatchAs)
+		})
+	}
+	
+	if (route.alias !== undefined) {
+		const aliases = Array.isArray(route.alias)
+			? route.alias
+			: [route.alias]
+		
+		aliases.forEach(alias => {
+			const aliasRoute = {
+				path: alias,
+				children: route.children
+			}
+			addRouteRecord(
+				pathList,
+				pathMap,
+				nameMap,
+				aliasRoute,
+				parent,
+				record.path || '/'
+			)
+		})
+	}
+	
+	if (!pathMap[record.path]) {
+		pathList.push(record.path)
+		pathMap
+	}
+}
+
+// normalizeLocation 
+// src/util/location.js
+export function normalizeLocation (
+	raw: RawLocation,
+	current: ?Route,
+	append: ?boolean,
+	router: ?VueRouter
+): Location {
+	let next: Location = typeof raw === 'string' ? { path: raw } : raw
+	if (next.name || next._normalized) {
+		return next
+	}
+	
+	if (!next.path && next.params && current) {
+		next = assign({}, next)
+		next._normalized = true
+		const params: any = assign(assign({}, current.params), next.params)
+		if (current.name) {
+			next.name = current.name
+			next.params = params
+		} else if (current.matched.length) {
+			const rawPath = current.matched[current.matched.length - 1].path
+			next.path = fillParams(rawPath, params, `path ${current.path}`)
+		} else if (process.env.NODE_ENV !== 'production') {
+			warn(false, `relative params navigation requires a current route.`)
+			return next
+		}
+		
+		const parsedPath = parsePath(next.path || ')
+		const basePath = (current && current.path) || '/'
+		const path = parsedPath.path
+			? resolvePath(parsedPath.path, basePath, append || next.append)
+			: basePath
+			
+		const query = resolveQuery(
+			parsedPath.query,
+			next.query,
+			router && router.options.parseQuery
+		)
+		
+		let hash = next.hash || parsedPath.hash
+		if (hash && hash.charAt(0) !== '#') {
+			hash = `#${hash}`
+		}
+		
+		return {
+			_normalized: true,
+			path,
+			query,
+			hash
+		}
+	}
+}
+
+// createRoute
+export function createRoute (
+	record: ?RouteRecord,
+	location: Location,
+	redirectedFrom?: ?Location,
+	router?: VueRouter
+): Route {
+	const stringifyQuery = router && router.options.stringifyQuery
+	
+	let query: any = location.query || {}
+	try {
+		query = clone(query)
+	} catch (e) {}
+
+	const route: Route = {
+		name: location.name || (record && record.name),
+		meta: (record && record.meta) || {},
+		path: location.path || '/',
+		hash: location.hash || '',
+		query,
+		params: location.params || {},
+		fullPath: getFullPath(location, stringifyQuery),
+		matched: record ? formatMatch(record) : []
+	}
+	if (redirectedFrom) {
+		route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
+	}
+	return Object.freeze(route)
+}
+
+function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
+	const res = []
+	while (record) {
+		res.unshift(record)
+		record = record.parent
+	}
+	return res
+}
+
+```

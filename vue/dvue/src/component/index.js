@@ -20,6 +20,37 @@ export default class dVue {
 }
 
 /**
+ * ASSET_TYPES
+ *    src/shared/constants.js
+ */
+export const ASSET_TYPES = [
+    'component',
+    'directive',
+    'filter'
+]
+
+// Vue.component
+ASSET_TYPES.forEach(type => {
+	Vue[type] = function (id, definition){
+		if (!definition) {
+			return this.options[type + 's'][id]
+		} else {
+			// 组件注册
+			if (type === 'component' && isPlainObject(definition)) {
+				definition.name = definition.name || id
+				// 如果definition是一个对象，需要调用Vue.extend()转换成函数。Vue.extend会创建一个Vue的子类（组件类）	
+				// 并返回子类的构造函数
+				definition = this.options._base.extend(definition)
+			}
+			
+			// 这里很关键，将组件添加到构造函数的选项对象中Vue.options上
+			this.options[type + 's'][id] = definition
+			return definition
+		}
+	}
+})
+
+/**
  * _init
  *        src/core/instance/init.js
  */
@@ -32,6 +63,7 @@ export default class dVue {
  */
 dVue.prototype._init = function (options) {
     const vm = this;
+	vm._isVue = true
     // merge options
     if (options && options._isComponent) {
         // optimize internal component instantiation
@@ -662,15 +694,7 @@ export function initGlobalAPI(Vue) {
     extend(Vue.options.components, builtInComponents)
 }
 
-/**
- * ASSET_TYPES
- *    src/shared/constants.js
- */
-export const ASSET_TYPES = [
-    'component',
-    'directive',
-    'filter'
-]
+
 
 /**
  * mergeOptiopns

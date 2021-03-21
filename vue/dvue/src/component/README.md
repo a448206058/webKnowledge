@@ -8,4 +8,6 @@ Vue.js另一个核心思想是组件化。所谓组件化，就是把页面拆�
 流程 
 new Vue() => $mount() => vm._render() => _createElement() => createComponent()
 
+
+
 https://blog.csdn.net/weixin_48109878/article/details/109555053
