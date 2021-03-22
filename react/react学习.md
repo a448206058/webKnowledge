@@ -456,7 +456,23 @@ componentDidUpdate(): 组件重新渲染并且把更改变更到真实的DOM以�
 
 ## ref和react.js中的dom操作
 
+## props.children 和 容器类组件
 
+## dangerouslySetHTML和style属性
+为了防止XSS攻击，在React.js当中所有的表达式插入的内容都会被自动转义
+
+dangerouslySetInnerHTML可以实现innerHTML的功能
+```JavaScript
+render () {
+	return (
+		<div
+			className='editor-wrapper'
+			dangerouslySetInnerHTML={{__html: this.state.content}} />
+	)
+}
+```
+
+## PropTypes和组件参数验证
 
 参考资料：React.js 小书
 [](https://github.com/huzidaha/react-naive-book)

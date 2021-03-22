@@ -9545,6 +9545,7 @@ function extractGuards (
 }
 
 //src/util/resolve-components.js
+// 返回一个数组
 export function flatMapComponents (
 	matched: Array<RouteRecord>,
 	fn: Function
@@ -9558,8 +9559,11 @@ export function flatMapComponents (
 	}))
 }
 
+// 把二维数组拍平成
 export function flatten (arr: Array<any>): Array<any> {
 	return Array.prototype.concat.apply([], arr)
 }
+
+
 
 ```
