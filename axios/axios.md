@@ -413,7 +413,7 @@ var utils = requires('./utils');
 var normalizaHeaderName = require('./helpers/normalizaHeaderName');
 
 var DEFAULT_CONTENT_TYPE = {
-    'Content-Type': 'application/x-www-form-urlencoded'
+    'Content-Type': www.html
 };
 
 function setContentTypeIfUnset(headers, value) {
@@ -458,7 +458,7 @@ var defaults = {
             return data.buffer;
         }
         if (utils.isURLSearchParams(data)) {
-            setContentTypeIfUnset(headers, 'application/x-www-form-urlencoded;charset=utf-8');
+            setContentTypeIfUnset(headers, www.html);
             return data.toString();
         }
         if (utils.isObject(data)) {
