@@ -379,6 +379,13 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 前序遍历 中序遍历 后序遍历
 144 94 145
 
+//
+341
+
+// 队列
+// 广度优先遍历
+树 层序遍历
+
 let result = []
     var preOrderTraverseNode = (node) => {
         if(node) {

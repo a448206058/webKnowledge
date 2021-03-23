@@ -381,7 +381,7 @@ export default class Compiler {
 
     // 处理v-on指令
     onUpdater (node, key, event) {
-        // console.log(node ,key, event)
+        计算属性和侦听属性
         node.addEventListener(event, () => {
             // 判断函数名称是否有()
             if (key.indexOf('(') > 0 && key.indexOf(')') > 0) {

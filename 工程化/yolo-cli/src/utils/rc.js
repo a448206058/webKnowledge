@@ -56,7 +56,7 @@ export const set = async (key, value) => {
 export const remove = async (key) => {
     const exit = await exits(RC);
     let opts;
-    if (exit) {    
+    if (exit) {
         opts = await readFile(RC, 'utf8');
         opts = decode(opts);
         delete opts[key];

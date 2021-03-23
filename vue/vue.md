@@ -6425,7 +6425,7 @@ export function createFnInvoker(fns: Function | Array<Function>): Function {
 
 add
 ```JavaScript
-// src/platforms/web/runtime/modules/event.js
+计算属性和侦听属性
 function add (
 	event: string,
 	handler: Function,
@@ -6512,7 +6512,7 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 }
 
 // initEvents
-// src/core/instance/event.js
+计算属性和侦听属性
 export function initEvents(vm: Component) {
 	vm._events = Object.create(null)
 	vm._hasHookEvent = false
@@ -6559,7 +6559,7 @@ export function eventsMixin(Vue: Class<Component>) {
 			}
 		} else {
 			(vm._events[event] || (vm._events[event] = [])).push(fn)
-			// optimize hook:event cost by using a boolean flag marked at registration
+			计算属性和侦听属性
 			// instead of a hash lookup
 			if (hookRE.test(event)) {
 				vm._hasHookEvent = true
@@ -6594,7 +6594,7 @@ export function eventsMixin(Vue: Class<Component>) {
 		}
 		return vm
 	}
-	// specific event
+	计算属性和侦听属性
 	const cbs = vm._events[event]
 	if (!cbs) {
 		return vm
@@ -6797,7 +6797,7 @@ function genDefaultModel (
 			? RANGE_TOKEN
 			: 'input'
 			
-	let valueExpression = '$event.target.value'
+	let valueExpression = 计算属性和侦听属性
 	if (trim) {
 		valueExpression = `$event.target.value.trim()`
 	}
@@ -6807,7 +6807,7 @@ function genDefaultModel (
 	
 	let code = genAssignmentCode(value, valueExpression)
 	if (needCompositionGuard) {
-		// message=$event.target.value
+		计算属性和侦听属性
 		code = `if($event.target.composing)return;${code}`
 	}
 	addProp(el, 'value', `(${value})`)
@@ -8666,3 +8666,900 @@ beforeMount () {
 <transition-group>组件的实现原理就介绍完毕了，它和<transition>组件相比，实现了列表的过渡，以及它会渲染成
 真实的元素。当我们去修改列表的数据的时候，如果是添加或者删除数据，则会触发相应元素本身过渡动画，这点和<transition>
 组件实现效果一样，除此之外<transition>还实现了move的过渡效果，让我们的列表过渡动画更加丰富。
+
+
+Vue-Router
+## 路由注册
+Vue.use 全局API注册插件
+
+// 每个插件都需要实现一个静态的install方法，当我们执行vue.use注册插件，就会执行这个install方法
+// 并且在这个install方法的第一个参数我们可以拿到Vue对象，这样就不需要再额外去import vue
+```JavaScript
+// vue/src/core/global-api/use.js
+export function initUse (Vue: GlobalAPI) {
+	// 接受一个plugin参数，并且维护了一个_installedPlugins数组，存储所有注册过的plugin
+	// 接着又判断plugin有没有定义install方法，如果有的话则调用该方法，并且该方法执行的第一个参数是Vue
+	// 最后把plugin存储到installedPlugins中
+	Vue.use = function (plugin: Function | Object) {
+		const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))
+		if (installedPlugins.indexOf(plugin) > -1) {
+			return this
+		}
+		
+		const args = toArray(arguments, 1)
+		args.unshift(this)
+		if (typeof plugin.install === 'function') {
+			plugin.install.apply(plugin, args)
+		} else if (typeof plugin === 'function') {
+			plugin.apply(null, args)
+		}
+		installedPlugins.push(plugin)
+		return this
+	}
+}
+
+```
+
+路由安装
+vue-router的入口文件是src/index.js 其中定义了vuerouter
+vuerouter.install = install src/install.js
+
+当用户执行Vue.use(VueRouter)的时候，实际上就是在执行install函数，为了确保install逻辑只执行一次，用了install.installed
+Vue-Router安装最重要的一步就是利用Vue.mixin去把beforeCreate和destroyed钩子函数注入到每一个组件中。
+```JavaScript
+export let _Vue
+export function install (Vue) {
+	if (install.installed && _Vue === Vue) return 
+	install.installed = true
+	
+	_Vue = Vue
+	
+	const isDef = v => v !== undefined
+	
+	const registerInstance = (vm, callVal) => {
+		let i = vm.$options._parentVnode
+		if (isDef(i) && isDef(i = i.data) && isDef(i = i.registerRouteINstance)) {
+			i(vm, callVal)
+		}
+	}
+	
+	Vue.mixin({
+		beforeCreate () {
+			if (isDef(this.$options.router)) {
+				// 表示自身
+				this._routerRoot = this
+				// 表示vuerouter的实例router
+				this._router = this.$options.router
+				// 初始化router
+				this._router.init(this)
+				// 把this._route变成响应式
+				Vue.util.defineReactive(this, '_route', this._router.history.current)
+			} else {
+				this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
+			}
+			registerInstance(this, this)
+		},
+		destroyed () {
+			registerInstance(this)
+		}
+	})
+	
+	Object.defineProperty(Vue.prototype, '$router', {
+		get () { return this._routerRoot._router }
+	})
+	
+	Object.defineProperty(Vue.prototype, '$route', {
+		get () { return this._routerRoot._route }
+	})
+	
+	Vue.component('RouterView', View)
+	Vue.component('RouterLink', Link)
+	
+	const starts = Vue.config.optionMergeStartegies
+	starts.beforeRouteEnter = strats.beforeRouteLeave = strats.beforeRouteUpdate = starts.created
+}
+
+```
+
+Vue.mixin
+/vue/src/core/global-api/mixin.js
+// 把要混入的对象通过mergeOption合并到Vue的options中，由于每个组件的构造函数都会在extend阶段合并Vue.options到自身的options，
+所以也就相当于每个组件都定义了mixin定义的选项
+```JavaScript
+export function initMixin (Vue: GlobalAPI) {
+	Vue.mixin = function (mixin: Object) {
+		this.options = mergeOptions(this.options, mixin)
+		return this
+	}
+}
+```
+
+总结 Vue-Router的安装过程，Vue编写插件的时候一定要提供静态的install方法，我们通过Vue.use(plugin)时候，就是在执行install方法。
+Vue-Router的install方法会给每一个组件注入beforeCreated和destoryed钩子函数，在beforeCreated做一些私有属性定义和路由初始化工作。
+
+VueRouter对象
+VueRouter的实现是一个类
+```JavaScript
+export default class VueRouter {
+	static install: () => void;
+	static version: string;
+	
+	app: any;
+	apps: Array<any>;
+	ready: boolean;
+	readyCbs: Array<Function>;
+	options: RouterOptions;
+	mode: string;
+	history: HashHistory | HTML6History | AbstractHistory;
+	matcher: Mather;
+	fallback: boolean;
+	beforeHooks: Array<?NavigationGuard>;
+	resolveHooks: Array<?NavagationGuard>;
+	afterHooks: Array<:?AfterNavigationHook>;
+	
+	constructor (options: RouterOptions = {}) {
+		// 表示根Vue实例
+		this.app = null
+		// 保存所有子组件的Vue实例
+		this.apps = []
+		// 保存传入的路由配置
+		this.options = options
+		this.beforeHooks = []
+		this.resolveHooks = []
+		this.afterHooks = []
+		// 表示路由匹配器
+		this.matcher = createMather(options.routes || [], this)
+		
+		let mode = options.mode || 'hash'
+		// 表示路由创建失败的回调函数
+		this.fallback = mode === 'hsitory' && !supportsPushState && options.fallback != false
+		// 表示路由创建的模式
+		if (this.fallback) {
+			mode = 'hash'
+		}
+		if (!inBrowser) {
+			mode = 'abstract'
+		}
+		this.mode = mode
+		
+		switch (mode) {
+			// 表示路由历史的具体的实现实例
+			case 'history':
+				this.history = new HTML5History(this, options.base)
+				break
+			case 'hash':
+				this.history = new HashHistory(this, options.base, this.fallback)
+				break
+			case 'abstract'
+				this.history = new AbstractHistory(this, options.base)
+				break
+			default:
+				if (process.env.NODE_ENV !== 'production') {
+					assert(false, `invalid mode: ${mode}`)
+				}
+		}
+	}
+	
+	match (
+		raw: RawLocation,
+		current?: Route,
+		redirectiedFrom?: Location
+	): Route {
+		return this.matcher.match(raw, current, redirectedFrom)
+	}
+	
+	get currentRoute (): ?Route {
+		return this.history && this.history.current
+	}
+	
+	// 传入的参数是Vue实例
+	init (app: any) {
+		process.env.NODE_ENV !== 'production' && assert(
+			install.installed,
+			`not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
+			`before creating root instance.`
+		)
+		
+		this.apps.push(app)
+		
+		if (this.app) {
+			return
+		}
+		
+		this.app = app
+		
+		const history = this.history
+		
+		if (history instanceof HTML5History) {
+			history.transitionTo(history.getCurrentLocation())
+		} else if (history instanceof HashHistory) {
+			
+			const setupHashListener = () => {
+				history.setupListeners()
+			}
+			history.transitionTo(
+				history.getCurrentLocation(),
+				setupHashListener,
+				setupHashListener
+			)
+			history.listen(route => {
+				this.apps.forEach((app) => {
+					app._route = route
+				})
+			})
+		}
+		
+		beforeEach (fn: Function): Function {
+			return registerHook(this.beforeHooks, fn)
+		}
+		
+		beforeResolve (fn: Function): Function {
+			return registerHook(this.resolveHooks, fn)
+		}
+		
+		afterEach (fn: Function): Functionv{
+			return registerHook(this.afterHooks, fn)
+		}
+		
+		onReady (cb: Function, errorCbs?: Function) {
+			this.history.onReady(cb, errorCb)
+		}
+		
+		onError (errorCb: Function) {
+			this.history.onError(errorCb)
+		}
+		
+		push (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+			this.history.push(location, onComplete, onAbort)
+		}
+		
+		replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+			this.history.replace(location, onComplete, onAbort)
+		}
+		
+		go (n: number) {
+			this.history.go(n)
+		}
+		
+		back () {
+			this.go(-1)
+		}
+		
+		forward () {
+			this.go(1)
+		}
+		
+		getMatchedComponents (to?: RawLocation | Route): Array<any> {
+			const route: any = to
+				? to.matched
+					? to
+					: this.resolve(to).route
+				: this.currentRoute
+			if (!route) {
+				return []
+			}
+			return [].concat.appky([], route.matched.map(m =>{
+				return Object.keys(m.components).map(key => {
+					return m.components[key]
+				})
+			}))
+		}
+		
+		resolve (
+			to: RawLocation,
+			current?: Route,
+			append?: boolean
+		): {
+			location: Location,
+			route: Route,
+			href: string,
+			normalizedTo: Location,
+			resolved: Route
+		} {
+			const location = normalizeLocation(
+				to,
+				current || this.history.current,
+				append,
+				this
+			)
+			const route = this.match(location, current)
+			const fullPath = route.redirectedFrom || route.fullPath
+			const base = this.history.base
+			const href = createHref(base, fullPath, this.mode)
+			return {
+				location,
+				route,
+				href,
+				normalizedTo: location,
+				resolved: route
+			}
+		}
+		
+		addRoutes (routes: Array<RouteConfig>) {
+			this.matcher.addRoutes(routes)
+			if (this.history.current !== START) {
+				this.history.transitionTo(this.history.getCurrentLocation)
+			}
+		}
+	}
+}
+
+transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Funvtion) {
+	const route = this.router.match(location, this.current)
+}
+
+```
+
+
+```JavaScript
+// src/create-matcher.js
+export type Matcher = {
+	match: (raw: RawLocation, current?: Route, redirectedFrom?: Location) => Route;
+	addRoutes: (routes: Array<RouteConfig>) => void;
+};
+
+// Location
+// flow/declaration.js
+declare type Location = {
+	_normalized?: boolean;
+	name?: string;
+	path?: string;
+	hash?: string;
+	query?: Dictionary<string>;
+	params?: Dictionary<string>;
+	append?: boolean;
+	replace?: boolean;
+}
+
+// Route
+declare type Route = {
+	path: string;
+	name: ?string;
+	hash: string;
+	query: Dictionary<string>;
+	params: Dictionary<string>;
+	fullPath: string;
+	matched: Array<RouteRecord>;
+	redirectedFrom?: string;
+	meta?: any;
+}
+```
+vue-router定义的location数据结构和浏览器提供的window.locaiton的部分结构有点类似，
+它们都是对url的结构化描述
+
+route表示的是路由中的一条线路，除了描述类似Location的path、query、hash这些概念，
+还有matched表示匹配到的所有RouteRecord
+
+createMatcher
+```JavaScript
+export function creteMatcher (
+	// 用户定义的路由配置
+	routes: Array<RouteConfig>,
+	// new VueRouter返回的实例
+	router: VueRouter
+): Matcher {
+	const { pathList, pathMap, nameMap } = createRouteMap(routes)
+	
+	function addRoutes (routes) {
+		createRouteMap(routes, pathList, pathMap, nameMap)
+	}
+	
+	
+	function match (
+		// 可以是一个url字符串，也可以是一个Location对象
+		raw: RawLocation,
+		// Route类型，它表示当前的路径
+		currentRoute?: Route,
+		redirectedFrom?: Location
+	): Route {
+		const location = normalizeLocation(raw, currentRoute, false, router)
+		const { name } = location
+		
+		if (name) {
+			const record = nameMap[name]
+			if (process.env.NODE_ENV !== 'production') {
+				warn(record, `Route with name '${name}' does not exist`)
+			}
+			if (!record) return _createRoute(null, location)
+			const paramNames = record.regex.keys
+				.filter(key => !key.optional)
+				.map(key => key.name)
+			
+			if (typeof location.params !== 'object') {
+				location.params = {}
+			}
+			
+			if (currentRoute && typeof currentRoute.params === 'object') {
+				for (const key in currentRoute.params) {
+					if (!(key in location.params) && paramNames.indexOf(key) > -1) {
+						location.params[key] = currentRoute.params[key]
+					}
+				}
+			}
+			
+			if (record) {
+				location.path = fillParams(record.path, location.params, `named route "${name}"`)
+				return _createRoute(record, location, redirectedFrom)
+			}
+		} else if (location.path) {
+			location.params = {}
+			for (let i = 0; i < pathList.length; i++) {
+				const path = pathList[i]
+				const record = pathMap[path]
+				if (matchRoute(record.regex, location.path, location.params)) {
+					return _createRoute(record, location, redirectedFrom)
+				}
+			}
+		}
+		return _createRoute(null, location)
+	}
+	
+	function _createRoute(
+		record: ?RouteRecord,
+		location: Location,
+		redirectedFrom?: Location
+	): Route {
+		if (record && record.redirect) {
+			return redirect(record, redirectedFrom || location)
+		}
+		if (record && record.matchAs) {
+			return alias(record, location, record.matchAs)
+		}
+		return createRoute(record, location, redirectedFrom, router)
+	}
+	
+	return {
+		match,
+		addRoutes
+	}
+}
+
+// createRouteMap
+// src/create-route-map
+export function createRouteMap (
+	routes: Array<RouteConfig>,
+	oldPathList?: Array<string>,
+	oldPathMap?: Dictionary<RouteRecord>,
+	oldNameMap?: Dictionary<RouteRecord>
+) {
+	// 存储所有的path
+	pathList: Array<string>,
+	// path 到 RouteRecord的映射关系
+	pathMap: Dictionary<RouteRecord>;
+	// name 到 RouteReccord的映射关系
+	nameMap: Dictionary<RouteRecord>;
+} {
+	const pathList: Array<string> = oldPathList || []
+	const pathMap: Dictionary<RouteRecord> = oldPathMap || Object.create(null)
+	const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
+	
+	routes.forEach(route => {
+		addRouteRecord(pathList, pathMap, nameMap, route)
+	})
+	
+	for (let i = 0, l = pathList.length; i < l; i++) {
+		if (pathList[i] === '*') {
+			pathList.push(pathList.splice(i, 1)[0])
+			l--
+			i--
+		}
+	}
+	
+	return {
+		pathList,
+		pathMap,
+		nameMap
+	}
+}
+
+declare type RouteRecord = {
+	path: string;
+	regex: RouteRegExp;
+	components: Dictionary<any>;
+	instances: Dictionary<any>;
+	name: ?string;
+	parent: ?RouteRecord;
+	redirect: ?RedirectOptions;
+	matchAs: ?string;
+	beforeEnter: ?NavigationGuard;
+	meta: any;
+	props: boolean | Object | Function | Dictionary<boolean | Object | Function>;
+}
+
+function addRouteRecord (
+	pathList: Array<string>,
+	pathMap: Dictionary<RouteRecord>,
+	nameMap: Dictionary<RouteRecord>,
+	route: RouteConfig,
+	parent?: RouteRecord,
+	matchAs?: string
+) {
+	const { path, name } = route
+	if (process.env.NODE_ENV !== 'production') {
+		assert(path != null, `"path" is required in a route configuration.`)
+		assert(
+			typeof route.component !== 'string',
+			`route config "component" for path: ${String(path || name)} cannot be a ` +
+			`string id. Use an actual component installed.`
+		)
+	}
+	
+	const pathToRegexpOptions: PathToRegexpOptions = route.pathToRegexpOptions || {}
+	const normalizedPath = normalizePath(
+		path,
+		parent,
+		pathToRegexpOptions.strict
+	)
+	
+	if (typeof route.caseSensitive === 'boolean') {
+		pathToRegexpOptions.sensitive = route.caseSensitive
+	}
+	
+	const record: RouteRecord = {
+		path: normalizedPath,
+		regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
+		components: route.components || { default: route.component },
+		instances: {},
+		name,
+		parent,
+		matchAs,
+		redirect: route.redirect,
+		beforeEnter: route.beforeEnter,
+		meta: route.meta || {},
+		props: route.props == null
+			? {}
+			: route.components
+				? route.props
+				: { default: route.props }
+	}
+	
+	if (route.children) {
+		if (process.env.NODE_ENV !== 'production') {
+			if (route.name && !route.redirect && route.children.some(child => /^\/?$/.test(child.path))) {
+				warn(
+					false,
+					`Named Route '${route.name}' has a default child route. ` +
+					`When navigating to this named route (:to="{name: '${route.name}'}"), ` +
+					`the default child route will not be rendered. Remove the name from ` +
+					`this route and use the name of the default child route for named ` +
+					`links instead.`
+				)
+			}
+		}
+		route.children.forEach(child => {
+			const childMachAs = matchAs
+				? cleanPath(`${matchAs}/${child.path}`)
+				: undefined
+			addRouteRecord(pathList, pathMap, nameMap, child, record, childMatchAs)
+		})
+	}
+	
+	if (route.alias !== undefined) {
+		const aliases = Array.isArray(route.alias)
+			? route.alias
+			: [route.alias]
+		
+		aliases.forEach(alias => {
+			const aliasRoute = {
+				path: alias,
+				children: route.children
+			}
+			addRouteRecord(
+				pathList,
+				pathMap,
+				nameMap,
+				aliasRoute,
+				parent,
+				record.path || '/'
+			)
+		})
+	}
+	
+	if (!pathMap[record.path]) {
+		pathList.push(record.path)
+		pathMap
+	}
+}
+
+// normalizeLocation 
+// src/util/location.js
+export function normalizeLocation (
+	raw: RawLocation,
+	current: ?Route,
+	append: ?boolean,
+	router: ?VueRouter
+): Location {
+	let next: Location = typeof raw === 'string' ? { path: raw } : raw
+	if (next.name || next._normalized) {
+		return next
+	}
+	
+	if (!next.path && next.params && current) {
+		next = assign({}, next)
+		next._normalized = true
+		const params: any = assign(assign({}, current.params), next.params)
+		if (current.name) {
+			next.name = current.name
+			next.params = params
+		} else if (current.matched.length) {
+			const rawPath = current.matched[current.matched.length - 1].path
+			next.path = fillParams(rawPath, params, `path ${current.path}`)
+		} else if (process.env.NODE_ENV !== 'production') {
+			warn(false, `relative params navigation requires a current route.`)
+			return next
+		}
+		
+		const parsedPath = parsePath(next.path || ')
+		const basePath = (current && current.path) || '/'
+		const path = parsedPath.path
+			? resolvePath(parsedPath.path, basePath, append || next.append)
+			: basePath
+			
+		const query = resolveQuery(
+			parsedPath.query,
+			next.query,
+			router && router.options.parseQuery
+		)
+		
+		let hash = next.hash || parsedPath.hash
+		if (hash && hash.charAt(0) !== '#') {
+			hash = `#${hash}`
+		}
+		
+		return {
+			_normalized: true,
+			path,
+			query,
+			hash
+		}
+	}
+}
+
+// createRoute
+export function createRoute (
+	record: ?RouteRecord,
+	location: Location,
+	redirectedFrom?: ?Location,
+	router?: VueRouter
+): Route {
+	const stringifyQuery = router && router.options.stringifyQuery
+	
+	let query: any = location.query || {}
+	try {
+		query = clone(query)
+	} catch (e) {}
+
+	const route: Route = {
+		name: location.name || (record && record.name),
+		meta: (record && record.meta) || {},
+		path: location.path || '/',
+		hash: location.hash || '',
+		query,
+		params: location.params || {},
+		fullPath: getFullPath(location, stringifyQuery),
+		matched: record ? formatMatch(record) : []
+	}
+	if (redirectedFrom) {
+		route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
+	}
+	return Object.freeze(route)
+}
+
+function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
+	const res = []
+	while (record) {
+		res.unshift(record)
+		record = record.parent
+	}
+	return res
+}
+
+```
+transitionTo
+src/history/base.js
+```JavaScript
+transitionTo (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+	const route = this.router.match(location, this.current)
+	this.confirmTransition(route, () => {
+		this.updateRoute(route)
+		onComplete && onComplete(route)
+		this.ensureURL()
+		
+		if (!this.ready) {
+			this.ready = true
+			this.readyCbs.forEach(cb => { cb(route) })
+		}
+	}, err => {
+		if (onAbort) {
+			onAbort(err)
+		}
+		if (err && !this.ready) {
+			this.ready = true
+			this.readyErrorCbs.forEach(cb => { cb(err) })
+		}
+	})
+}
+
+
+// this.current 是 history维护的当前路径
+this.current = START
+
+// src/util/route.js
+export const START = createRoute(null, {
+	path: '/'
+})
+
+confirmTransition (route: Route, onComplete: Function, onAbort?: Function) {
+	const current = this.current
+	const abort = err => {
+		if (isError(err)) {
+			if (this.errorCbs.length) {
+				this.errorCbs.forEach(cb => { cb(err) })
+			} else {
+				warn(false, 'uncaught error during route navigation:')
+				console.error(err)
+			}
+		}
+		onAbort && onAbort(err)
+	}
+	if (
+		isSameRoute(route, current) &&
+		route.matched.length === current.matched.length
+	) {
+		this.ensureURL()
+		return abort()
+	}
+	
+	const {
+		updated,
+		deactivated,
+		activated
+	} = resolveQueue(this.current.matched, route.matched)
+	
+	// 1.在失活的组件里调用离开守卫。
+	// 2.调用全局的beforeEach 守卫
+	// 3.在重用的组件里调用beforeRouteUpdate守卫
+	// 4.在激活的路由配置里调用beforeEnter
+	// 5.解析异步路由组件
+	const queue: Array<?NavigationGuard> = [].concat(
+		extractLeaveGuards(deactivated),
+		this.router.beforeHooks,
+		extractUpdateHooks(updated),
+		activated.map(m => m.beforeEnter),
+		resolveAsyncComponents(activated)
+	)
+	
+	this.pending = route
+	const iterator = (hook: NavigationGuard, next) => {
+		if (this.pending !== route) {
+			return abort()
+		}
+		try {
+			hook(route, current, (to: any) => {
+				if (to === false || isError(to)) {
+					this.ensureURL(true)
+					abort(to)
+				} else if (
+					typeof to === 'string' ||
+					(typeof to === 'object' && (
+						typeof to.path === 'string' ||
+						typeof to.name === 'string'
+					))
+				) {
+					abort()
+					if (typeof to === 'object' && to.replace) {
+						this.replace(to)
+					} else {
+						this.push(to)
+					}
+				} else {
+					next(to)
+				}
+			})
+		} catch (e) {
+			abort(e)
+		}
+	}
+	
+	// src/util/async.js
+	runQueue(queue, iterator, () => {
+		const postEnterCbs = []
+		const isValid = () => this.current === route
+		const enterGuards = extractEnterGuards(activated, postEnterCbs, isValid)
+		const queue = enterGuards.concat(this.router.resolveHooks)
+		runQueue(queue, iterator, () => {
+			if (this.pending !== route) {
+				return abort()
+			}
+			this.pending = null
+			onComplete(route)
+			if (this.router.app) {
+				this.route.app.$nextTick(() => {
+					postEnterCbs.forEach(cb => { cb() })
+				})
+			}
+		})
+	})
+}
+
+// resolveQueue
+function resolveQueue (
+	current: Array<RouteRecord>,
+	next: Array<RouteRecord>
+): {
+	updated: Array<RouteRecord>,
+	activated: Array<RouteRecord>,
+	deactivated: Array<RouteRecord>
+} {
+	let i
+	const max = Math.max(current.length, next.length)
+	for (i = 0; i < max; i++) {
+		if (current[i] !== next[i]) {
+			break
+		}
+	}
+	return {
+		updated: next.slice(0, i),
+		activated: next.slice(i),
+		deactivated: current.slice(i)
+	}
+}
+
+// src/util/async.js
+export function runQueue (queue: Array<?NavigationGuard>, fn: Function, cb: Function){
+	const step = index => {
+		if (index >= queue.length) {
+			cb()
+		} else {
+			if (queue[index]) {
+				fn(queue[index], () => {
+					step(index + 1)
+				})
+			} else {
+				step(index + 1)
+			}
+		}
+	}
+	step(0)
+}
+
+function extractLeaveGuards (deactivated: Array<RouteRecord>): Array<?Function> {
+	return extractGuards(deactivated, 'beforeRouteLeave', bindGuard, true)
+}
+
+function extractGuards (
+	records: Array<RouteRecord>,
+	name: string,
+	bind: Function,
+	reverse?: boolean
+): Array<?Function> {
+	const guards = flatMapComponents(records, (def, instance, match, key) => {
+		const guard = extractGuard(def, name)
+		if (guard) {
+			return Array.isArray(guard)
+				? guard.map(guard => bind(guard, instance, match, key))
+				: bind(guard, instance, match, key)
+		}
+	})
+	return flatten(reverse ? guards.reverse() : guards)
+}
+
+//src/util/resolve-components.js
+export function flatMapComponents (
+	matched: Array<RouteRecord>,
+	fn: Function
+): Array<?Function> {
+	return flatten(matched.map(m => {
+		return Object.keys(m.components).map(key => fn(
+			m.components[key],
+			m.instances[key],
+			m, key
+		))
+	}))
+}
+
+export function flatten (arr: Array<any>): Array<any> {
+	return Array.prototype.concat.apply([], arr)
+}
+
+```
