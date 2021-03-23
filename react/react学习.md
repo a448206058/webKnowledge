@@ -474,5 +474,37 @@ render () {
 
 ## PropTypes和组件参数验证
 
+## 什么是高阶组件
+高阶组件就是一个函数，传给它一个组件，它返回一个新的组件。新的组件使用传入的组件作为子组件
+
+主要是为了组件之间的代码复用。组件可能有着某些相同的逻辑，把这些逻辑抽离出来，放到高阶组件中进行复用。
+高阶组件内部的包装组件和被包装组件之间通过props传递数据
+
+```JavaScript
+import React, { Component } from 'react'
+
+export default (WrappedComponent, name) => {
+	class NewComponent extends Component {
+		constructor () {
+			super()
+			this.state = { data: null }
+		}
+		
+		componentWillMount () {
+			ajax.get('/data/' + name, (data) => {
+				this.setState({ data })
+			})
+		}
+		
+		render () {
+			return <WrappedComponent data={this.state.data} />
+		}
+	}
+	return NewComponent
+}
+```
+
+
+
 参考资料：React.js 小书
 [](https://github.com/huzidaha/react-naive-book)
