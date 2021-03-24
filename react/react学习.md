@@ -504,6 +504,22 @@ export default (WrappedComponent, name) => {
 }
 ```
 
+### React.js 的 context
+一个组件的context只有它的子组件能够访问，它的父组件是不能访问到
+ 
+### 动手实现Redux
+Redux 是一种架构模式。React-redux 是把Redux和React.js结合起来的一个库
+
+第一步 规定只有通过dispatch才能修改状态
+
+第二步 抽离store和监控数据变化
+定义订阅模式进行监听
+
+### 纯函数
+函数的返回结果只依赖于它的参数
+函数执行过程没有副作用
+一个函数执行过程对产生了外部可观察的变化那么就说这个函数是有副作用的
+
 
 
 参考资料：React.js 小书

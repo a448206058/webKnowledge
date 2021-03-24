@@ -6425,7 +6425,7 @@ export function createFnInvoker(fns: Function | Array<Function>): Function {
 
 add
 ```JavaScript
-计算属性和侦听属性
+// src/platforms/web/runtime/modules/event.js
 function add (
 	event: string,
 	handler: Function,
@@ -6512,7 +6512,7 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 }
 
 // initEvents
-计算属性和侦听属性
+// src/core/instance/event.js
 export function initEvents(vm: Component) {
 	vm._events = Object.create(null)
 	vm._hasHookEvent = false
@@ -6559,7 +6559,7 @@ export function eventsMixin(Vue: Class<Component>) {
 			}
 		} else {
 			(vm._events[event] || (vm._events[event] = [])).push(fn)
-			计算属性和侦听属性
+			// optimize hook:event cost by using a boolean flag marked at registration
 			// instead of a hash lookup
 			if (hookRE.test(event)) {
 				vm._hasHookEvent = true
@@ -6594,7 +6594,7 @@ export function eventsMixin(Vue: Class<Component>) {
 		}
 		return vm
 	}
-	计算属性和侦听属性
+	// specific event
 	const cbs = vm._events[event]
 	if (!cbs) {
 		return vm
@@ -6797,7 +6797,7 @@ function genDefaultModel (
 			? RANGE_TOKEN
 			: 'input'
 			
-	let valueExpression = 计算属性和侦听属性
+	let valueExpression = '$event.target.value'
 	if (trim) {
 		valueExpression = `$event.target.value.trim()`
 	}
@@ -6807,7 +6807,7 @@ function genDefaultModel (
 	
 	let code = genAssignmentCode(value, valueExpression)
 	if (needCompositionGuard) {
-		计算属性和侦听属性
+		// message=$event.target.value
 		code = `if($event.target.composing)return;${code}`
 	}
 	addProp(el, 'value', `(${value})`)
@@ -9564,9 +9564,6 @@ export function flatten (arr: Array<any>): Array<any> {
 	return Array.prototype.concat.apply([], arr)
 }
 
-<<<<<<< HEAD
-```
-=======
 // 执行每个fn的时候，通过extractGuard(def, name)获取到组件中对应name的导航守卫：
 function extractGuard (
 	def: Object | Function,
@@ -9669,3 +9666,100 @@ export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
 		if (!hasAsync) next()
 	}
 }
+
+
+// 第六步
+// 解析完所有激活的异步组件后
+// 1.在被激活的组件里调用 beforeRouteEnter
+// 2.调用全局的 beforeResolve守卫
+// 3.调用全局的 afterEach钩子
+
+runQueue(queue, iterator, () => {
+	const postEnterCbs = []
+	const isValid = () => this.current === route
+	const enterGuards = extractEnterGuards(activated, postEnterCbs, isValid)
+	const queue = enterGuards.concat(this.router.resolveHooks)
+	runQueue(queue, iterator, () => {
+		if (this.pending !== route) {
+			return abort()
+		}
+		this.pending = null
+		onComplete(route)
+		if (this.router.app) {
+			this.router.app.$nextTick(() => {
+				postEnterCbs.forEach(cb => { cb() })
+			})
+		}
+	})
+})
+
+// 也是利用了extractGuards方法提取组件中的beforeRouteEnter导航钩子函数。
+// beforeRouteEnter钩子函数是拿不到组件实例
+// 因为当守卫执行前，组件实例还没被创建，但是我们可以通过一个回调给next来访问组件实例
+// 在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数
+function extractEnterGuards (
+	activated: Array<RouteRecord>,
+	cbs: Array<Function>,
+	isValid: () => boolean
+): Array<?Function> {
+	return extractGuards(activated, 'beforeRouteEnter', (guard, _, match, key) => {
+		return bindEnterGuard(guard, match, key, cbs, isValid)
+	})
+}
+
+function bindEnterGuard(
+	guard: NavigationGuard,
+	match: RouteRecord,
+	key: string,
+	cbs: Array<Function>,
+	isValid: () => boolean
+): NavigationGuard {
+	return function routeEnterGuard (to, from, next) {
+		return guard(to, from, cb => {
+			next(cb)
+			if (typeof cb === 'function') {
+				cbs.push(() => {
+					poll(cb, match.instances, key, isValid)
+				})
+			}
+		})
+	}
+}
+
+function poll (
+	cb: any,
+	instances: Object,
+	key: string,
+	isValid: () => boolean
+) {
+	if (instances[key]) {
+		cb(instandes[key])
+	} else if (isValid()) {
+		setTimeout(() => {
+			poll(cb, instanes, key, isValid)
+		}, 16)
+	}
+}
+
+// 第七步是获取 this.router.resolveHooks
+beforeResolve (fn: Function): Function {
+	return registerHook(this.resolveHooks, fn)
+}
+
+// 第八步是在最后执行了 onComplete(route)后，执行 this.updateRoute(route)方法
+updateRoute (route: Route) {
+	const prev = this.current
+	this.current = route
+	this.cb && this.cb(route)
+	this.router.afterHooks.forEach(hook => {
+		hook && hook(route, prev)
+	})
+}
+
+// afterEach
+// 当用户使用router.afterEach注册了一个全局守卫，就会往router.afterHooks添加一个钩子函数
+// 这样this.router.afterHooks 获取的就是用户注册的全局afterHooks守卫
+afterEach (fn: Function): Function {
+	return registerHook(this.afterHooks, fn)
+}
+```

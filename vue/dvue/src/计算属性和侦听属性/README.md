@@ -160,3 +160,77 @@ function createComputedGetter (key) {
 侦听属性的初始化也是发生在实例的初始化阶段的initState函数中，在computed初始化之后执行
 
 实现过程：initWatch -> createWatcher -> vm.$watch
+
+```JavaScript
+if (opts.watch && opts.watch !== nativeWith) {
+	initWatch(vm, opts.watch)
+}
+```
+
+### initWatch 的实现
+对watch遍历 拿到对应的handler 因为handler可能是一个数组，
+遍历handler 创建对应的watch
+```JavaScript
+function initWatch (vm: Component, watch: Object) {
+	for (const key in watch) {
+		const handler = watch[key]
+		if (Array.isArray(handler)){
+			createWatcher(vm, key, handler[i])
+		} else {
+			createWatcher(vm, key, handler)
+		}
+	}
+}
+```
+
+### createWatcher s实现
+
+```JavaScript
+function createWatcher(
+	vm: Component,
+	expOrFn: string | Function,
+	handler: any,
+	options?: Object
+) {
+	// 首先对handler的类型做判断，拿到它最终的回调函数
+	if (isPlainObject(handler)) {
+		options = handler
+		handler = handler
+	}
+	if (typeof handler === 'string') {
+		handler = vm[handler]
+	}
+	// 最后调用vm.$watch(keyOrFn, handler, options)函数
+	// $watch是Vue原型上的方法，它是执行stateMicin的时候定义的
+	return vm.$watch(expOrFn, handler, options)
+}
+```
+
+### $watch 实现
+侦听属性watch最终会调用$watch方法，这个方法首先判断cb如果是一个对象，则调用createWatcher方法，
+这是因为$watch可以直接调用，既可以传入对象， 也可传入函数
+
+
+```JavaScript
+Vue.prototype.$watch = function (
+	expOrFn: string | Function,
+	cb: any,
+	options?: Object
+): Function {
+	const vm: Component = this
+	if (isPlainObject(cb)) {
+		return creteWatcher(vm, expOrFn, cb, options)
+	}
+	// 直接执行回调函数
+	if (options.immediate) {
+		cb.call(vm, watcher.value)
+	}
+	// 调用teardown()移除watcher
+	return function unwatchFn() {
+		watcher.teardown()
+	}
+}
+
+```
+
+

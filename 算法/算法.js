@@ -452,6 +452,33 @@ var levelOrder = function(root) {
     return ret;
 };
 
+var levelOrderBottom = function(root) {
+    let result = [];
+    if(!root){
+        return result;
+    }
+    let p = [];
+    p.push(root);
+    while(p.length !== 0){
+        let length = p.length;
+       
+        result.push([]);
+        
+        for (let i = 1; i <= length; i++) {
+			 let temp = p.shift();
+            result[result.length - 1].push(temp.val);
+            if(temp.left){
+                p.push(temp.left)
+            }
+            if(temp.right){
+                p.push(temp.right)
+            }
+        }
+    }
+    result = result.reverse();
+    return result;
+};
+
 作者：LeetCode-Solution
 链接：https://leetcode-cn.com/problems/binary-tree-level-order-traversal/solution/er-cha-shu-de-ceng-xu-bian-li-by-leetcode-solution/
     来源：力扣（LeetCode）
