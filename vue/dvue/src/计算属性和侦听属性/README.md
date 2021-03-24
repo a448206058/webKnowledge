@@ -30,3 +30,56 @@
 侦听属性的初始化也是发生在实例的初始化阶段的initState函数中，在computed初始化之后执行
 
 
+=======
+## 计算属性和监听属性
+
+### 计算属性和监听属性是指的什么
+计算属性指的是computed，本质上是computed watch 
+监听属性指的是watch，本质上是use watch
+
+### 计算属性和监听属性的相同点和不同点是什么，适用于哪些地方
+相同点：本质相同，都是依靠watch实现
+
+不同点：1.使用场景不同
+
+适用场景：
+
+    计算属性适合用在模板渲染中，某个值是依赖了其它的响应式对象甚至是计算属性计算而来
+    
+    监听属性适用于观测某个值的变化去完成一段复杂的逻辑业务
+    
+之所以这么设计是vue想确保不仅仅是计算属性依赖的值发生变化，
+而是当计算属性最终计算的值发生变化才会触发渲染watcher重新渲染
+
+### 计算属性computed的实现
+计算属性的初始化的过程是发生在实例的初始化阶段的initState函数中
+
+实现过程：initState -> initComputed -> defineComputed -> createComputedGetter
+
+具体流程分析：
+
+	initState是做什么的？
+	initState主要是对props、methods、data、computed和watcher等属性做了初始化操作。
+```
+export function initState (vm: Component) {
+	vm._watchers = []
+	const opts = vm.$options
+	if (opts.props) = initProps(vm, opts.methods)
+	if (opts.method) = initMethod(vm, opts.methods)
+	if (opts.data) {
+		initData(vm)
+	} else {
+		observe(vm._data = {}, true /* asRootData */)
+	}
+	if (opts.computed) initComputed(vm, opts.computed)
+	if (opts.watch && opts.watch !== nativeWith) {
+		initWatch(vm, opts.watch)
+	}
+}
+```
+
+
+### 侦听属性watch 的实现
+侦听属性的初始化也是发生在实例的初始化阶段的initState函数中，在computed初始化之后执行
+
+实现过程：initWatch -> createWatcher -> vm.$watch

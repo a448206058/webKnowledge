@@ -456,6 +456,54 @@ componentDidUpdate(): 组件重新渲染并且把更改变更到真实的DOM以�
 
 ## ref和react.js中的dom操作
 
+## props.children 和 容器类组件
+
+## dangerouslySetHTML和style属性
+为了防止XSS攻击，在React.js当中所有的表达式插入的内容都会被自动转义
+
+dangerouslySetInnerHTML可以实现innerHTML的功能
+```JavaScript
+render () {
+	return (
+		<div
+			className='editor-wrapper'
+			dangerouslySetInnerHTML={{__html: this.state.content}} />
+	)
+}
+```
+
+## PropTypes和组件参数验证
+
+## 什么是高阶组件
+高阶组件就是一个函数，传给它一个组件，它返回一个新的组件。新的组件使用传入的组件作为子组件
+
+主要是为了组件之间的代码复用。组件可能有着某些相同的逻辑，把这些逻辑抽离出来，放到高阶组件中进行复用。
+高阶组件内部的包装组件和被包装组件之间通过props传递数据
+
+```JavaScript
+import React, { Component } from 'react'
+
+export default (WrappedComponent, name) => {
+	class NewComponent extends Component {
+		constructor () {
+			super()
+			this.state = { data: null }
+		}
+		
+		componentWillMount () {
+			ajax.get('/data/' + name, (data) => {
+				this.setState({ data })
+			})
+		}
+		
+		render () {
+			return <WrappedComponent data={this.state.data} />
+		}
+	}
+	return NewComponent
+}
+```
+
 
 
 参考资料：React.js 小书

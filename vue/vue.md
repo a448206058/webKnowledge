@@ -9545,6 +9545,7 @@ function extractGuards (
 }
 
 //src/util/resolve-components.js
+// 返回一个数组
 export function flatMapComponents (
 	matched: Array<RouteRecord>,
 	fn: Function
@@ -9558,8 +9559,113 @@ export function flatMapComponents (
 	}))
 }
 
+// 把二维数组拍平成
 export function flatten (arr: Array<any>): Array<any> {
 	return Array.prototype.concat.apply([], arr)
 }
 
+<<<<<<< HEAD
 ```
+=======
+// 执行每个fn的时候，通过extractGuard(def, name)获取到组件中对应name的导航守卫：
+function extractGuard (
+	def: Object | Function,
+	key: string
+): NavigattionGuard | Array<NavigationGuard> {
+	if (typeof def !== 'function') {
+		def = _Vue.extend(def)
+	}
+	return def.options[key]
+}
+
+// 调用bind方法把组件的实例Instance作为函数执行的上下文绑定到guard上，bind方法对应的上bindGuard
+function bindGuard (guard: NavigationGuard, instance: ?_Vue): ?NavigationGuard {
+	if (instance) {
+		return function boundRouteGuard () {
+			return guard.apply(instance, arguments)
+		}
+	}
+}
+
+```
+
+第二步上 this.router.beforeHooks
+beforeEach
+// src/index.js
+```
+beforeEach (fn: Function): Function {
+	return registerHook(this.beforeHooks, fn)
+}
+
+function registerHook (list: Array<any>, fn: Function): Function {
+	list.push(fn)
+	return () => {
+		const i = list.indexOf(fn)
+		if (i > -1) list.splice(i, 1)
+	}
+}
+```
+
+第五步 resolveAsyncComponents(activated)
+返回的是一个导航守卫函数，有标准的to、from、next参数
+src/util/resolve-components.js
+```
+export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
+	return (to, from, next) => {
+		let hasAsync = false
+		let pending = 0
+		let error = null
+		
+		// 从matched中
+		flatMapComponents(matched, (def, _, match, key) => {
+			if (typeof def === 'function' && def.cid === undefined) {
+				hasAsync = true
+				pending++
+				
+				const resolve = once(resolvedDef => {
+					if (isESModule(resolvedDef)) {
+						resolvedDef = resolvedDef.default
+					}
+					def.resolved = typeof resolvedDef === 'function'
+						? resolvedDef
+						: _Vue.extend(resolvedDef)
+					match.components[key] = resolvedDef
+					pending--
+					if (pending <= 0) {
+						next()
+					}
+				})
+				
+				const reject = once(reason => {
+					const msg = `Failed to resolve async component ${key}: ${reason}`
+					process.env.NODE_ENV !== 'production' && warn(false, msg)
+					if (!error) {
+						error = isError(reason)
+							? reason
+							: new Error(msg)
+						next(error)
+					}
+				})
+				
+				let res
+				try {
+					res = def(resolve, reject)
+				} catch (e) {
+					reject(e)
+				}
+				if (res) {
+					if (typeof res.then === 'function') {
+						res.then(resolve, reject)
+					} else {
+						const comp = res.component
+						if (comp && typeof comp.then === 'function') {
+							comp.then(resolve, reject)
+						}
+					}
+				}
+			}
+		})
+		
+		if (!hasAsync) next()
+	}
+}
