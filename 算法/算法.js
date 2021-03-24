@@ -351,7 +351,7 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 454 49
 
 // 链表
-206 92 
+206 92
 
 83 86 328 2 445
 
@@ -402,7 +402,7 @@ let result = []
     }
     preOrderTraverseNode(root)
     return result
-	
+
 	var postorderTraversal = function(root) {
 	    let result = []
 	    var postorderTraversalNode = (node) => {
@@ -418,7 +418,7 @@ let result = []
 	    postorderTraversalNode(root)
 	    return result
 	};
-	
+
 	作者：user7746o
 	链接：https://leetcode-cn.com/problems/binary-tree-postorder-traversal/solution/javascriptjie-er-cha-shu-de-hou-xu-bian-li-by-user/
 	来源：力扣（LeetCode）
@@ -427,4 +427,32 @@ let result = []
 作者：user7746o
 链接：https://leetcode-cn.com/problems/binary-tree-preorder-traversal/solution/javascriptjie-qian-xu-bian-li-er-cha-shu-by-user77/
 来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+
+var levelOrder = function(root) {
+    const ret = [];
+    if (!root) {
+        return ret;
+    }
+
+    const q = [];
+    q.push(root);
+    while (q.length !== 0) {
+        const currentLevelSize = q.length;
+        ret.push([]);
+        for (let i = 1; i <= currentLevelSize; ++i) {
+            const node = q.shift();
+            ret[ret.length - 1].push(node.val);
+            if (node.left) q.push(node.left);
+            if (node.right) q.push(node.right);
+        }
+    }
+
+    return ret;
+};
+
+作者：LeetCode-Solution
+链接：https://leetcode-cn.com/problems/binary-tree-level-order-traversal/solution/er-cha-shu-de-ceng-xu-bian-li-by-leetcode-solution/
+    来源：力扣（LeetCode）
 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
