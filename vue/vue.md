@@ -9762,4 +9762,233 @@ updateRoute (route: Route) {
 afterEach (fn: Function): Function {
 	return registerHook(this.afterHooks, fn)
 }
+<<<<<<< .mine
+```
+
+路由切换除了执行钩子函数，从表象上来看有2个地方会发生变化，一个是url发生变化，
+一个是组件发生变化。
+
+### url
+在confirmTransition 的 onComplete函数中，在updateRoute后，会执行this.ensureURL()函数
+hash模式该函数的实现
+
+首先判断当前hash和当前路径是否相等，如果不相等，则根据push参数决定
+执行pushHash或者是replaceHash
+```JavaScript
+//src/history/hash.js
+ensureURL (push?: boolean) {
+	const current = this.current.fullPath
+	if (getHash() !== current) {
+		push ? pushHash(current) : replaceHash(current)
+	}
+}
+
+export function getHash(): string {
+	const href = window.location.href
+	const index = href.indexOf('#')
+	return index === -1 ? '' : href.slice(index + 1)
+}
+
+function getUrl (path) {
+	const href = window.location.href
+	const i = href.indexOf('#')
+	const base = i >= 0 ? href.slice(0, i) : href
+	return `${base}#${path}`
+}
+
+function pushHash (path) {
+	if (supportsPushState) {
+		pushState(getUrl(path))
+	} else {
+		window.location.hash = path
+	}
+}
+
+function replaceHash (path) {
+	if (supportsPushState) {
+		replaceState(getUrl(path))
+	} else {
+		window.location.replace(getUrl(path))
+	}
+}
+
+// supportsPushState 
+// src/util/push-state.js
+export const suppoertsPushState = inBrowser && (function () {
+	const ua = window.navigator.userAgent
+	
+	if (
+		(ua.indexOf('Android 2.') !== -1 || ua.indexOf('Android 4.0') !== -1) &&
+		ua.indexOf('Mobile Safari') !== -1 &&
+		ua.indexOf('Chrome') === -1 &&
+		ua.indexOf('Windows Phone') === -1
+	) {
+		return false
+	}
+	
+	return window.history && 'pushState' in window.history
+})()
+
+//pushState会调用浏览器原生的history的pushState接口或者replaceState接口，
+// 更新浏览器的URl地址，并把当前url压入历史栈中
+export function pushState (url?: string, replace?: boolean) {
+	saveScrollPosition()
+	const history = window.history
+	try {
+		if (replace) {
+			history.replaceState({ key: _key }, '', url)
+		} esle {
+			_key = genKey()
+			history.pushState({ key: _key }, '', url)
+		}
+	} catch (e) {
+		window.location[replace ? 'replace' : 'assign'](url)
+	}
+}
+
+// 在history的初始化中，会设置一个监听器，监听历史栈的变化：
+setupListeners () {
+	const router = this.router
+	const expectScroll = router.options.scrollBehavior
+	const supportsScroll = supportsPushState && expectScroll
+	
+	if (supportsScroll) {
+		setupScroll()
+	}
+	
+	window.addEventListener(supportsPushState ? 'popstate' : 'hashchange', () => {
+		const current = this.current
+		if (!ensureSlash()) {
+			return
+		}
+		this.transitionTo(getHash(), route => {
+			if (supportsScroll) {
+				handleScroll(this.router, route, current, true)
+			}
+			if (!supportsPushState) {
+				replaceHash(route.fullPath)
+			}
+		})
+	})
+}
+```
+
+实例化HashHistory的时候，构造函数会执行ensureSlash()方法
+会把 http://localhost:8080 修改为http://localhost:8080/#/
+```JavaScript
+function ensureSlash (): boolean {
+	const path = getHash()
+	if (path.charAt(0) === '/') {
+		return true
+	}
+	replaceHash('/' + path)
+	return false
+}
+```
+
+### 组件
+路由最终的渲染离不开组件，Vue-Router内置了<router-view></router-view>组件
+```JavaScript
+// src/components/view.js
+export default {
+	name: 'RouterView',
+	functional: true,
+	props: {
+		name: {
+			type: String,
+			default: 'default'
+		}
+	},
+	render (_, { props, children, parent, data }) {
+		data.routerView = true
+		
+		const h = parent.$createElement
+		const name = props.name
+		const route = parent.$route
+		const cache = parent._routeViewCache || (parent._routerViewCache = {})
+		
+		let depth = 0
+		let inactive = false
+		while (parent && parent._routerRoot !== parent) {
+			if (parent.$vnode && parent.$vnode.data.routerView) {
+				depth++
+			}
+			if (parent._inactive) {
+				inactive = true
+			}
+			parent = parent.$parent
+		}
+		data.routerViewDepth = depth
+		
+		if (inactive) {
+			return h(cache[name], data, children)
+		}
+		
+		const matched = route.matched[depth]
+		if (!matched) {
+			cache[name] = null
+			return h()
+		}
+		
+		const component = cache[name] = matched.components[name]
+		
+		data.registerRouteInstance = (vm, val) => {
+			const current = matched.instances[name]
+			if (
+				(val && current !== vm) ||
+				(!val && current === vm)
+			) {
+				matched.instances[name] = val
+			}
+		}
+		
+		(data.hook || (data.hook = {})).prepatch = (_, vnode) => {
+			matched.instances[name] = vnode.componentInstance
+		}
+		
+		let propsToPass = data.props = resolveProps(route, matched.props && matched.props[name])
+		if (propsToPass) {
+			propsToPass = data.props = extend({}, propsToPass)
+			const attrs = data.attrs = data.attrs || {}
+			for (const key in propsToPass) {
+				if (!component.props || !(key in component.props)) {
+					attrs[key] = propsToPass[key]
+					delete propsToPass[key]
+				}
+			}
+		}
+		
+		return h(component, data, children)
+	}
+}
+
+```
+
+router-view 是一个functional 组件，它的渲染也是依赖render函数
+首先获取当前的路径：
+```JavaScript
+const route = parent.$route
+
+// src/install/js 给Vue原型定义了 $router
+Object.dedineProperty(Vue.prototype, '$route', {
+	get () {return this._routerRoot._route }
+})
+
+// src/index.js 在执行router.init
+history.listen(route => {
+	this.apps.forEach((app) => {
+		app._route = route
+	})
+})
+
+// src/history/base.js history.listen
+listen (cb: Function) {
+	this.cb = cb
+}
+
+// updateRoute 的时候执行this.cb
+updateRoute (route: Route) {
+	this.current = route
+	this.cb && this.cb(route)
+}
 ```
