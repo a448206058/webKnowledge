@@ -183,7 +183,7 @@ function initWatch (vm: Component, watch: Object) {
 }
 ```
 
-### createWatcher s实现
+### createWatcher 实现
 
 ```JavaScript
 function createWatcher(
@@ -230,6 +230,202 @@ Vue.prototype.$watch = function (
 		watcher.teardown()
 	}
 }
+
+```
+
+### 计算属性 computed 例子
+```JavaScript
+var vm = new Vue({
+	data: {
+		firstName: 'Foo',
+		lastName: 'Bar'
+	},
+	computed: {
+		fullName: function () {
+			return this.firstName + ' ' + this.lastName
+		}
+	}
+});
+
+// 实例化过程
+constructor (
+    vm: Component,
+    expOrFn: string | Function,
+    cb: Function,
+    options?: ?Object,
+    isRenderWatcher?: boolean 
+) {
+    if (this.computed) {
+        this.value = undefined
+        this.dep = new Dep()
+    } else {
+        this.value = this.get()
+    }
+}
+
+/**
+*   Depend on this watcher. Only for computed property watchers.
+*/
+depend () {
+    // Dep.target是渲染watcher
+    if (this.dep && Dep.target) {
+        // this.dep.depend()相当于渲染watcher订阅了computed watcher
+        this.dep.depend()
+    }
+}
+
+// 执行 watcher.evaluate() 求值
+evaluate () {
+    if (this.dirty) {
+        this.value = this.get();
+        this.dirty = false
+    }
+    return this.value
+}
+
+if (this.computed) {
+    if (this.dep.subs.length === 0) {
+        this.dirty = true
+    } else {
+        this.getAndInvoke(() => {
+            this.dep.notify();
+        })
+    } else if (this.sync) {
+        this.run()
+    } else {
+        queueWatcher(this)
+    }
+}
+
+getAndInvoke (cb: Function) {
+    const value = this.get();
+    if (
+        value !== this.value ||
+        isObject(value) ||
+        this.deep
+    ) {
+        const oldValue = value
+        this.value = value
+        this.dirty = false
+        if (this.user) {
+            try {
+                cb.call(this.vm, value, oldValue)
+            } catch(e) {
+                handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+            }
+        } else {
+            cb.call(this.vm, value, oldValue)
+        }
+    }
+}
+```
+
+### 侦听属性watch 例子
+```JavaScript
+// watcher options
+if (options) {
+    this.deep = !!options.deep
+    this.user = !!options.user
+    this.computed = !!options.computed
+    this.sync = !!options.sync
+} else {
+    this.deep = this.user = this.computed = this.sync = false
+}
+
+// deep watcher
+watch : {
+    a: {
+        deep: true,
+        handler (newVal) {
+            console.log(newVal)
+        }
+    }
+}
+
+// watcher执行get()求值
+get () {
+    this.value = this.getter.call(vm, vm);
+    if (this.deep) {
+        traverse(value)
+    }
+}
+
+// traverse
+// src/core/observer/traverse.js
+import {_Set as Set, isObject} from '../util/index'
+import type { SimpleSet } from '../util/index'
+import VNode from '../vdom/vnode'
+
+const seenObjects = new Set();
+
+export function traverse (val: any) {
+    _traverse(val, seenObjects)
+    seenObjects.clear()
+}
+
+function _traverse (val: any, seen: SimpleSet) {
+    let i, keys
+    const isA = Array.isArray(val)
+    if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
+        return
+    }
+    if (val.__ob__) {
+        const depId = val.__ob__.dep.id
+        if (seen.has(depId)) {
+            return
+        }
+        seen.add(depId)
+    }
+    if (isA) {
+        i = val.length
+        while(i--) _traverse(val[i], seen)
+    } else {
+        keys = Object.keys(val)
+        i = keys.length
+        while (i--) _traverse(val[keys[i]], seen)
+    }
+}
+
+function _traverse(val: any, seen: SimpleSet) {
+    let i, keys
+    const isA = Array.isArray(val)
+    if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
+        return
+    }
+}
+
+
+// 在user求值以及执行回调函数的时候，处理一下错误
+get() {
+    if(this.user){
+        handleError(e, vm, `getter for watcher "${this.expression}"`)
+    } else {
+        throw e
+    }
+},
+getAndInvoke() {
+    if(this.user){
+        try {
+            this.cb.call(this.vm, value, oldValue)
+        }catch(e){
+            handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+        }
+    } else {
+        this.cb.call(this.vm, value, oldValue)
+    }
+}
+
+update() {
+    if (this.computed) {
+    
+    } else if (this.sync) {
+        this.run()
+    } else{
+        queueWatcher(this)
+    }
+}
+
+
 
 ```
 

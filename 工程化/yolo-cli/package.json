@@ -1,0 +1,28 @@
+{
+  "name": "yolo",
+  "version": "1.0.0",
+  "description": "脚手架",
+  "main": "index.js",
+  "bin": {
+    "yolo": "bin/www"
+  },
+  "scripts": {
+    "compile": "babel src -d dist",
+    "watch": "npm run compile -- --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.13.10",
+    "@babel/core": "^7.13.10",
+    "@babel/preset-env": "^7.13.10",
+    "chalk": "^4.1.0",
+    "commander": "^7.2.0",
+    "download-git-repo": "^3.0.2",
+    "ini": "^2.0.0",
+    "inquirer": "^8.0.0",
+    "log-symbols": "^4.1.0",
+    "ora": "^5.4.0"
+  },
+  "dependencies": {}
+}

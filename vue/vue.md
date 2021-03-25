@@ -4387,7 +4387,7 @@ getAndInvoke() {
 
 // sync watcher
 // 对setter的分析过程知道，当响应式数据发生变化后，触发了watcher.update()，只是把这个watcher推送到一个队列中，
-// 在nextTick后才会真正执行watcher的回调函数。而一旦我们设置了sync，就可以在当前Tick中同步之心watcher的回调函数。
+// 在nextTick后才会真正执行watcher的回调函数。而一旦我们设置了sync，就可以在当前Tick中同步执行watcher的回调函数。
 
 // 只有当我们需要watch的值的变化到执行watcher的回调函数是一个同步过程的时候才会去设置该属性为true。
 update () {

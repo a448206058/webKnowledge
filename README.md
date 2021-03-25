@@ -38,7 +38,7 @@ vue2.x虚拟DOM、render实现：[链接地址](https://github.com/a448206058/dV
 
 vue2.xtemplate转成render函数的过程：[链接地址](https://github.com/a448206058/dVue)
 
-##日常学习：
+## 日常学习：
 github
 
 InfoQ 最近关注到的 文章质量普遍较高
@@ -49,5 +49,6 @@ InfoQ 最近关注到的 文章质量普遍较高
 
 图灵社区：https://m.ituring.com.cn/
 
-##感谢
+## 感谢
 本文很多学习路径是参考ssh大佬，特别感谢
+另外感谢所有乐意分享知识的大佬
