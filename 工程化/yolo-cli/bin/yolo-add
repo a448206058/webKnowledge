@@ -1,17 +1,50 @@
 #! /usr/bin/env node
-const program = require('commander')
 
-// 定义当前版本
-// 定义使用方法
-// 定义四个指令
-program
-    .version(require('../package').version)
-    .usage('<command> [options]')
-    .command('add', 'add a new template')
-    .command('delete', 'delete a template')
-    .command('list', 'list all the templates')
-    .command('init', 'generate a new project from a template')
+// 交互式命令行
+const inquirer = require('inquirer')
+// 修改控制台字符串的样式
+const chalk = require('chalk')
+// node 内置文件模块
+const fs = require('fs')
+// 读取根目录下的template.json
+const tplObj = require(`${__dirname}/../template`)
 
-// 解析命令行参数
-program.parse(process.argv)
+// 自定义交互式命令行的问题及简单的校验
+let question = [
+    {
+        name: "name",
+        type: 'input',
+        message: "请输入模板名称",
+        validate(val) {
+            if (val === ''){
+                return 'Name is required!'
+            } else if (tplObj[val]) {
+                return 'Template has '
+            } else {
+                return true
+            }
+        }
+    },
+    {
+        name: "url",
+        type: 'input',
+        message: "请输入模板地址",
+        validate (val) {
+            if (val === '') return 'The url is required!'
+            return true
+        }
+    }
+]
+
+inquirer
+    .prompt(question).then(answers => {
+        // answers 就是用户输入的内容，是个对象
+        let { name, url } = answers;
+        // 过滤 unicode字符
+        tplObj[name] = url.replace(/[\u0000-\u0019]/g, '')
+        // 把模板信息写入 template.json 文件中
+        fs.writeFile(`${__dirname}/../template.json`, JSON.stringify(tplObj), 'utf-8', err => {
+            if (err) console.log(err)
+        })
+    })
 
