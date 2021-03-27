@@ -383,7 +383,11 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 341: -1
 
 // 层序遍历
-102: -1 107 119 103 199
+102: -1 107 119 103 199,
+
+// BFS和图的最短路径
+广度优先遍历
+279 127
 
 // 队列
 // 广度优先遍历
@@ -482,4 +486,34 @@ var levelOrderBottom = function(root) {
 作者：LeetCode-Solution
 链接：https://leetcode-cn.com/problems/binary-tree-level-order-traversal/solution/er-cha-shu-de-ceng-xu-bian-li-by-leetcode-solution/
     来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+var numSquares = function(n) {
+    let queue = [n];
+    let visited = {};
+    let level = 0;
+    while(queue.length > 0) {
+        // 层序遍历
+        level++;
+        let len = queue.length;
+        for(let i = 0;i < len;i++){
+            let cur = queue.pop();
+            for(let j = 1;j*j <= cur;j++){
+                let tmp = cur - j*j;
+                // 找到答案
+                if(tmp === 0) {
+                    return level;
+                }
+                if(!visited[tmp]){
+                    queue.unshift(tmp);               
+                    visited[tmp] = true;
+                }
+            }
+        }
+    }
+    return level;
+};
+
+作者：Alexer-660
+链接：https://leetcode-cn.com/problems/perfect-squares/solution/279-wan-quan-ping-fang-shu-by-alexer-660/
+来源：力扣（LeetCode）
 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。

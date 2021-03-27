@@ -548,6 +548,23 @@ renderApp(store.getState())
 store.dispatch(...)
 ```
 
+### 动手实现React-redux
+
+### Smart组件 vs Dumb组件
+只会接受 props 并且渲染确定结果的组件我们把它叫做Dumb组件，这种组件只会根据props进行渲染。
+
+Dumb组件最好不要依赖除了React.js和Dumb组件以外的内容。它们不要依赖Redux不要依赖React-redux。
+这样的组件的可复用性是最好的
+
+Smart组件专门做数据相关的应用逻辑，和各种数据打交道，然后把数据通过props传递给Dumb，它们带领着Dumb组件
+完成了复杂的应用程序逻辑。
+
+所有的Dumb组件都放在components/目录下，所有的Smart的组件都放在containers/目录下，这是一种约定俗成的规则。
+
+
+
+
+
 
 
 参考资料：React.js 小书

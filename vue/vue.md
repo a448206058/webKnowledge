@@ -9992,3 +9992,705 @@ updateRoute (route: Route) {
 	this.cb && this.cb(route)
 }
 ```
+也就是我们执行transitionTo方法最后执行updateRoute的时候会执行回调，然后会更新所有组件实例的
+_route值，所以说$route对应的就是当前的路由路线。
+
+router-view是支持嵌套的，render函数中定义了depth概念，表示嵌套的深度
+```JavaScript
+data.routerView = true
+
+// parent._routerRoot表示根Vue实例
+while (parent && parent._routerRoot !== parent) {
+	if (parent.$vnode && parent.$vnode.data.routerView) {
+		depth++
+	}
+	if (parent._inactive) {
+		inactive = true
+	}
+	parent = parent.$parent
+}
+
+const matched = route.matched[depth]
+
+const component = cache[name] = matched.components[name]
+
+// 注册路由实例的方法：
+data.registerRouteInstance = (vm, val) => {
+	const current = matched.instances[name]
+	if (
+		(val && current !== vm) ||
+		(!val && current === vm)
+	) {
+		matched.instances[name] = val
+	}
+}
+
+// src/install
+const registerInstance = (vm, callVal) => {
+	let i = vm.$options._parentVnode
+	if (isDef(i) && isDef(i = i.data) && isDef(i = i.registerRouteInstance)) {
+		i(vm, callVal)
+	}
+}
+
+Vue.mixin({
+	beforeCreate () {
+		registerInstance(this, this)
+	},
+	destroyed () {
+		registerInstance(this)
+	}
+})
+```
+
+在HTML5 history模式下，router-link会守卫点击事件，让浏览器不再重新加载页面。
+当你在HTML5 history模式下使用Base选项之后，所有的to属性都不需要写了
+```JavaScript
+// src/components/link.js
+export default {
+	name: 'RouterLink',
+	props: {
+		to: {
+			type: toTypes,
+			required: true
+		},
+		tag: {
+			type: String,
+			default: 'a'
+		},
+		exact: Boolean,
+		append: Boolean,
+		replace: Boolean,
+		activeClass: String,
+		exactActiveClass: String,
+		event: {
+			type: eventTypes,
+			default: 'click'
+		}
+	},
+	render (h: Function) {
+		const router = this.$router
+		const current = this.$route
+		const { location, route, href } = router.resolve(this.to, current, this.append)
+		
+		const classes = {}
+		const globalActiveClass = router.options.linkActiveClass
+		const globalExactActiveClass = router.options.linkExactActiveClass
+		const activeClassFallback = globalActiveClass == null
+			? 'router-link-active'
+			: globalActiveClass
+		const exactActiveClassFallback = globalExactActiveClass == null
+			? 'router-link-exact-active'
+			: globalExactActiveClass
+		const activeClass = this.activeClass == null
+			? activeClassFallback
+			: this.activeClass
+		const exactActiveClass = this.exactActiveClass == null
+			? exactActiveClassFallback
+			: this.exactActiveClass
+		const compareTarget = location.path
+			? createRoute(null, locaiton, null, router)
+			: route
+		classes[exactActiveClass] = isSameRoute(current, compareTarget)
+		classes[activeClass] = this.exact
+			? classes[exactActiveClass]
+			: isIncludeRoute(current, compareTarget)
+			
+		const handler = e => {
+			if (guardEvent(e)) {
+				if (this.replace) {
+					router.replace(location)
+				} else {
+					router.push(location)
+				}
+			}
+		}
+		
+		const on = { click: guardEvent }
+		if (Array.isArray(this.event)) {
+			this.event.forEach(e => { on[e] = handler })
+		} else {
+			on[this.event] = handler
+		}
+		
+		const data: any = {
+			class: classes
+		}
+		
+		if (this.tag === 'a') {
+			data.on = on
+			data.attrs = { href }
+		} else {
+			const a = findAnchor(this.$slots.default)
+			if (a) {
+				a.isStatic = false
+				const extend = _Vue.util.extend
+				const aData = a.data = extend({}, a.data)
+				aData.on = on
+				const aAttrs = a.data.attrs = extend({}, a.data.attrs)
+				aAttrs.href = href
+			} else {
+				data.on = on
+			}
+		}
+		
+		return h(this.tag, data, this.$slots,default)
+	}
+}
+```
+
+router-link 标签的渲染也是基于render函数，它首先做了路由解析：
+```JavaScript
+const router = this.$router
+const current = this.$route
+const { location, route, href } = router.resolve(this.to, current, this.append)
+
+// router.resolve 是 VueRouter的实例方法
+// src/index.js
+resplve (
+	to: RawLocation,
+	current?: Route,
+	append?: boolean
+): {
+	location: Location,
+	route: Route,
+	href: string,
+	normalizedTo: Location,
+	resolved: Route
+} {
+	// 规范生成目标 location
+	const location = normalizeLocation(
+		to,
+		current || this.history.current,
+		append,
+		this
+	)
+	// 再根据location 和 match通过this.match方法计算生成目标路径route
+	const route = this.match(location, current)
+	const fullPath = route.redirectedFrom || route.fullPath
+	const base = this.history.base
+	const href = createHref(base, fullPath, this.mode)
+	return {
+		location,
+		route,
+		href,
+		normalizedTo: location,
+		resolved: route
+	}
+}
+
+function createHref (base: string, fullPath: string, mode) {
+	var path = mode === 'hash' ? '#' + fullPath : fullPath
+	return base ? cleanPath(base + '/' + path) : path
+}
+```
+
+接着创建了一个守卫函数：
+```JavaScript
+const handler = e => {
+	if (guardEvent(e)) {
+		if (this.replace) {
+			router.replace(location)
+		} else {
+			router.push(location)
+		}
+	}
+}
+
+function guardEvent (e) {
+	if (e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return
+	if (e.defaultPrevented) return
+	if (e.button !== undefined && e.currentTarget.getAttribute) {
+		const target = e.currentTarget.getAttribute('target')
+		if (/\b_blank\b/i.test(target)) return
+	}
+	if (e.preventDefault) {
+		e.preventDefault
+	}
+	return true
+}
+
+const on = { click: guardEvent }
+if (Array.isArray(this.event)) {
+	this.event.forEach(e => { on[e] = handler })
+} else {
+	on[this.event] = handler
+}
+
+// 最终执行router.push 或者router.replace
+// src/index.js
+push (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+	this.history.push(location, onComplete, onAbort)
+}
+
+replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+	this.history.replace(location, onComplete, onAbort)
+}
+```
+实际上就是执行了history的push和replace方法做路由跳转
+最后判断当前tag是否是<a>标签
+
+### 路由总结
+路径变化是路由中最重要的功能，路由始终会维护当前的线路，路由切换的时候会把当前线路
+切换到目标线路，切换过程中执行一系列的导航守卫钩子函数，会更改url，同样也会渲染对应的
+组件，切换完毕后会把目标线路更新替换当前线路，这样就会作为下一次的路径切换的依据。
+
+### Vuex初始化
+包括安装、Store实例化过程2个方面
+
+```JavaScript
+// src/index.js
+
+export default {
+	Store,
+	install,
+	version: '__VERSION__',
+	mapState,
+	mapMutations,
+	mapGetters,
+	mapActions,
+	createNamespacedHelpers
+}
+
+// install
+// src/store.js
+export function install (_Vue) {
+	if (Vue && _Vue === Vue) {
+		if (process.env.NODE_ENV !== 'production') {
+			console.error(
+				'[vuex] already installed. Vue.use(Vuex) should be called only once.'
+			)
+		}
+		return
+	}
+	Vue = _Vue
+	applyMixin(Vue)
+}
+
+// applyMixin(Vue) src/mixin.js
+// 全局混入了一个beforeCreated钩子函数
+export default function (Vue) {
+	const version = Number(Vue.version.split('.')[0])
+	
+	if (version >= 2) {
+		Vue.mixin({ beforeCreate: vuexInit })
+	} else {
+		// override init and inject vuex init procedure
+		// for 1.x backwards compatibility.
+		const _init = Vue.prototype._init
+		Vue.prototype._init = function (options = {}) {
+			options.init = options.init
+				? [vuexInit].concat(options.init)
+				: vuexInit
+			_init.call(this, options)
+		}
+	}
+	
+	/**
+	 * Vuex init hook, injected into each instances init hooks list.
+	 */
+	// 把options.store保存在所有组件的this.$store中，这个options.store就是我们在
+	// 实例化Store对象的实例
+	function vuexInit () {
+		const options = this.$options
+		// store injection
+		if (options.store) {
+			this.$store = typeof options.store === 'function'
+				? options.store()
+				: options.store
+		} else if (options.parent && options.parent.$store) {
+			this.$store = options.parent.$store
+		}
+	}
+}
+```
+
+### Store实例化
+在import Vuex之后，会实例化其中的Store对象，返回store实例并传入new Vue的options中，也就是我们
+刚才提到的options.store
+```JavaScript
+export default new Vuex.Store({
+	actions,
+	getters,
+	state,
+	mutation,
+	modules
+})
+
+// src/store.js
+export class Store {
+	constructor (options = {}) {
+		// Auto install if it is not done yet and `window` has `Vue`.
+		// To allow users to avoid auto-installation in some cases,
+		// this code should be placed here. See
+		if (!Vue && typeof window !== 'undefined' && window.Vue) {
+			install(window.Vue)
+		}
+		
+		if (process.env.NODE_ENV !== 'production') {
+			assert(Vue, `must call Vue.use(Vuex) before creating a store instance.`)
+			assert(typeof Promise !== 'undefined', `vuex requires a Promise polyfill in this browser.`)
+			assert(this instanceof Store, `Store must be called with the new operator`)
+		}
+		
+		const {
+			plugins = [],
+			strict = false
+		} = options
+		
+		// store internal state
+		this._committing = false
+		this._actions = Object.create(null)
+		this._actionSubscribers = []
+		this._mutations = Object.create(null)
+		this._wrappedGetters = Object.create(null)
+		this._modules = new ModuleCollection(options)
+		this._modulesNamespaceMap = Object.create(null)
+		this._subscribers = []
+		this._watcherVM = new Vue()
+		
+		// bind commit and dispatch to self
+		const store = this
+		const { dispatch, commit } = this
+		this.dispatch = function boundDispatch (type, payload) {
+			return dispatch.call(store, type, payload)
+		}
+		this.commit = function boundCommit (type, payload, options) {
+			return commit.call(store, type, payload, options)
+		}
+		
+		// stroct mode
+		this.strict = strict
+		
+		const state = this._modules.root.state
+		
+		// init root mudule.
+		// this also recursively registers all sub-modules
+		// and collects all module getters inside this._wrappedGetters
+		installModule(this, state, [], this._modules.root)
+		
+		// initialize the store vm, which is responsible for the reactivity
+		// (also registers _wrappedGetters as computed properties)
+		resetStoreVM(this, state)
+		
+		// apply plugins
+		plugins.forEach(plugin => plugin(this))
+		
+		if (Vue.config.devtools) {
+			devtoolPlugin(this)
+		}
+	}
+}
+```
+
+### 初始化模块
+模块的意义：避免应用复杂时，store对象变的臃肿
+```JavaScript
+const moduleA = {
+	state: { ... },
+	actions: { ... },
+	actions: { ... },
+	getters: { ... }
+}
+
+const moduleB = {
+	state: { ... },
+	mutations: { ... },
+	actions: { ... },
+	getters: { ... }
+}
+
+const store = new Vuex.Store({
+	modules: {
+		a: moduleA,
+		b: moduleB
+	}
+})
+
+store.state.a // -> moduleA 的状态
+store.state.b // -> moduleB 的状态
+```
+从数据结构上来看，模块的设计就是一个树型结构，store本身可以理解为一个root module，
+它下面的modules 就是子模块，Vuex需要完成这颗树的构建
+
+```JavaScript
+// 构建入口
+
+this._modules = new ModuleCollection(options)
+
+// src/module/module-collection.js
+export default class ModuleCollection {
+	constructor (rawRootModule) {
+		// register root module (Vuex.Store options)
+		this.register([], rawRootModule, false)
+	}
+	
+	get (path) {
+		return path.reduce((module, key) => {
+			return module.getChild(key)
+		}, this.root)
+	}
+	
+	getNamespace (path) {
+		let module = this.root
+		return path.reduce((namespace, key) => {
+			module = module.getChild(key)
+			return namespace + (module.namespaced ? key + '/' : '')
+		}, '')
+	}
+	
+	update (rawRootModule) {
+		update([], this.root, rawRootModule)
+	}
+	
+	// path 表示路径
+	// rawModule表示定义模块的原始配置
+	// runtime表示是否是一个运行时创建的模块
+	register (path, rawModule, runtime = true) {
+		if (process.env.NODE_ENV !== 'production'){
+			assertRawModule(path, rawModule)
+		}
+		
+		const newModule = new Module(rawModule, runtime)
+		
+		// 判断当前的path的长度如果为0，则说明它是一个根模块
+		// 所以把newModule赋值给了this.root，否则就需要建立父子关系
+		if (path.length === 0) {
+			this.root = newModule
+		} else {
+			const parent = this.get(path.slice(0, -1))
+			parent.addChild(path[path.length - 1], newModule)
+		}
+		
+		// register nested modules
+		if (rawModule.modules) {
+			forEachValue(rawModule.modules, (rawChildModule, key) => {
+				this.register(path.concat(key), rawChildModule, runtime)
+			})
+		}
+	}
+	
+	unregister (path) {
+		const parent = this.get(path.slice(0, -1))
+		const key = path[path.length - 1]
+		if (!parent.getChild(key).runtime) return
+		
+		parent.removeChild(key)
+	}
+}
+
+// Module 是用来描述单个模块的类
+// src/module/module.js
+export default class Module {
+	constructor (rawModule, runtime) {
+		this.runtime = runtime
+		// Store some children item
+		// 表示它所有的子模块
+		this._children = Object.create(null)
+		// Store the origin module object which passed by programmer
+		// 模块的配置
+		this._rawModule = rawModule
+		const rawState = rawModule.state
+		
+		// Store the origin module's state
+		// 表示这个模块定义的state
+		this.state = (typeof rawState === 'function' ? rawState() : rawState) || {}
+	}
+	
+	get namespaced () {
+		return !!this._rawModule.namespaced
+	}
+	
+	addChild (key, module) {
+		this._children[key] = module
+	}
+	
+	removeChild (key) {
+		delete this._children[key]
+	}
+	
+	getChild (key) {
+		return this._children[key]
+	}
+	
+	update (rawModule) {
+		this._rawModule.namespaced = rawModule.namespaced
+		if (rawModule.actions) {
+			this._rawModule.actions = rawModule
+		}
+		if (rawModule.mutations) {
+			this._rawModule.mutations = rawModule.mutations
+		}
+		if (rawModule.getters) {
+			this.rawModule.getters = rawModule.getters
+		}
+	}
+	
+	forEachChild (fn) {
+		forEachValue(this._children, fn)
+	}
+	
+	forEachGetter (fn) {
+		if (this._rawModule.getters) {
+			forEachValue(this._rawModule.getters, fn)
+		}
+	}
+	
+	forEachAction (fn) {
+		if (this._rawModule.actions) {
+			forEachValue(this._rawModule.actions, fn)
+		}
+	}
+	
+	forEachMutation (fn) {
+		if (this._rawModule.mutations) {
+			forEachValue(this._rawModule.mutations, fn)
+		}
+	}
+}
+```
+
+### 安装模块
+```JavaScript
+const state = this._modules.root.state
+installModule(this, state, [], this._modules.root)
+
+// installModule
+// store 表示root store
+// state 表示root state
+// path 表示模块的访问路径
+// module 表示当前的模块
+// hot 表示是否是热更新
+function installModule (store, rootState, path, module, hot) {
+	const isRoot = !path.length
+	const namespace = store._modules.getNamespace(path)
+	
+	// register in namespace map
+	if (module.namespaced) {
+		store._modulesNamespaceMap[namespace] = module
+	}
+	
+	// set state
+	if (!isRoot && !hot) {
+		const parentState = getNestedState(rootState, path.slice(0, -1))
+		const moduleName = path[path.length - 1]
+		store._withCommit(() => {
+			Vue.set(parentState, moduleName, module.state)
+		})
+	}
+	
+	// 构造了一个本地上下文环境
+	const local = module.context = makeLocalContext(store, namespace, path)
+	
+	module.forEachMutation((mutation, key) => {
+		const namespacedType = namespace + key
+		registerMuation(store, namespacedType, mutation, local)
+	})
+	
+	module.forEachAction((action, key) => {
+		const type = action.root ? key : namespace + key
+		const handler = action.handler || action
+		registerAction(store, type, handler, local)
+	})
+	
+	module.forEachGetter((getter, key) => {
+		const namespacedType = namespace + key
+		registerGetter(store, namespacedType, getter, local)
+	})
+	
+	module.forEachChild((child, key) => {
+		installModule(store, rootState, path.concat(key), child, hot)
+	})
+}
+
+// src/module/module-collection.js
+getNamespace (path) {
+	let module = this.root
+	return path.reduce((namespace, key) => {
+		module = module.getChild(key)
+		return namespace + (module.namespaced ? key + '/' : '')
+	}, '')
+}
+
+function makeLocalContext (store, namespace, path) {
+	const noNamespace = namespace === ''
+	
+	const local = {
+		dispatch: noNamespace ? store.dispatch : (_type, _payload, _options) => {
+			const args = unifyObjectStyle(_type, _payload, _options)
+			const { payload, options } = args
+			let { type } = args
+			
+			if (!options || !options.root) {
+				type = namespace + type
+				if (process.env.NODE_ENV !== 'production' && !store._actions[type]) {
+					console.error(`[vuex] unknown local action type: ${args.type}, global type: ${type}`)
+					return 
+				}
+			}
+			
+			return store.dispatch(type, payload)
+		},
+		
+		commit: noNamespace ? store.commit : (_type, _payload, _options) => {
+			const args = unifyObjectStyle(_type, _payload, _options)
+			const { payload, options } = args
+			let { type } = args
+			
+			if (!options || !options.root) {
+				type = namespace + type
+			}
+			
+			if (process.env.NODE_ENV !== 'production' && !store._mutations[type]) {
+				console.error(`[vuex] unknown local mutation type: ${args.type}, global type: ${type}`)
+				return
+			}
+		}
+		
+		store.commit(type, payload, options)
+	}
+}
+
+// getters and state object must be gotten lazily
+// because they will be changed by vm update
+// 如果没有namespace，则直接返回root store 的getters
+// 否则返回makeLocalGetters(store, namespace)的返回值
+Object.defineProperties(local, {
+	getters: {
+		get: noNamespace
+			? () => store.getters
+			: () => makeLocalGetters(store, namespace)
+	},
+	state: {
+		get: () => getNestedState(store.state, path)
+	}
+})
+
+return local
+}
+
+// makeLocalGetters
+function makeLocalGetters (store, namespace) {
+	const gettersProxy = {}
+	
+	const splitPos = namespace.length
+	Object.keys(store.getters).forEach(type => {
+		// skip if the target getter is not match this namespace
+		if (type.slice(0, splitPos) !== namespace) return
+		
+		// extract local getter type
+		const localType = type.slice(splitPos)
+		
+		// add a port to the getters proxy.
+		// Define as getter property because
+		// we do not want to evaluate the getters in this time.
+		Object.defineProperty(gettersProxy, localType, {
+			get: () => store.getters[type],
+			enumerable: true
+		})
+	})
+	
+	return gettersProxy
+}
+```
+
