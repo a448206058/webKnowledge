@@ -18,6 +18,7 @@
   "author": "xixihaha",
   "license": "ISC",
   "devDependencies": {
+    "flow-bin": "^0.147.0",
     "html-webpack-plugin": "^3.2.0",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.9",
