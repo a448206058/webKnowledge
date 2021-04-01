@@ -4,10 +4,30 @@
  		* @param {string} endWord
  		* @param {string[]} wordList
  		* @return {number}
+
+		 hit
+
+		 _it
+		 h_t
+		 hi_
+		 
  	*/
 	var ladderLength = function(beginWord, endWord, wordList) {
-		let result = [];
-		result
+		if(wordList.indexOf(endWord) === -1){
+			return false;
+		}
+		let start = beginWord;
+		let list = [];
+		for(let i = 0; i < start.length;i++){
+			let temp = start.split("").slice(0, i).join("") +  start.split("").slice(i+1, start.length).join("")
+			wordList.map(item=>{
+				let temps = item.split("").slice(0, i).join("") +  item.split("").slice(i+1, item.length).join("")
+				if(temp === temps){
+					list.push(item);
+				}
+			})
+		}
+		console.log(list);
 	};
 	
 	var beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"];
