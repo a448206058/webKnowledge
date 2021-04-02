@@ -1,9 +1,9 @@
 <script>
 	/**
- 		* @param {string} beginWord
- 		* @param {string} endWord
- 		* @param {string[]} wordList
- 		* @return {number}
+			* @param {string} beginWord
+			* @param {string} endWord
+			* @param {string[]} wordList
+			* @return {number}
 
 		 hit
 
@@ -11,27 +11,82 @@
 		 h_t
 		 hi_
 		 
- 	*/
-	var ladderLength = function(beginWord, endWord, wordList) {
-		if(wordList.indexOf(endWord) === -1){
-			return false;
+	  */
+	var ladderLength = function (beginWord, endWord, wordList) {
+		if (wordList.indexOf(endWord) === -1) {
+			return 0;
 		}
-		let start = beginWord;
-		let list = [];
-		for(let i = 0; i < start.length;i++){
-			let temp = start.split("").slice(0, i).join("") +  start.split("").slice(i+1, start.length).join("")
-			wordList.map(item=>{
-				let temps = item.split("").slice(0, i).join("") +  item.split("").slice(i+1, item.length).join("")
-				if(temp === temps){
-					list.push(item);
+		let allList = [[beginWord]];
+		let startIndex = 1;
+		let wordLists = wordList.slice(0);
+		for (let k = 0; k < allList.length; k++) {
+			for (let l = 0; l < allList[k].length; l++) {
+				let start = allList[k][l];
+				let list = [];
+				let index2 = wordList.indexOf(allList[k][l]);
+				wordList = wordList.splice(0, index2).concat(wordList.splice(index2 + 1, wordList.length))
+
+				for (let i = 0; i < start.length; i++) {
+					let temp = start.split("").slice(0, i).join("") + start.split("").slice(i + 1, start.length).join("")
+					for (let j = 0; j < wordList.length; j++) {
+						let item = wordList[j];
+						let temps = item.split("").slice(0, i).join("") + item.split("").slice(i + 1, item.length).join("")
+						if (temp === temps) {
+							list.push(item);
+							// wordList = wordList.slice(0, j).concat(wordList.slice(j + 1, wordList.length));
+
+							if (item === endWord) {
+								debugger
+								console.log(item)
+								console.log(list)
+								console.log(allList)
+								return allList.length + 1;
+							}
+						}
+					}
 				}
-			})
+				if (list.length > 0) {
+					start = list[list.length - 1];
+					allList[k + 1] = list
+				}
+			}
 		}
-		console.log(list);
+		return 0;
 	};
-	
-	var beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"];
-	
+
+	var ladderLength = function (beginWord, endWord, wordList) {
+		debugger
+		const wordSet = new Set(wordList);
+		const queue = [];
+		queue.push([beginWord, 1]);
+
+		while (queue.length) {
+			const [word, level] = queue.shift();  // 当前出列的单词
+			if (word == endWord) {
+				return level;
+			}
+			for (let i = 0; i < word.length; i++) { // 遍历当前单词的所有字符
+				for (let c = 97; c <= 122; c++) { // 对应26个字母
+					const newWord = word.slice(0, i) + String.fromCharCode(c) + word.slice(i + 1); // 形成新词
+					if (wordSet.has(newWord)) { // 单词表里有这个新词
+						queue.push([newWord, level + 1]); // 作为下一层的词入列
+						wordSet.delete(newWord);  // 避免该词重复入列
+					}
+				}
+			}
+		}
+		return 0; // bfs结束，始终没有遇到终点
+	}
+
+
+	// var beginWord = "a", endWord = "c", wordList = ["a", "b", "c"];
+
+	var beginWord = "hot", endWord = "dog", wordList = ["hot", "cog", "dog", "tot", "hog", "hop", "pot", "dot"];
+
+	// var beginWord = "hot", endWord = "dog", wordList = ["hot", "dog", "dot"];
+
+	// var beginWord = "hit", endWord = "cog", wordList = ["hot", "dot", "dog", "lot", "log", "cog"];
+
 	console.time()
 	console.log(ladderLength(beginWord, endWord, wordList))
 	console.timeEnd()
