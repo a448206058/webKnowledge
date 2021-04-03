@@ -320,6 +320,7 @@ export function generate (rootAst) {
             code = `_c('${el.tag}',[
 				${ children ? `${children}` : ''}
             ])`
+            console.log(code)
             return code;
         }
     }

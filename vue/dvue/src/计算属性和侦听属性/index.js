@@ -15,7 +15,8 @@ export default class dVue {
 		vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
 		
 		vm._v = createTextVNode;
-		// console.log(vm.$vnode)
+		vm._l = renderList;
+		console.log(vm)
 		vm.$mount(vm.$el);
 		  
   //       var render = options.render
@@ -31,7 +32,7 @@ export default class dVue {
 		// }, 1000)
 
 		// setTimeout(function(){
-		// 	vm.$data.items = ['cc12', 'cc2', 'cc3']
+		// 	vm.$data.items = ['cc12', 'cc2']
 		// 	vm.vnode = render.call(vm, createVNode)
 		// 	vm.$mount(vm.$el);
 		// }, 1000)
@@ -56,7 +57,8 @@ function createVNode(tag, data, children) {
 
 function createElm(vnode, parentElm, refElm) {
     var elm
-	
+	console.log(vnode)
+	if(!vnode) return
     // 创建真实DOM节点
     if (vnode.tag) {
         elm = document.createElement(vnode.tag)
@@ -138,6 +140,7 @@ dVue.prototype.$mount = function (el, hydrating) {
 dVue.prototype._render = function(){
 	const vm = this;
 	const render = vm.$options.render;
+	// debugger
 	let vnode = render.call(vm, createVNode)
 	return vnode
 }
@@ -146,6 +149,7 @@ dVue.prototype._update = function(vnode, hydrating) {
 	const vm = this;
 	const prevVnode = vm._vnode;
 	vm._vnode = this.vnode;
+	
 	if(!prevVnode) {
 		// 第一个参数为真实的node节点，则为初始化
 		patch(vm.$el, vnode, hydrating, false)
@@ -755,4 +759,44 @@ export function noop (a, b, c) {}
    */
   function isObject (obj) {
     return obj !== null && typeof obj === 'object'
+  }
+
+  function renderList (
+    val,
+    render
+  ) {
+    var ret, i, l, keys, key;
+    if (Array.isArray(val) || typeof val === 'string') {
+      ret = new Array(val.length);
+      for (i = 0, l = val.length; i < l; i++) {
+        ret[i] = render(val[i], i);
+      }
+    } else if (typeof val === 'number') {
+      ret = new Array(val);
+      for (i = 0; i < val; i++) {
+        ret[i] = render(i + 1, i);
+      }
+    } else if (isObject(val)) {
+      if (hasSymbol && val[Symbol.iterator]) {
+        ret = [];
+        var iterator = val[Symbol.iterator]();
+        var result = iterator.next();
+        while (!result.done) {
+          ret.push(render(result.value, ret.length));
+          result = iterator.next();
+        }
+      } else {
+        keys = Object.keys(val);
+        ret = new Array(keys.length);
+        for (i = 0, l = keys.length; i < l; i++) {
+          key = keys[i];
+          ret[i] = render(val[key], key, i);
+        }
+      }
+    }
+    if (!isDef(ret)) {
+      ret = [];
+    }
+    (ret)._isVList = true;
+    return ret
   }
