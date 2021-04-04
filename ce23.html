@@ -1,36 +1,41 @@
 <script>
-	var numSquares = function(n) {
-	    let queue = [];
-	    let level = 1;
-		if(n === 1){
-			return level
-		}
-		for(let i = 1; i*i <= n; i++){
-			if(i*i == n){
-				return level;
-			}
-			queue.push(i*i);
-		}
-		let control = [n];
-		// debugger
-		while(control.length > 0){
-			let temp = [];
-			level += 1;
-			for(let i = 0; i < control.length; i++){
-				for(let j = 0; j < queue.length; j++){
-					let cc = control[i] - queue[j];
-					if(queue.indexOf(cc) > -1){
-						return level
-					}
-					temp.push(cc);
-				}
-			}
-			console.log(temp)
-			control = temp;
-		}
-	    return level;
-	};
-	console.time()
-	console.log(numSquares(1))
-	console.timeEnd()
+/**
+ * @param {number[]} nums
+ * @param {number} k
+ * @return {number[]}
+ */
+ var topKFrequent = function(nums, k) {
+	 let result = [];
+	 let map = new Map();
+	 for(let i = 0; i < nums.length; i++){
+		 if(map.has(nums[i])){
+			let cc = map.get(nums[i]) + 1;
+			map.set(nums[i], cc)
+		 }else{
+			map.set(nums[i], 1)
+		 }
+	 }
+	 debugger
+	 for(let item of map){
+		 if(result.length === 0){
+			 result.push(item);
+		 }else{
+			 if(item[1] > result[0][1]){
+				 result.unshift(item);
+			 }else{
+				 result.push(item);
+			 }
+		 }
+	 }
+	 let so = [];
+	 result.map(item=>{
+		 so.push(item[0]);
+	 })
+
+	 return so.slice(0, k)
+};
+
+var nums = [4,1,-1,2,-1,2,3], k = 2;
+
+console.log(topKFrequent(nums, k))
 </script>

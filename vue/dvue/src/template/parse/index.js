@@ -23,6 +23,27 @@ import { isIE, isEdge, isServerRendering } from '../../core/util/env'
   }
 }
 
+export function parseModel (val) {
+  // Fix https://github.com/vuejs/vue/pull/7730
+  // allow v-model="obj.val " (trailing whitespace)
+  val = val.trim()
+  len = val.length
+
+  if (val.indexOf('[') < 0 || val.lastIndexOf(']') < len - 1) {
+    index = val.lastIndexOf('.')
+    if (index > -1) {
+      return {
+        exp: val.slice(0, index),
+        key: '"' + val.slice(index + 1) + '"'
+      }
+    } else {
+      return {
+        exp: val,
+        key: null
+      }
+    }
+  }
+
 import {
   addProp,
   addAttr,
@@ -36,27 +57,39 @@ import {
   getAndRemoveAttrByRegex
 } from '../helpers'
 
+// 匹配@或者v-on
 export const onRE = /^@|^v-on:/
+// 匹配v-或者@或者:或者\.或者#
 export const dirRE = process.env.VBIND_PROP_SHORTHAND
   ? /^v-|^@|^:|^\.|^#/
   : /^v-|^@|^:|^#/
+// 1.空格或者没有空格；2.空格或者无；3.in或者of；4.空格或者无；5.空格或者没有空格
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
+// 1.,; 2.不是.}];3.结束或者,;4.不是,}]
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
+// 以(开始或者)结束
 const stripParensRE = /^\(|\)$/g
+// 1.[;2.任意字符串;3.]结束
 const dynamicArgRE = /^\[.*\]$/
-
+// 1.:;2.任意字符串或者空
 const argRE = /:(.*)$/
+// :或者.或者v-bind:
 export const bindRE = /^:|^\.|^v-bind:/
+// .
 const propBindRE = /^\./
+// 1..;2.不是.或者]；3.查找]前面的表达式多次
 const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
 
+// 1.v-slot或者#结束;2.:或者结束
 const slotRE = /^v-slot(:|$)|^#/
 
+// 匹配回车符换行符
 const lineBreakRE = /[\r\n]/
+// 匹配空白符
 const whitespaceRE = /\s+/g
-
+// 匹配空白符"'<>/=]其中一个
 const invalidAttributeRE = /[\s"'<>\/=]/
-
+//缓存
 const decodeHTMLCached = cached(he.decode)
 
 export const emptySlotScopeToken = `_empty_`
@@ -90,11 +123,13 @@ export function createASTElement (
 
 /**
  * Convert HTML string to AST.
+ * 将HTML字符串转换成AST
  */
 export function parse (
   template,
   options
 ){
+  // 
   warn = options.warn || baseWarn
 
   platformIsPreTag = options.isPreTag || no

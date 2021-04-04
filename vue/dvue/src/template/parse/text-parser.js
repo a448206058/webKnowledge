@@ -3,7 +3,9 @@
 import { cached } from '../../shared/util'
 import { parseFilters } from './filter-parser'
 
+//{{0x0D - 0x0A}}
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
+// 匹配其中一个字符-.*+?^${}()|[]/\
 const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
 
 const buildRegex = cached(delimiters => {
@@ -12,6 +14,9 @@ const buildRegex = cached(delimiters => {
   return new RegExp(open + '((?:.|\\n)+?)' + close, 'g')
 })
 
+// text 待解析的文本内容text
+// delimiters 包裹变量的符号
+// 将{{item}}:{{index}}转换为{expression: '_s(item'+":"+_s(index)', tokens: [{'@binding':'item'}, ':', {'@binding': 'index'}]}
 export function parseText (
   text,
   delimiters

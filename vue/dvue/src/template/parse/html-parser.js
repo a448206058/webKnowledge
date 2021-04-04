@@ -218,6 +218,7 @@ export function parseHTML (html, options) {
           !conditionalComment.test(rest)
         ) {
           // < in plain text, be forgiving and treat it as text
+          // 在纯文本中将其视为文本
           next = rest.indexOf('<', 1)
           if (next < 0) break
           textEnd += next
@@ -238,6 +239,7 @@ export function parseHTML (html, options) {
         options.chars(text, index - text.length, index)
       }
     } else {
+      // 如果lastTag为script、style、textarea
       let endTagLength = 0
       const stackedTag = lastTag.toLowerCase()
       const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
@@ -245,8 +247,8 @@ export function parseHTML (html, options) {
         endTagLength = endTag.length
         if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
           text = text
-            .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
-            .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1')
+            .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298 <!--x-->
+            .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1') // <!x>
         }
         if (shouldIgnoreFirstNewline(stackedTag, text)) {
           text = text.slice(1)
@@ -258,9 +260,11 @@ export function parseHTML (html, options) {
       })
       index += html.length - rest.length
       html = rest
+      //清理所有剩余的标签
       parseEndTag(stackedTag, index - endTagLength, index)
     }
 
+    // html文本到最后
     if (html === last) {
       options.chars && options.chars(html)
       if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
@@ -271,6 +275,7 @@ export function parseHTML (html, options) {
   }
 
   // Clean up any remaining tags
+  // 清理所有剩余的标签
   parseEndTag()
 
   // index是全局变量，传入n来进行跳，html进行删除
@@ -324,10 +329,12 @@ export function parseHTML (html, options) {
       }
     }
 
+    // 一元判断
     const unary = isUnaryTag(tagName) || !!unarySlash
 
     const l = match.attrs.length
     const attrs = new Array(l)
+    // 解析开始标签的属性名和属性值，转换为{name:'',value:''}
     for (let i = 0; i < l; i++) {
       const args = match.attrs[i]
       const value = args[3] || args[4] || args[5] || ''
@@ -343,12 +350,13 @@ export function parseHTML (html, options) {
         attrs[i].end = args.end
       }
     }
-
+    // 推入stack中
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
     }
 
+    // 触发options.start方法
     if (options.start) {
       options.start(tagName, attrs, unary, match.start, match.end)
     }
