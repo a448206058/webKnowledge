@@ -395,7 +395,7 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 
 //优先队列
 堆
-347 -1 23 
+347 -1 23 -1
 
 let result = []
     var preOrderTraverseNode = (node) => {

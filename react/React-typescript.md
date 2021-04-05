@@ -55,3 +55,28 @@ public、private、protected（可以被子类访问）、readonly
 ### generics 泛型
 <>
 传入extends进行约束泛型
+
+### 类型别名
+let string = dd | aa
+
+### 类型断言
+as
+
+## 什么是React Hooks
+函数式组件代替class的写法
+
+### 没有破坏性改动
+* 完全可选
+* 向后兼容
+* 没有计划从React移除class
+
+### 解决问题 
+组件很难复用状态逻辑
+复杂组件难以理解，尤其是生命周期函数
+
+### Effect Hook
+* 无需清除的Effect
+* 代码时间：使用useEffect使DOM完成标题更新
+
+
+https://www.typescriptlang.org/dt/search/
