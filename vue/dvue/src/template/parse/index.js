@@ -43,7 +43,7 @@ export function parseModel (val) {
       }
     }
   }
-
+}
 import {
   addProp,
   addAttr,

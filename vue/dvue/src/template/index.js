@@ -1,6 +1,6 @@
-import {optimize, generate} from './template.js'
-
 import {parse} from './parse/index.js'
+import {optimize} from './optimizer'
+import {generate} from './codegen/index.js'
 
 const inBrowser = typeof window !== 'undefined';
 
