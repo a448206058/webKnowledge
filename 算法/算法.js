@@ -397,6 +397,9 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 堆
 347 -1 23 -1
 
+//二叉树 递归
+104 -1
+
 let result = []
     var preOrderTraverseNode = (node) => {
         if(node) {

@@ -27,6 +27,8 @@ Node： [链接地址](./node/node.md)
 ## 源码理解：
 vue2.x源码理解：[链接地址](./vue/vue.md)
 
+vue2.x源码理解：[链接地址](./vue/v-model.md)
+
 webpack源码解析：[链接地址](工程化/webpack/webpack源码解析.md)
 
 axios源码理解：[链接地址](./axios/axios.md)

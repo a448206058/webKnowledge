@@ -4,11 +4,13 @@ import { emptyObject } from '../shared/util'
 import { parseFilters } from './parse/filter-parser'
 
 /* eslint-disable no-unused-vars */
+// eslint禁用没有未使用的变量
 export function baseWarn (msg, range) {
   console.error(`[Vue compiler]: ${msg}`)
 }
 /* eslint-enable no-unused-vars */
 
+// 根据数组下标返回指定元素，pluckModuleFunction(['123', '456'], 1),返回['2', '5']
 export function pluckModuleFunction(
   modules,
   key
@@ -18,11 +20,13 @@ export function pluckModuleFunction(
     : []
 }
 
+// 将属性放入ele的props属性中，并根据range添加范围
 export function addProp (el, name, value, range, dynamic) {
   (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
   el.plain = false
 }
 
+// 将属性放入ele的attr属性中，并根据range添加范围
 export function addAttr (el, name, value, range, dynamic) {
   const attrs = dynamic
     ? (el.dynamicAttrs || (el.dynamicAttrs = []))
@@ -37,6 +41,7 @@ export function addRawAttr (el, name, value, range) {
   el.attrsList.push(rangeSetItem({ name, value }, range))
 }
 
+// 将参数加入到ele的directives中去
 export function addDirective (
   el,
   name,

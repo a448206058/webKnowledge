@@ -1,48 +1,31 @@
 <script>
 /**
- * @param {number[]} nums
- * @param {number} k
- * @return {number[]}
+ * Definition for a binary tree node.
+ * function TreeNode(val, left, right) {
+ *     this.val = (val===undefined ? 0 : val)
+ *     this.left = (left===undefined ? null : left)
+ *     this.right = (right===undefined ? null : right)
+ * }
  */
- var mergeKLists = function(lists) {
-
-	if(!lists || lists.length == 0) return null;
-    let arr = [];
-    let res = new ListNode(0);
-
-	 let result = [];
-	 lists.map(item=>{
-		 while(item){
-			 result.push(item.val);
-			 item = item.next;
-		 }
-	 })
-	 let cur = res;
-	 result.sort((a, b)=> a - b).map(item=>{
-		 let node = new ListNode(item);
-		 cur.next = node;
-		 cur = cur.next;
-	 })
-	 return res.next;
-
-
-	
-    lists.forEach(list => {
-        let cur = list;
-        while(cur){
-            arr.push(cur.val);
-            cur = cur.next;
-        }
-    })
-    let cur = res;
-    arr.sort((a,b) => a-b).forEach(val => {
-        let node = new ListNode(val);
-        cur.next = node;
-        cur = cur.next;
-    })
-    return res.next;
+/**
+ * @param {TreeNode} root
+ * @return {number}
+ */
+ var maxDepth = function(root) {
+     let result = [];
+     while(root.left || root.right){
+         if(root.val){
+             result.push(root.val);
+         }
+         if(root.left){
+             maxDepth(root.left);
+         }
+         if(root.right){
+             maxDepth(root.right);
+         }
+     }
+     return result;
 };
 
-var lists = [[1,4,5],[1,3,4],[2,6]]
-console.log(mergeKLists(lists))
+console.log(maxDepth([3,9,20,null,null,15,7]))
 </script>

@@ -23,6 +23,7 @@ export class CodegenState {
 
   constructor (options) {
     this.options = options
+    // 警告
     this.warn = options.warn || baseWarn
     this.transforms = pluckModuleFunction(options.modules, 'transformCode')
     this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
@@ -35,6 +36,7 @@ export class CodegenState {
   }
 }
 
+// 转换
 export function generate (
   ast,
   options
@@ -91,11 +93,15 @@ export function genElement (el, state) {
 }
 
 // hoist static sub-trees out
+// 转换静态节点
 function genStatic (el, state) {
   el.staticProcessed = true
   // Some elements (templates) need to behave differently inside of a v-pre
   // node.  All pre nodes are static roots, so we can use this as a location to
   // wrap a state change and reset it upon exiting the pre node.
+  // 一些元素（模板）需要在v-pre有不同的行为节点。
+  // 所有pre节点都是静态根，因此我们可以将其用作
+  // 包装状态更改并在退出pre节点时将其重置。
   const originalPreState = state.pre
   if (el.pre) {
     state.pre = el.pre
@@ -490,6 +496,10 @@ export function genChildren (
 // 0: no normalization needed
 // 1: simple normalization needed (possible 1-level deep nested array)
 // 2: full normalization needed
+// 确定子数组所需的规范化。
+// 0： 不需要规范化
+// 1:  需要简单的规范化（可能是1级嵌套数组）
+// 2:  需要完全正常化
 function getNormalizationType (
   children,
   maybeComponent
