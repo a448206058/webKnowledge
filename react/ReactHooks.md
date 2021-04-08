@@ -36,4 +36,69 @@ function App() {
 export default App;
 ```
 The App component shows a list of items(hits = Hacker News articles).The state and state update function come from the state hook called useState that is responsible to manage the local state for the data that we are going to fetch for the App component. The initial state is an empty list of hits in an object that represents the data.No one is setting any state for this data yet.
+这个App组件展示了一个用items循环的列表。state和state update函数来自于名为useState的state钩子，它负责管理我们将为App组件获取的数据的本地状态。初始状态是表示数据的对象中点击的空列表。还没有人为这些数据设置任何状态。
 
+We are going to use axios to fetch data, but it is up to you to use another data fetching library or the native fetch API of the browser.If you haven't installed axios yet, you can do so by on the command line with npm install axios.Then implement your effect hook for the data fetching:
+我们将使用axios来获取数据，但这取决于您是否使用另一个获取库或者浏览器的本地API获取。
+如果您还没有安装axios，可以在命令行上使用npm install axios来安装。然后实现数据获取的effect钩子：
+```JavaScript
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+function App() {
+    const [data, setData] = useState({ hits: []})
+
+    useEffect(async() => {
+        const result = await axios(
+            'https://hn.algolia.com/api/v1/search?query=redux',
+        );
+
+        setData(result.data);
+    });
+
+    return (
+        <ul>
+            {data.hits.map(item => (
+                <li key={item.objectID}>
+                    <a href={item.url}>{item.title}</a>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+export default App;
+```
+The effect hook called useEffect is used to fetch the data with axios from the API and to set the data in the local state of the component with the state hook's update function.The promise resolving happens with async/await.
+effect钩子用于使用axios从API获取数据，state钩子的update函数将数据设置为组件的本地状态。promsie解析使用async/await进行。
+
+However, when you run your application, you should stumble into a nasty loop.The effect hooks runs when the component mounts but also when the component updates.Because we are setting the state after every data fetch, the component updates and the effect runs again.It fetches the data again an again.That's a bug and needs to be avoided.We only want to fetch data when the component mounts.That's why you can provide an empty array as second argument to the effect hook to avoid activating it on component updates but only for the mounting of the component.
+然而，当你运行你的应用，你应该陷入一个讨厌的循环。effect hook运行在组件挂载时，也在组件更新时。因为我们正在设置每次数据获取后的状态，所以组件更新后会再次运行。它重复获取数据一次又一次。这是一个错误需要去避免。我们指向在组件挂载时获取数据。这就是为什么您可以提供一个空数组作为effect钩子的第二个参数，以避免在组件更新时激活它，而只在组件挂载的时候更新。
+```JavaScript
+import React, {useState, useEffect} from 'react'
+import axios from 'axios';
+
+function App() {
+    const [data, setData] = useState({ hits: [] });
+
+    useEffect(async () => {
+        const result = await axios(
+            'https://hn.algolia.com/api/v1/search?query=redux',
+        );
+
+        setData(result.data);
+    }, []);
+
+    return (
+        <ul>
+            {data.hits.map(item => (
+                <li key={item.objectID}>
+                    <a href={item.url}>{item.title}</a>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+export default App;
+```
