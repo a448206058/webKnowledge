@@ -16,6 +16,7 @@ export default class dVue {
 		var render = options.render
 
 		console.log(render)
+		console.log(2222)
     }
 }
 
