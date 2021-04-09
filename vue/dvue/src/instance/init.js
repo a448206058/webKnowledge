@@ -12,6 +12,7 @@ import { extend, mergeOptions, formatComponentName } from '../util/index'
 
 let uid = 0
 
+// 在Vue的原型上挂载_init方法，进行初始化
 export function initMixin (Vue) {
   Vue.prototype._init = function (options) {
     const vm = this
@@ -27,12 +28,16 @@ export function initMixin (Vue) {
     }
 
     // a flag to avoid this being observed
+    // 避免被观察的标记
     vm._isVue = true
     // merge options
+    // 合并选项
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
+      // 优化内部组件实例化
+      // 因为动态选项合并非常慢，而且没有任何内部组件选项需要特殊处理
       initInternalComponent(vm, options)
     } else {
       vm.$options = mergeOptions(
@@ -43,12 +48,14 @@ export function initMixin (Vue) {
     }
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
+      // 通过new Proxy 去挂载vm
       initProxy(vm)
     } else {
       vm._renderProxy = vm
     }
     // expose real self
     vm._self = vm
+    // 初始化生命周期
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
@@ -74,6 +81,7 @@ export function initMixin (Vue) {
 export function initInternalComponent (vm, options) {
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.
+  // 这样做是因为它比动态枚举更快。
   const parentVnode = options._parentVnode
   opts.parent = options.parent
   opts._parentVnode = parentVnode
@@ -98,10 +106,14 @@ export function resolveConstructorOptions (Ctor) {
     if (superOptions !== cachedSuperOptions) {
       // super option changed,
       // need to resolve new options.
+      // 继承的options已经改变
+      // 需要解决新的选项
       Ctor.superOptions = superOptions
       // check if there are any late-modified/attached options (#4976)
+      // 检查是否有任何延迟修改/附加选项
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // update base extend options
+      // 更新基本扩展选项
       if (modifiedOptions) {
         extend(Ctor.extendOptions, modifiedOptions)
       }
@@ -114,6 +126,7 @@ export function resolveConstructorOptions (Ctor) {
   return options
 }
 
+// 根据附加选项的值来改变原本选项中的值
 function resolveModifiedOptions (Ctor) {
   let modified
   const latest = Ctor.options

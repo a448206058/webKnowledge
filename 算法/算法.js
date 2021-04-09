@@ -401,7 +401,7 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 106 111
 
 //反转二叉树
-226 100 101 222 110
+226 100 -1 101 -1 222 110
 
 let result = []
     var preOrderTraverseNode = (node) => {
@@ -525,5 +525,33 @@ var numSquares = function(n) {
 
 作者：Alexer-660
 链接：https://leetcode-cn.com/problems/perfect-squares/solution/279-wan-quan-ping-fang-shu-by-alexer-660/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+if(p == null && q == null) 
+        return true;
+    if(p == null || q == null) 
+        return false;
+    if(p.val != q.val) 
+        return false;
+    return isSameTree(p.left, q.left) && isSameTree(p.right, q.right);
+
+    if(!root) return true
+    var isEqual = function(left, right) {
+        if(!left && !right) return true
+        if(!left || !right) return false
+        return left.val === right.val
+         && isEqual(left.left, right.right)
+         && isEqual(left.right, right.left)
+    }
+    return isEqual(root.left, root.right)
+
+作者：user7746o
+链接：https://leetcode-cn.com/problems/symmetric-tree/solution/javascriptdui-cheng-er-cha-shu-by-user7746o/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+作者：guanpengchn
+链接：https://leetcode-cn.com/problems/same-tree/solution/hua-jie-suan-fa-100-xiang-tong-de-shu-by-guanpengc/
 来源：力扣（LeetCode）
 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。

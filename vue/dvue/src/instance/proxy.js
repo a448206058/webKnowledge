@@ -34,9 +34,11 @@ if (process.env.NODE_ENV !== 'production') {
     )
   }
 
+  // 判断hasProxy是否内置函数
   const hasProxy =
     typeof Proxy !== 'undefined' && isNative(Proxy)
 
+  // 如果是内置函数
   if (hasProxy) {
     const isBuiltInModifier = makeMap('stop,prevent,self,ctrl,shift,alt,meta,exact')
     config.keyCodes = new Proxy(config.keyCodes, {

@@ -21,6 +21,7 @@ import {
 export let activeInstance = null
 export let isUpdatingChildComponent = false
 
+// 设置活跃的实例
 export function setActiveInstance(vm) {
   const prevActiveInstance = activeInstance
   activeInstance = vm
@@ -33,6 +34,8 @@ export function initLifecycle (vm) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 定位第一个非抽象父级
+  // 将vm插入到parent的children中
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
@@ -56,6 +59,7 @@ export function initLifecycle (vm) {
 }
 
 export function lifecycleMixin (Vue) {
+  // 更新节点
   Vue.prototype._update = function (vnode, hydrating) {
     const vm = this
     const prevEl = vm.$el
@@ -66,9 +70,11 @@ export function lifecycleMixin (Vue) {
     // based on the rendering backend used.
     if (!prevVnode) {
       // initial render
+      // 首次加载
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
       // updates
+      // 更新
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     restoreActiveInstance()
@@ -80,11 +86,13 @@ export function lifecycleMixin (Vue) {
       vm.$el.__vue__ = vm
     }
     // if parent is an HOC, update its $el as well
+    // 如果父组件是高阶组件，也更新其$el
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
     // updated hook is called by the scheduler to ensure that children are
     // updated in a parent's updated hook.
+    // 更新钩子被任务调度确保在父组件中更新子组件
   }
 
   Vue.prototype.$forceUpdate = function () {
@@ -107,6 +115,7 @@ export function lifecycleMixin (Vue) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 卸载watcher
     if (vm._watcher) {
       vm._watcher.teardown()
     }
@@ -116,6 +125,8 @@ export function lifecycleMixin (Vue) {
     }
     // remove reference from data ob
     // frozen object may not have observer.
+    // 从数据对象中删除引用
+    // d冻结对象可能没有观察者
     if (vm._data.__ob__) {
       vm._data.__ob__.vmCount--
     }
@@ -225,10 +236,13 @@ export function updateChildComponent (
 
   // determine whether component has slot children
   // we need to do this before overwriting $options._renderChildren.
+  // 确定组件是否有插槽子选项
+  // 我们需要在覆盖子选项之前执行此操作
 
   // check if there are dynamic scopedSlots (hand-written or compiled but with
   // dynamic slot names). Static scoped slots compiled from template has the
   // "$stable" marker.
+  // 检查是否有动态scopedSlots（手写或者编译的带有动态插槽名称）.
   const newScopedSlots = parentVnode.data.scopedSlots
   const oldScopedSlots = vm.$scopedSlots
   const hasDynamicScopedSlot = !!(
@@ -335,6 +349,7 @@ export function deactivateChildComponent (vm, direct) {
 
 export function callHook (vm, hook) {
   // #7573 disable dep collection when invoking lifecycle hooks
+  // 调用声明周期钩子函数时禁用dep手机
   pushTarget()
   const handlers = vm.$options[hook]
   const info = `${hook} hook`
