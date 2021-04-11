@@ -1,3 +1,16 @@
+## useEffect 完整指南
+
+useReducer
+
+useCallback
+
+
+
+### Hook 规则
+* 只在最顶层使用Hook
+
+* 只在React函数中调用Hook
+
 ## How to fetch data with React Hooks？
 如何用React Hooks获取数据
 
@@ -475,9 +488,362 @@ function App() {
 }
 ```
 But now the browser reloads when clicking the submit button,because that's the native behavior of the browser when submitting a form.In order to prevent the default behavior,we can invoke a function on the React event.That's how you do it in React class components too.
+但是现在，当单击submit按钮时，浏览器会重新加载，因为这是提交表单时浏览器的本机行为。为了防止出现默认行为，我们可以调用React事件上的函数。在React组件中也是这样做的
+```JavaScript
+function App() {
+    ...
+    return (
+        <Fragment>
+            <form onSubmit={event => {
+                setUrl(`http://hn.algolia.com/api/v1/search?query=${query}`);
+                event.preventDefault();
+            }}>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={event => setQuery(event.target.value)}>
+                <button type="submit">Search</button>
+            </form>
 
+            {isError && <div>Something went wrong ...</div>}
 
+            ...
+        </Fragment>
+    )
+}
+```
+Now the browser shouldn't reload anymore when you click the submit button.It works as before,but this time with a form instead of the native input field and button combination.You can press the "Enter" key on your keyboard too.
+现在，当您单击submit按钮时，浏览器不应该再重新加载。它和以前一样工作，但是这次使用的时form表单，而不是输入和按钮的组合。你可以按键盘上的回车键。
 
+### CUSTOM DATA FETCHING HOOK
+自定义数据获取钩子
 
+In order to extract a custom hook for data fetching,move everything that belongs to the data fetching,except for the query state that belongs to the input field, but including the loading indicator and error handling,to its own function.Also make sure you return all the necessary variables from the function that are used in the App component.
+为了提取用于数据获取的自定义钩子，移动属于数据获取的所有内容，但属于输入字段的查询状态除外，但包括加载指示器和错误处理，以及自身的功能。还要确保从应用程序组件中使用函数返回所有必需的变量。
+```JavaScript
+const useHackerNewsApi = () => {
+    const {data, setData} = useState({ hits: [] });
+    const [url, setUrl] = useState(
+        'https://hn.algolia.com/api/v1/search?query=redux',
+    );
+    const [isLoading, setIsLoading] = useState(false);
+    const [isError, setIsError] = useState(false);
 
-https://www.bilibili.com/video/BV1iV411b7L1
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsError(false);
+            setIsLoading(true);
+
+            try {
+                const result = await axios(url);
+
+                setData(result.data);
+            } catch (error) {
+                setIsError(true);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, [url]);
+
+    return [{ data, isLoading, isError }, setUrl];
+}
+```
+Now, your new hook can be used in the App component again:
+```JavaScript
+function App() {
+    const [query, setQuery] = useState('redux')
+    const [{ data, isLoading, isError}, doFetch] = useHackerNewsApi();
+
+    return (
+        <Fragment>
+            <form onSubmit={event => {
+                doFetch(`http://hn.algolia.com/api/v1/search?query=${query}`);
+                event.preventDefault();
+            }}>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={event => setQuery(event.target.value)}
+                >
+                <button type="submit">Search</button>
+            </form>
+            ...
+        </Fragment>
+    )
+}
+```
+
+The initial state can be made generic too.Pass it simply to the new custom hook:
+初始状态可以是泛型。通过它只不过是新的定制钩子
+```JavaScript
+import React, { Fragment, useState, useEffect } from 'react';
+import axios from 'axios';
+
+const useDataApi = (initialUrl, initialData) => {
+    const [data, setData] = useState(initialData);
+    const [url, setUrl] = useState(initialUrl);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isError, setIsError] = useState(false);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsError(false);
+            setIsLoading(true);
+
+            try{
+                const result = await axios(url);
+
+                setData(result.data);
+            } catch (error) {
+                setIsError(true);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, [url]);
+
+    return [{data, isLoading, isError}, setUrl];
+};
+
+function App() {
+    const [query, setQuery] = useState['redux'];
+    const [{ data, isLoading, isError }, doFetch] = useDataApi(
+        'https://hn.algolia.com/api/v1/search?query=redux',
+        {hits: []},
+    );
+
+    return (
+        <Fragment>
+            <form
+                onSubmit={event => {
+                    doFetch(
+                        `http://hn.algolia.com/api/v1/search?query=${query}`,
+                    );
+
+                    event.preventDefault();
+                }}
+            >
+            <input
+                type="text"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+            />
+            <button type="submit">Search</button>
+        </form>
+
+        {isError && <div>Something went wrong ...</div>}
+
+        {isLoading ? (
+            <div>Loading...</div>
+        ) : (
+            <ul>
+                {data.hits.map(item => (
+                    <li key={item.objectID}>
+                        <a href={item.url}>{item.title}</a>
+                    </li>
+                ))}
+            </ul>
+        )}
+        </Fragment>
+    );
+}
+
+export default App;
+```
+That's it for the data fetching with a custom hook.The hook itself doesn't know anything about the API. It receives all parameters from the outside and only manages necessary states such as the data, loading and error state.It executes the request and returns the data to the component using it as custom data fetching hook.
+这就是使用自定义钩子获取数据的方法。钩子本身对API一无所知。它从外部接收所有参数，只管理必要的状态，如数据，加载和错误状态。它执行请求并将数据返回到组件，将其用作自定义数据获取钩子；
+
+### REDUCER HOOK FOR DATA FETCHING
+用户数据获取的reducer钩子
+
+So far, we have used various state hooks to manage our data fetching state for the data, loading and error state.However,somehow all these states,managed with their own state hook, belong together because they care about the same cause.As you can see, they are all used within the data fetching function.A good indicator that they belong together is that they are used one after another(e.g. setIsErro, setIsLoading).Let's combine all three of them with a Reducer Hook instead.
+到目前为止，我们使用了各种状态挂钩来管理数据的数据获取状态，等待和错误。然而，不知道为什么，所有这些状态，用他们自己的状态钩子管理都属于一个整体，因为他们都关注同一个管理。如你所见，他们都在数据获取函数中使用。一个很好的迹象表明他们属于一起，那就是它们被一个接一个地使用。让我们用一个reducer hook来替代它们。
+
+A Reducer Hook returns us a state object and a function to alter the state object.The function -- called dispatch function -- takes an action which has a type and an optional payload.All this information us used in the actual reducer function to distill a new state from the previous state,the action's optional payload and type.Let's see how this workds in code:
+Reducer钩子返回一个state对象和一个函数来改变state对象。该函数（称为dispatch function)执行一个具有类型和可选负载的操作。我们在实际的reducer函数中使用来所有这些信息，以便从以前的状态、操作的可选负载和类型中提取新的状态。让我们看看这在代码中是如何工作的：
+```JavaScript
+import React, {
+    Fragment,
+    useState,
+    useEffect,
+    useReducer,
+} from 'react';
+import axios from 'axios';
+
+const dataFetchReducer = (state, action) => {
+    ...
+};
+
+const useDataApi = (initialUrl, initialData) => {
+    const [url, setUrl] = useState(initialUrl);
+
+    const [state, dispatch] = useReducer(dataFetchReducer, {
+        isLoading: false,
+        isError: false,
+        data: initialData,
+    });
+
+    ...
+}
+```
+The Reducer Hook takes the reducer function and an initial state object as parameters.In our case,the arguments of the initial states for the data,loading and error state didn't change,but they have been aggregated to one state object managed by one reducer hook instead of single state hooks.
+Reducer钩子将reducer函数和初始状态作为参数。在我们的示例中，数据、加载和错误状态的初始状态的参数没有更改，但它们已聚合到由一个reducer钩子管理的一个状态对象，而不是单个状态钩子。
+
+```JavaScript
+const dataFetchReducer = (state, action) => {
+    ...
+};
+
+const useDataApi = (initialUrl, initialData) => {
+    const [url, setUrl] = useState(initialUrl);
+
+    const [state, dispatch] = useReducer(dataFetchReducer, {
+        isLoading: false,
+        isError: false,
+        data: initialData,
+    });
+
+    useEffect(() => {
+        const fetchData = async () => {
+            dispatch({ type: 'FETCH_INIT' });
+
+            try {
+                const result = await axions(url);
+
+                dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
+            } catch (error) {
+                dispatch({ type: 'FETCH_FAILURE'})
+            }
+        };
+
+        fetchData();
+    }, [url]);
+    ...
+}
+```
+Now, when fetching data, the dispatch function can be used to send information to the reducer function.The object being send with dispatch function has a mandatory type property and an optional payload property.The type tells the reducer function which state transition needs to be applied and the payload can additionally be used by the reducer to distill the new state.After all,we only have three state transitions:initializing the fetching process,notifying about a successful data fetching result,and notifying about an errornous data fetching result.
+现在，在获取数据时，可以使用dispatch函数向reducer函数发送信息。使用dispatch函数发送的对象具有强制类型属性和可选负载属性。类型告诉reducer函数需要应用哪个状态转换，并且reducer还可以使用有效负责来提取新的状态。毕竟，我们只有三个状态：初始化数据处理，通知获取数据成功，获取数据错误。
+
+In the end of the custom hook,the state is returned as before,but because we have a state object and not the standalone states anymore.This way,the one who calls the useDataApi custom hooks still gets access to data,isLoading and isError:
+在自定义钩子的末尾，状态像以前一样返回，但是因为我们有一个状态对象，不再是独立状态。这样，调用useDataApi自定义钩子的人仍然可以访问数据、是等待和是错误。
+```JavaScript
+
+const useDataApi = (initialUrl, initial) => {
+    const [url, setUrl] = useState(initialUrl);
+
+    const [state, dispatch] = useReducer(dataFetchReducer, {
+        isLoading: false,
+        isError: false,
+        data: initialData,
+    });
+
+    ...
+    return [state, setUrl];
+}
+```
+Last but not least,the implementation of the reducer function is missing.It needs to act on three different state transitions called FETCH_INIT,FETCH_SUCCESS and FETCH)FAILURE.Each state transition needs to return a new state object.Let's see how this can be implemented with a switch case statement:
+最后但同样重要的是，reducer函数的实现是失踪了。它需要处理三种不同的状态转换。每个状态转换都需要返回一个新的状态对象。让我们看看如何用switch case语句实现这一点：
+```JavaScript
+
+const dataFetchReducer = (state, action) => {
+    switch (action.type) {
+        case 'FETCH_INIT':
+            return { ...state };
+        case 'FETCH_SUCCESS':
+            return { ...state };
+        default:
+            throw new Error();
+    }
+}
+```
+A reducer function has access to the current state and the incoming action via its arguments.So far,in out switch case statement each state transition only returns the previous state.A destructuring statement is used to keep the state object immutable -- meaning the state is never directly mutated -- to enforce best practices.Now let's override a few of the current's state returned properties to alter the state with each state transition:
+reducer函数可以通过其参数访问当前状态和传入操作。到目前为止，switch case语句每个状态只返回前一个状态。
+```JavaScript
+const dataFetchReducer = (state, action) => {
+    switch (action.type) {
+        case 'FETCH_INIT':
+            return {
+                ...state,
+                isLoading: true,
+                isError: false
+            };
+        case 'FETCH_SUCCESS'
+            return {
+                ...state,
+                isLoading: false,
+                isError: false,
+                data: action.payload
+            };
+        case 'FETCH_FAILURE'
+            return {
+                ...state,
+                isLoading: false,
+                isError: true
+            };
+        default: 
+            throw new Error();
+    }
+};
+```
+Now every state transition,decided by the action's type,returns a new state based on the previous state and the optional payload.For instance,in the case of a successful request,the payload is used to set the data of the new state object.
+现在，由操作的类型决定的每个状态转换都会返回一个基于前一个状态和可选负载的新状态。例如，在请求成功的情况下，有效负载用于设置新状态对象的数据。
+
+In conclusion,the Reducer Hook makes sure that this portion of the state management is encapsulated with its own logic.By providing action types and optional payloads,you will always end up with a predicatbale state change.In addition,you will never run into invalid states.For instance,previously it would have been possible to accidently set the isLoading and isError states to true.What should be displayed in the UI for this case?Now,each state transition defined by the reducer function leads to a valid state object.
+总之，reducer钩子确保状态管理的这一部分是用于它自己的逻辑封装的。通过提供动作类型和可选的有效负载，你的状态总是改变。此外，你永远不会遇到无效状态。例如，以前可能会意外地将isLoading和isError状态设置为true.什么应该显示在本例的UI中？现在，reducer函数定义的每个状态转换都会导致一个有效的状态对象。
+
+## ABORT DATA FETCHING IN EFFECT HOOK
+终止数据获取用effect钩子
+
+It's a common problem in React that component state is set even though the component got already unmounted(e.g. due to navigating away with React Router).I have written about this issue previously over here which describes how to prevent setting state for unmounted components in various scenarios.Let's see how we can prevent to set state in our custom hook for the date fetching:
+React中一个常见问题是，即使已卸载组件，也会设置组件状态（例如，由于使用React路由器离开）。我以前写过这个问题，它藐视里如何防止在各种场景中为未安装的组件设置状态。让我们看看如何防止在日期获取的自定义钩子中设置状态：
+```JavaScript
+const useDataApi = (initialUrl, initialData) => {
+    const [url, setUrl] = useState(initialUrl);
+
+    const [state, dispatch] = useReducer(dataFetchReducer, {
+        isLoading: false,
+        isError: false,
+        data: initialData,
+    });
+
+    useEffect(() => {
+        let didCancel = false;
+
+        const fetchData = async () => {
+            dispatch({ type: 'FETCH_INIT' });
+
+            try {
+                cosnt result = await axios(url);
+
+                if (!didCancel) {
+                    dispatch({ type: 'FETCH_SUCCESS', payload: result.data });
+                } catch (error) {
+                    if (!didCancel) {
+                        dispatch({ type: 'FETCH_FAILURE' })
+                    }
+                }
+            }
+        };
+
+        fetchData();
+        return () => {
+            didCancel = true;
+        };
+    }, [url]);
+    
+    return [state, setUrl];
+}
+```
+Every Effect Hook comes with a clean up function which runs when a component unmounts.The clean up functions is the one function returned from the hook.In our case,we use a boolean flag called didCancel to let our data fetching logic know about the state(mounted/unmounted) of the component.If the component did unmount,the flag should be set to true which results in preventing to set the component state after the data fetching has been asynchronously resolved eventually.
+每个effect钩子都有一个clean up函数，该函数在组件卸载时运行。在这个实例中，我们使用一个名为didCancel的布尔值，让我们的数据获取逻辑知道组件的状态。如果组件确实卸载了，那么标志应该设置为true，这将导致在异步解析数据获取之后无法设置组件状态。
+
+Note: Actually not the data fetching is aborted -- which could be achieved with Axios Cancellation -- but the state transition is not performed anymore for the unmounted component.Since Axios Cancellation has not the best API in my eyes,this boolean flag to prevent setting state does the job as well.
+注意：事实上，数据获取不会被中止 -- 这可以通过Axios取消来实现 -- 但是对于未安装的组件，状态转换不再执行。因为Axios取消在我看来并不是最好的API，所以这个防止设置状态的布尔标志也起作用。
+
+You have learned how the React hooks for state and effects can be used in React for data fetching.If you are curious about data fetching in class components(and function components) with render props and higher-order components,checkout out my other article from the beginning.Otherwise,I hope hthis article was useful to you for learning about React Hooks and how to use them in a real world scenario.
+您已经了解来如何在React钩子函数用effect来获取数据。如果你对使用render props和高阶组件在类组件中获取数据感到好奇，看我的另一篇文章。此外，我希望这篇文章对你学习React钩子以及如何在真实场景中使用它们很有用。

@@ -401,7 +401,7 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 106 111
 
 //反转二叉树
-226 100 -1 101 -1 222 110
+226 100 -1 101 -1 222 110 -1
 
 let result = []
     var preOrderTraverseNode = (node) => {
@@ -553,5 +553,29 @@ if(p == null && q == null)
 
 作者：guanpengchn
 链接：https://leetcode-cn.com/problems/same-tree/solution/hua-jie-suan-fa-100-xiang-tong-de-shu-by-guanpengc/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+
+function isBalanced1(root,result){
+    if(root == null){
+        return 0
+    }
+    let l = isBalanced1(root.left,result);
+    let r = isBalanced1(root.right,result);
+    if(l-r>1 || l-r<-1){
+        result[0] = false
+    }
+    return Math.max(l,r)+1;
+}
+var isBalanced = function(root) {
+    let a = [true];
+    isBalanced1(root,a);
+    return a[0]
+};
+
+
+作者：yan-shi-san
+链接：https://leetcode-cn.com/problems/balanced-binary-tree/solution/ping-heng-er-cha-shu-javascript-di-gui-shi-xian-yo/
 来源：力扣（LeetCode）
 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
