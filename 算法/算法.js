@@ -403,6 +403,9 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 //反转二叉树
 226 100 -1 101 -1 222 110 -1
 
+// 二叉树 终止条件
+112 -1 404
+
 let result = []
     var preOrderTraverseNode = (node) => {
         if(node) {
