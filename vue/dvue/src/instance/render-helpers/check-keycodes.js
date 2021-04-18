@@ -1,9 +1,9 @@
 /* @flow */
 
-import config from 'core/config'
-import { hyphenate } from 'shared/util'
+import config from '../../core/config'
+import { hyphenate } from '../../shared/util'
 
-function isKeyNotMatch<T> (expect: T | Array<T>, actual: T): boolean {
+function isKeyNotMatch (expect, actual) {
   if (Array.isArray(expect)) {
     return expect.indexOf(actual) === -1
   } else {
@@ -17,12 +17,12 @@ function isKeyNotMatch<T> (expect: T | Array<T>, actual: T): boolean {
  * passing in eventKeyName as last argument separately for backwards compat
  */
 export function checkKeyCodes (
-  eventKeyCode: number,
-  key: string,
-  builtInKeyCode?: number | Array<number>,
-  eventKeyName?: string,
-  builtInKeyName?: string | Array<string>
-): ?boolean {
+  eventKeyCode,
+  key,
+  builtInKeyCode,
+  eventKeyName,
+  builtInKeyName
+) {
   const mappedKeyCode = config.keyCodes[key] || builtInKeyCode
   if (builtInKeyName && eventKeyName && !config.keyCodes[key]) {
     return isKeyNotMatch(builtInKeyName, eventKeyName)

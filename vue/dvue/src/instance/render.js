@@ -16,6 +16,18 @@ import VNode, { createEmptyVNode } from '../vdom/vnode'
 
 import { isUpdatingChildComponent } from './lifecycle'
 
+/**
+ *  _render函数中的render方法的调用：
+ *      vnode = render.call(vm._renderProxy, vm.$createElement)
+ *      可以看到，render函数中的createElemen方法就是vm.$createElment方法：
+ *
+ *      实际上，vm.$createElement方法定义是在执行initRender方法的时候，可以看到除了vm.$createElement方法，
+ *      还有一个vm._c方法，它是被模版编译成的render函数使用，而vm.$createElement是用户手写render方法使用的，
+ *      这俩个方法支持的参数相同，并且内部都调用了createElement方法
+ *
+ *      vm._render最终是通过执行createElement方法并返回的是vnode，它是一个虚拟Node。Vue2.0相比Vue1.0最大的升级就是利用了
+ *      VirtualDOM。
+ */
 export function initRender (vm) {
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null // v-once cached trees

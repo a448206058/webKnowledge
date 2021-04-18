@@ -5,7 +5,7 @@ import { eventsMixin } from './events'
 import { lifecycleMixin } from './lifecycle'
 import { warn } from '../util/index'
 
-function Vue (options) {
+function dVue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
   ) {
@@ -14,10 +14,10 @@ function Vue (options) {
   this._init(options)
 }
 
-initMixin(Vue)
-stateMixin(Vue)
-eventsMixin(Vue)
-lifecycleMixin(Vue)
-renderMixin(Vue)
+initMixin(dVue)
+stateMixin(dVue)
+eventsMixin(dVue)
+lifecycleMixin(dVue)
+renderMixin(dVue)
 
-export default Vue
+export default dVue

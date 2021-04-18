@@ -4,9 +4,9 @@
  * Runtime helper for rendering static trees.
  */
 export function renderStatic (
-  index: number,
-  isInFor: boolean
-): VNode | Array<VNode> {
+  index,
+  isInFor
+){
   const cached = this._staticTrees || (this._staticTrees = [])
   let tree = cached[index]
   // if has already-rendered static tree and not inside v-for,
@@ -29,18 +29,18 @@ export function renderStatic (
  * Effectively it means marking the node as static with a unique key.
  */
 export function markOnce (
-  tree: VNode | Array<VNode>,
-  index: number,
-  key: string
+  tree,
+  index,
+  key
 ) {
   markStatic(tree, `__once__${index}${key ? `_${key}` : ``}`, true)
   return tree
 }
 
 function markStatic (
-  tree: VNode | Array<VNode>,
-  key: string,
-  isOnce: boolean
+  tree,
+  key,
+  isOnce
 ) {
   if (Array.isArray(tree)) {
     for (let i = 0; i < tree.length; i++) {

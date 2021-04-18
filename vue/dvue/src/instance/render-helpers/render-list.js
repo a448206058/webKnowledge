@@ -6,14 +6,10 @@ import { isObject, isDef, hasSymbol } from 'core/util/index'
  * Runtime helper for rendering v-for lists.
  */
 export function renderList (
-  val: any,
-  render: (
-    val: any,
-    keyOrIndex: string | number,
-    index?: number
-  ) => VNode
-): ?Array<VNode> {
-  let ret: ?Array<VNode>, i, l, keys, key
+  val,
+  render
+){
+  let ret, i, l, keys, key
   if (Array.isArray(val) || typeof val === 'string') {
     ret = new Array(val.length)
     for (i = 0, l = val.length; i < l; i++) {
@@ -27,7 +23,7 @@ export function renderList (
   } else if (isObject(val)) {
     if (hasSymbol && val[Symbol.iterator]) {
       ret = []
-      const iterator: Iterator<any> = val[Symbol.iterator]()
+      const iterator = val[Symbol.iterator]()
       let result = iterator.next()
       while (!result.done) {
         ret.push(render(result.value, ret.length))
@@ -45,6 +41,6 @@ export function renderList (
   if (!isDef(ret)) {
     ret = []
   }
-  (ret: any)._isVList = true
+  (ret)._isVList = true
   return ret
 }

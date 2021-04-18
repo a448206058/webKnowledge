@@ -5486,7 +5486,7 @@ export function createASTElement(
 		tag,
 		// 属性列表
 		attrsList: attrs,
-		// 属性印社表
+		// 属性映射表
 		attrsMap: makeAttrsMap(attrs),
 		// 父的AST元素
 		parent,
@@ -9762,7 +9762,6 @@ updateRoute (route: Route) {
 afterEach (fn: Function): Function {
 	return registerHook(this.afterHooks, fn)
 }
-<<<<<<< .mine
 ```
 
 路由切换除了执行钩子函数，从表象上来看有2个地方会发生变化，一个是url发生变化，
