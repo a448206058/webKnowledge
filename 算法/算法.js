@@ -404,7 +404,53 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 226 100 -1 101 -1 222 110 -1
 
 // 二叉树 终止条件
-112 -1 404
+112 -1 404 -1
+
+// 递归
+257 -1 113 129
+
+var pathSum = function(root, sum) {
+    let res = [];
+    help(root, sum, res, []);
+    return res;
+};
+
+function help(root, sum, res, arr) {
+    if (root === null) return;
+    arr.push(root.val);
+    if (root.left === null && root.right === null && root.val === sum) {
+        // 注意这里不能直接存放arr
+        // 直接存放arr的话这里存的是数组的引用
+        res.push([...arr]);
+    }
+    help(root.left, sum-root.val, res, arr);
+    help(root.right, sum-root.val, res, arr);
+    // 上面两步都结束之后要把arr出栈进行回溯
+    arr.pop();
+}
+
+作者：GuYueJiaJie
+链接：https://leetcode-cn.com/problems/path-sum-ii/solution/javascriptti-jie-shuang-90-by-guyuejiajie-2/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+let res = []
+    if(!root){
+        return res
+    }
+    if (root.left == null && root.right == null) {
+        res.push(root.val.toString())
+        return res;
+    }
+    let left = binaryTreePaths(root.left)
+    for (let i = 0; i < left.length; i++) {
+        res.push(root.val.toString() + "->" + left[i])
+    }
+    let right = binaryTreePaths(root.right);
+    for (let i = 0; i < right.length; i++) {
+        res.push(root.val.toString() + "->" + right[i])
+    }
+    return res;
 
 let result = []
     var preOrderTraverseNode = (node) => {
