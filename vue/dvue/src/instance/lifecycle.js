@@ -242,7 +242,7 @@ export function updateChildComponent (
   // check if there are dynamic scopedSlots (hand-written or compiled but with
   // dynamic slot names). Static scoped slots compiled from template has the
   // "$stable" marker.
-  // 检查是否有动态scopedSlots（手写或者编译的带有动态插槽名称）.
+  // 检查是否有动态scopedSlots（手写或者编译的带有动态插槽名称）.从模板编译的静态作用域插槽具有$stable标记。
   const newScopedSlots = parentVnode.data.scopedSlots
   const oldScopedSlots = vm.$scopedSlots
   const hasDynamicScopedSlot = !!(
@@ -254,6 +254,8 @@ export function updateChildComponent (
   // Any static slot children from the parent may have changed during parent's
   // update. Dynamic scoped slots may also have changed. In such cases, a forced
   // update is necessary to ensure correctness.
+  // 父级中的任何静态插槽子级可能在父级更新期间发生了更改。动态作用域插槽也可能已更改。在这种情况下，
+  // 需要强制更新以确保正确性。
   const needsForceUpdate = !!(
     renderChildren ||               // has new static slots
     vm.$options._renderChildren ||  // has old static slots
