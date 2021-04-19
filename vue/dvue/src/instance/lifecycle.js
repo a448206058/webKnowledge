@@ -351,7 +351,7 @@ export function deactivateChildComponent (vm, direct) {
 
 export function callHook (vm, hook) {
   // #7573 disable dep collection when invoking lifecycle hooks
-  // 调用声明周期钩子函数时禁用dep手机
+  // 调用声明周期钩子函数时禁用dep
   pushTarget()
   const handlers = vm.$options[hook]
   const info = `${hook} hook`

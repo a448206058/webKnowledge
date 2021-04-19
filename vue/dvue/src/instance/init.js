@@ -57,12 +57,14 @@ export function initMixin (Vue) {
     vm._self = vm
     // 初始化生命周期
     initLifecycle(vm)
-    // 初始事件
+    // 初始化事件
     initEvents(vm)
-    // 初始化render函数
+    // 初始化render
     initRender(vm)
+    //  调用钩子函数
     callHook(vm, 'beforeCreate')
     initInjections(vm) // resolve injections before data/props
+    // 初始化props、methods、data、computed与watch
     initState(vm)
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')

@@ -5486,7 +5486,7 @@ export function createASTElement(
 		tag,
 		// 属性列表
 		attrsList: attrs,
-		// 属性印社表
+		// 属性映射表
 		attrsMap: makeAttrsMap(attrs),
 		// 父的AST元素
 		parent,
