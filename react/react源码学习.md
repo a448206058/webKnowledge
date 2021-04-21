@@ -202,3 +202,23 @@ currentFiber.alternate === workInProgressFiber;
 workInProgressFiber.alternate === currentFiber;
 ```
 
+当workInProgress Fiber树构建完成交给Renderer渲染在页面上后，应用根节点的current执行指向workInProgress Fiber树，此时workInProgress Fiber树就变为current Fiber树。
+
+每次状态更新都会产生新的workInProgress Fiber树，通过current与workInProgress的替换，完成DOM更新。
+
+### mount时
+1. 首次执行ReactDOM.render会创建fiberRootNode（源码中叫fiberRoot）和rootFiber。其中fiberRootNode是整个应用的根节点，rootFiber是<App /> 所在组件树的根节点
+
+之所以要区分fiberRootNode与rootFiber，是因为在应用中我们可以多次调用ReactDOM.render渲染不同的组件树，他们会拥有不同的rootFiber。但是整个应用的根节点只有一个，那就是fiberRootNode
+
+fiberRootNode的current会指向当前页面上已渲染内容对应Fiber树，即current Fiber树。
+
+2. 接下来进入render阶段，根据组件返回的JSX在内存中依次创建Fiber节点并连接在一起构建Fiber树，被称为workInProgress Fiber树
+
+3. 图中右侧已构建完的workInProgress Fiber树在commit阶段渲染到页面。
+
+### update
+1. 开启一次新的render阶段并构建一颗新的workInProgress Fiber树
+和mount时一样，workInProgress fiber的创建可以复用current Fiber树对应的节点数据（决定是否复用的过程就是Diff算法）
+
+2. workInProgress Fiber树在render阶段完成构建后进入commit阶段渲染到页面上。渲染完毕后，workInProgress Fiber树变为current Fiber树
