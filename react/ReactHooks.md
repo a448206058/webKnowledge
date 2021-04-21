@@ -847,3 +847,9 @@ Note: Actually not the data fetching is aborted -- which could be achieved with 
 
 You have learned how the React hooks for state and effects can be used in React for data fetching.If you are curious about data fetching in class components(and function components) with render props and higher-order components,checkout out my other article from the beginning.Otherwise,I hope hthis article was useful to you for learning about React Hooks and how to use them in a real world scenario.
 您已经了解来如何在React钩子函数用effect来获取数据。如果你对使用render props和高阶组件在类组件中获取数据感到好奇，看我的另一篇文章。此外，我希望这篇文章对你学习React钩子以及如何在真实场景中使用它们很有用。
+
+### useSWR
+获取数据
+
+## umi hooks
+阿里团队的封装api请求
