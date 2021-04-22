@@ -852,6 +852,120 @@ You have learned how the React hooks for state and effects can be used in React 
 
 ### useSWR
 获取数据
+https://segmentfault.com/a/1190000020964640
 
 ## umi hooks
-阿里团队的封装api请求>>>>>>> .r170
+阿里团队的封装api请求
+https://zhuanlan.zhihu.com/p/103150605?utm_source=wechat_session
+
+## React Hooks的体系设计之一 —— 分层
+https://zhuanlan.zhihu.com/p/106665408
+
+### 状态的分层设计
+自低向上分为6个层
+1. 最底层的内置hook，不需要自己实现，官方直接提供
+2. 简化状态更新方式的hook，比较景丹的是引入inmmer来达到更方便地进行不可变更新的目的
+3. 引入“状态 + 行为” 的概念，通过声明状态结构与相应行为快速创建一个完整上下文。
+4. 对常见数据结构的操作进行封装，如数组的操作
+5. 针对通用业务场景进行封装，如分页的列表、滚动加载的列表、多选等
+6. 实际面向业务的实现。
+
+### 使用immer更新状态
+可以用immer进行更新，利用Proxy的特性将可变的数据更新映射为不可变的操作
+状态管理的基础hook是useState和useReducer，因此我们能封装成：
+```JavaScript
+const [state, setState] = useImmerState({foo: {bar: 1}});
+
+setState(s => s.foo.bar++); // 直接进行可变更新
+setState({foo: {bar: 2}}); // 保留直接更新值的功能
+
+const [state, dispatch] = useImmerReducer(
+    (state, action) => {
+        case 'ADD':
+            state.foo.bar += action.payload;
+        case 'SUBTRACT':
+            state.foo.bar -= action.payload;
+        default:
+            return;
+    },
+    {foo: {bar: 1}}
+);
+
+dispatch('ADD', {payload: 2});
+```
+
+### 状态与行为的封装
+组件的开发，或者说绝大部分的业务的开发，逃不出“一个状态加一系列行为”这个模式，且行为与状态的结构是强相关的。这个模式在面向对象里我们称之为类：
+```JavaScript
+class User {
+    name = '';
+    age = 0;
+
+    birthday() {
+        this.age++;
+    }
+}
+
+// hooks
+const [name, setName] = useState('');
+const [age, SetAge] = useState(0);
+const birthday = useCallback(
+    () => {
+        setAge(age => age + 1);
+    },
+    [age]
+)
+```
+
+问题：
+1. 太多的useState和useCallback调用，重复的编码工作。
+2. 如果不仔细阅读代码，很难找到状态与行为的对应关系。
+把一个状态和针对这个状态的行为合并在一起
+```JavaScript
+const userMethods = {
+    birthday(user) {
+        user.age++; // 利用了immer的能力
+    },
+};
+
+const [user, methods, setUser] = useMethods(
+    userMethods,
+    {name: '', age: 0}
+);
+
+methods.birthday();
+```
+
+### 数据结构的抽象
+```JavaScript
+const [list, methods, setList] = useArray([]);
+
+interface ArrayMethods<T> {
+    push(item: T): void;
+    unshift(item: T): void;
+    pop(): void;
+    shift(): void;
+    slice(start?: number, end?: number): void;
+    splice(index: number, count: number, ...items: T[]): void;
+    remove(item: T): void;
+    removeAt(index: number): void;
+    insertAt(index: number, item: T): void;
+    concat(item: T | T[]): void;
+    replace(from: T, to: T): void;
+    replaceAll(from: T, to: T): void;
+    replaceAt(index: number, item: T): void;
+    filter(predicate: (item: T, index: number) => boolean): void;
+    union(array: T[]): void;
+    intersect(array: T[]): void;
+    difference(array: T[]): void;
+    reverse(): void;
+    sort(compare?: (x: T, y: T) => number): void;
+    clear(): void;
+}
+```
+
+### 通用场景封装
+场景的封装不应与组件库耦合，它应当是业务与组件之间的桥梁，不同的组件库使用相同的hook实现不同的界面，这才是一个理想的模式：
+
+### 总结
+在业务中暴力地直接使用useState等hook并不是一个值得提倡的方式，而针对状态这一块，精细地做一下分层，并在每个层提供响应的能力，是有助于阻止hook库并赋能于业务研发效率的。

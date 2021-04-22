@@ -1,34 +1,33 @@
 <script>
-/**
- * Definition for a binary tree node.
- * function TreeNode(val, left, right) {
- *     this.val = (val===undefined ? 0 : val)
- *     this.left = (left===undefined ? null : left)
- *     this.right = (right===undefined ? null : right)
- * }
- */
-/**
- * @param {TreeNode} root
- * @return {number}
- */
- var sumNumbers = function(root) {
-    if(!root){
-        return res
-    }
-    if (root.left == null && root.right == null) {
-        res.push(root.val.toString())
-        return res;
-    }
-    let left = sumNumbers(root.left)
-    for (let i = 0; i < left.length; i++) {
-        res.push(root.val.toString() + left[i])
-    }
-    let right = sumNumbers(root.right);
-    for (let i = 0; i < right.length; i++) {
-        res.push(root.val.toString() + right[i])
-    }
-    return res;
-};
+    /**
+     * Definition for a binary tree node.
+     * function TreeNode(val, left, right) {
+     *     this.val = (val===undefined ? 0 : val)
+     *     this.left = (left===undefined ? null : left)
+     *     this.right = (right===undefined ? null : right)
+     * }
+     */
+    /**
+     * @param {TreeNode} root
+     * @return {number}
+     */
+    var isValidBST = function (root) {
+        if (root == null || root.val == null) {
+            return true;
+        }
+        if (root.left && root.right) {
+            if (root.left <= root.val <= root.right) {
+                let left = isValidBST(root.left);
+                let right = isValidBST(root.right);
+                if(!left || !right){
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        }
+        return true;
+    };
 
-console.log(2)
+    console.log(isValidBST({val: 2, left: 1, right: 3}))
 </script>

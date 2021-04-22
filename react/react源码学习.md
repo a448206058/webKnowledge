@@ -222,3 +222,223 @@ fiberRootNode的current会指向当前页面上已渲染内容对应Fiber树，�
 和mount时一样，workInProgress fiber的创建可以复用current Fiber树对应的节点数据（决定是否复用的过程就是Diff算法）
 
 2. workInProgress Fiber树在render阶段完成构建后进入commit阶段渲染到页面上。渲染完毕后，workInProgress Fiber树变为current Fiber树
+
+### 顶层目录
+fixtures 包含一些给贡献者准备的小型React测试项目
+packages 包含元数据和React仓库中所有package的源码
+scripts 各种工具链的脚本，比如git、jest、eslint等
+
+react 文件夹
+React的核心，包含所有全局React API
+* React.createElement
+* React.Component
+* React.Children
+
+scheduler 文件夹
+scheduler（调度器）的实现
+
+shared文件夹
+源码中其它模块公用的方法和全局变量
+
+renderer相关的文件夹
+react-art
+react-dom
+react-native-renderer
+react-noop-renderer
+react-test-renderer
+
+试验性包的文件夹
+react-server 创建自定义SSR流
+react-client 创建自定义的流
+react-fetch 用于数据请求
+react-interactions 用于测试交互相关的内部特性，比如React的事件模型
+react-reconciler Reconciler的实现，你可以用他构建自己的Renderer
+
+辅助包的文件夹
+react-is 用于测试组件是否是某类型
+react-client 创建自定义的流
+react-fetch 用于数据请求
+react-refresh 热重载的React官方实现
+
+react-reconciler文件夹
+实验性的包，内部的很多功能在正式版本中还未开放，但是他一边对接scheduler，一边对接不同平台的renderer，构成了整个React16的架构体系。
+
+### 深入理解JSX
+JSX作为描述组件内容的数据结构，为JS赋予了更多视觉表现力，是标签语法
+
+JSX在编译时会被Babel编译为React.createElement方法
+
+JSX并不只能被编译为React.createElement方法，你可以通过@babel/plugin-transform-react-jsx插件显式告诉Babel编译时需要将JSX编译为什么函数的调用（默认为React.createElement）
+
+```JavaScript
+export function createElement(type, config, children) {
+  let propName;
+
+  // Reserved names are extracted
+  const props = {};
+
+  let key = null;
+  let ref = null;
+  let self = null;
+  let source = null;
+
+  if (config != null) {
+    // 将config 处理后赋值给 props
+    if (hasValidRef(config)) {
+      ref = config.ref;
+
+      if (__DEV__) {
+        warnIfStringRefCannotBeAutoConverted(config);
+      }
+    }
+    if (hasValidKey(config)) {
+      key = '' + config.key;
+    }
+
+    self = config.__self === undefined ? null : config.__self;
+    source = config.__source === undefined ? null : config.__source;
+    // Remaining properties are added to a new props object
+    for (propName in config) {
+      if (
+        hasOwnProperty.call(config, propName) &&
+        !RESERVED_PROPS.hasOwnProperty(propName)
+      ) {
+        props[propName] = config[propName];
+      }
+    }
+  }
+
+  // Children can be more than one argument, and those are transferred onto
+  // the newly allocated props object.
+  // 处理children，会被赋值给props.children
+  const childrenLength = arguments.length - 2;
+  if (childrenLength === 1) {
+    props.children = children;
+  } else if (childrenLength > 1) {
+    const childArray = Array(childrenLength);
+    for (let i = 0; i < childrenLength; i++) {
+      childArray[i] = arguments[i + 2];
+    }
+    if (__DEV__) {
+      if (Object.freeze) {
+        Object.freeze(childArray);
+      }
+    }
+    props.children = childArray;
+  }
+
+  // Resolve default props
+  if (type && type.defaultProps) {
+    const defaultProps = type.defaultProps;
+    for (propName in defaultProps) {
+      if (props[propName] === undefined) {
+        props[propName] = defaultProps[propName];
+      }
+    }
+  }
+  if (__DEV__) {
+    if (key || ref) {
+      const displayName =
+      typeof type === 'function'
+        ? type.displayName || type.name || 'Unknown'
+        : type;
+      if (key) {
+        defineKeyPropWarningGetter(props, displayName);
+      }
+      if (ref) {
+        defineRefPropWarningGetter(props, displayName);
+      }
+    }
+  }
+  return ReactElement(
+    type,
+    key,
+    ref,
+    self,
+    source,
+    ReactCurrentOwner.current,
+    props,
+  );
+}
+
+// 返回一个包含组件数据的对象，该对象有个参数$$typeof: REACT_ELEMENT_TYPE 标记了该对象是个React Element
+const ReactElement = function(type, key, ref, self, source, owner, props) {
+  const element = {
+    // This tag allows us to uniquely identify this as a React Element
+    $$typeof: REACT_ELEMENT_TYPE,
+
+    // Built-in properties that belong on the element
+    type: type,
+    key: key,
+    ref: ref,
+    props: props,
+
+    // Record the component responsible for creating this element.
+    _owner: owner,
+  };
+
+  if (__DEV__) {
+    element._store = {};
+
+    Object.defineProperty(element._store, 'validated', {
+      configurable: false,
+      enumerable: false,
+      writable: true,
+      value: false,
+    });
+    // self and source are DEV only properties.
+    Object.defineProperty(element, '_self', {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: self,
+    });
+    Object.defineProperty(element, '_source', {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: source,
+    });
+    if (Object.freeze) {
+      Object.freeze(element.props);
+      Object.freeze(element);
+    }
+  }
+
+  return element;
+}
+
+```
+验证合法React Element的全局API React.isValidElement
+```JavaScript
+export function isValidElement(object) {
+  return (
+    typeof object === 'object' &&
+    object !== null &&
+    object.$$typeof === REACT_ELEMENT_TYPE
+  )
+}
+```
+
+在React中，所有JSX在运行时的返回结果（即React.createElement()的返回值）都是React Element。
+
+### React Component
+在React中，我们常使用ClassComponent与FunctionComponent构建组件
+```JavaScript
+class AppClass extends React.Component {
+  render() {
+    return <p>KaSong</p>
+  }
+}
+```
+
+React通过ClassComponent实例原型上的isReactComponent变量判断是否是ClassComponent
+```JavaScript
+ClassComponent.prototype.isReactComponent = {};
+```
+
+### JSX与Fiber节点
+JSX是一种描述当前组件内容的数据结构，它不包含组件schedule、reconcile、render所需的相关信息
+
+在组件mount时，Reconciler根据JSX描述的组件内容生成组件对应的Fiber节点
+在update时，Reconciler将JSX与Fiber节点保存的数据对比，生成组件对应的Fiber节点，并根据对比结果为Fiber节点打上标记。
