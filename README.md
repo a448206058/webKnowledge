@@ -13,6 +13,12 @@
 ### JavaScript
 call、apply、bind [链接地址](./javascript/call、apply、bind.md)
 
+mutationObserver [链接地址](./javascript/MutationObserver.md)
+
+proxy [链接地址](./javascript/Proxy.md)
+
+promise [链接地址](./javascript/Promise.md)
+
 ### 进阶：
 代码规范： [链接地址](./升阶/代码规范.md) 
  

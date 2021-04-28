@@ -1,33 +1,21 @@
 <script>
-    /**
-     * Definition for a binary tree node.
-     * function TreeNode(val, left, right) {
-     *     this.val = (val===undefined ? 0 : val)
-     *     this.left = (left===undefined ? null : left)
-     *     this.right = (right===undefined ? null : right)
-     * }
-     */
-    /**
-     * @param {TreeNode} root
-     * @return {number}
-     */
-    var isValidBST = function (root) {
-        if (root == null || root.val == null) {
-            return true;
-        }
-        if (root.left && root.right) {
-            if (root.left <= root.val <= root.right) {
-                let left = isValidBST(root.left);
-                let right = isValidBST(root.right);
-                if(!left || !right){
-                    return false;
-                }
-            }else{
-                return false;
-            }
-        }
-        return true;
+    const buildBST = (nums, start, end) => {
+    if (start > end) { // 构成不了区间，返回null
+      return null;
+    }
+
+    const midIndex = (start + end) >>> 1; // 求中间索引
+    const root = new TreeNode(nums[midIndex]); // 构建当前节点
+
+    root.left = buildBST(nums, start, midIndex - 1); // 构建左子树
+    root.right = buildBST(nums, midIndex + 1, end); // 构建右子树
+
+    return root;
+};
+    var sortedArrayToBST = function (nums) {
+        return buildBST(nums, 0, nums.length - 1); // 递归的入口
     };
 
-    console.log(isValidBST({val: 2, left: 1, right: 3}))
+
+    console.log(sortedArrayToBST([-10, -3, 0, 5, 9]))
 </script>
