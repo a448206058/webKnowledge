@@ -38,6 +38,9 @@ promiseA+规范 [链接地址](./javascript/PromiseA.md)
 
 Node： [链接地址](./node/node.md)  
 
+### 工作日常
+Node： [链接地址](./版本管理/Git提交信息.md)  
+
 ### 源码理解：
 
 ### vue2.x源码理解系列：
