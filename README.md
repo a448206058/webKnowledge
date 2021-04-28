@@ -19,6 +19,10 @@ proxy [链接地址](./javascript/Proxy.md)
 
 promise [链接地址](./javascript/Promise.md)
 
+promiseA+规范 [链接地址](./javascript/PromiseA.md)
+
+手写async await的最简实现 [链接地址](./javascript/手写async await的最简实现.md)
+
 ### 进阶：
 代码规范： [链接地址](./升阶/代码规范.md) 
  
