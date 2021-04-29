@@ -1,21 +1,56 @@
 <script>
-    const buildBST = (nums, start, end) => {
-    if (start > end) { // 构成不了区间，返回null
-      return null;
+    //[5,3,6,2,4,null,null,1]
+var kthSmallest = function(root, k) {
+    let result = null;
+
+    const inOrder = function(root) {
+        if(k === 0){
+            result = root.val;
+        }
+        if(root !== null && k > 0){
+            inOrder(root.left);
+            if(--k === 0){
+                result = root.val;
+                return
+            }
+            inOrder(root.right)
+        }
+        
     }
-
-    const midIndex = (start + end) >>> 1; // 求中间索引
-    const root = new TreeNode(nums[midIndex]); // 构建当前节点
-
-    root.left = buildBST(nums, start, midIndex - 1); // 构建左子树
-    root.right = buildBST(nums, midIndex + 1, end); // 构建右子树
-
-    return root;
+    inOrder(root);
+    return result
 };
-    var sortedArrayToBST = function (nums) {
-        return buildBST(nums, 0, nums.length - 1); // 递归的入口
-    };
 
 
-    console.log(sortedArrayToBST([-10, -3, 0, 5, 9]))
+
+
+
+
+
+
+
+
+
+
+
+
+// let res = null
+//     let inOrderTraverseNode = function(node) {
+//         if(node !== null && k > 0) {
+//             // 先遍历左子树
+//             inOrderTraverseNode(node.left)
+//             // 然后根节点
+//             if(--k === 0) {
+//                 res = node.val
+//                 return 
+//             }
+//             // 再遍历右子树
+//             inOrderTraverseNode(node.right)
+//         }
+//     }
+//     inOrderTraverseNode(root)
+//     return res
+
+let cc = {val: 5, left: {val: 3,left: {val: 2, left: {}, right: {}},right: {val: 4,left: {val: 1,left: {}, right: {}},right: {}}}, right: {val: 6, left: {}, right: {}}}
+    console.log(kthSmallest(cc, 3))
 </script>

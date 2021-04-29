@@ -38,3 +38,49 @@ function Counter() {
 ReactDOM.render(<Counter />, document.getElementById('root'))
 ```
 When that's run, "counter rendered" will be logged to the console initially,and each time the count is incremented, "counter rendered" will be logged to the console.This happens because when the button is clicked,state changes and React needs to get the new React elements to render based on that state change.When it gets those new elements,it renders and commits them to the DOM.
+
+Here's where things get interesting.Consider the fact that <Logger label /> never changes between renders.It's static,and therefore could be extracted.Let's try that just for fun (I'm not recommending you do this, wait for later in the blog post for practical recommendations).
+
+```JavaScript
+import * as React from 'react'
+import ReactDOM from 'react-dom'
+
+function Logger(props) {
+  console.log(`${props.label} rendered`)
+  return null
+}
+
+function Counter(props) {
+  const [count, setCount] = React.useState(0)
+  const increment = () => setCount(c => c + 1)
+  return (
+    <div>
+      <button onClick={increment}>The count is {count}</button>
+      {props.logger}
+    </div>
+  )
+}
+
+ReactDOM.render(
+  <Counter logger={<Logger label="counter" />} />,
+  document.getElementById('root'),
+)
+```
+
+Did you notice the change? Yeah! We get the initial log,but then we don't get new logs when we click the button anymore!WHAAAT!?
+
+> If you want to skip all the deep-dive technical details and get to the "what does this mean for me" go ahead and plop yourself down there now
+
+### What's going on?
+So what's causing this difference?Well, it has to do with React elements.Why don't you take a quick break and read my blog post "What is JSX?" to get a quick refresher on React elements and their relationship to JSX.
+
+When React calls the counter function, it gets back something that looks a bit like this:
+```JavaScript
+// some things removed for clarity
+const counterElement = {
+  type: 'div',
+  props: {
+    
+  }
+}
+```
