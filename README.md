@@ -15,6 +15,8 @@ call、apply、bind [链接地址](./javascript/call、apply、bind.md)
 
 mutationObserver [链接地址](./javascript/MutationObserver.md)
 
+ES6 [链接地址](./javascript/ES6.md)
+
 proxy [链接地址](./javascript/Proxy.md)
 
 promise [链接地址](./javascript/Promise.md)
