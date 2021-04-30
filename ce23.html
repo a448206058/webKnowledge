@@ -1,56 +1,16 @@
 <script>
-    //[5,3,6,2,4,null,null,1]
-var kthSmallest = function(root, k) {
-    let result = null;
-
-    const inOrder = function(root) {
-        if(k === 0){
-            result = root.val;
-        }
-        if(root !== null && k > 0){
-            inOrder(root.left);
-            if(--k === 0){
-                result = root.val;
-                return
-            }
-            inOrder(root.right)
-        }
-        
+var lowestCommonAncestor = function(root, p, q) {
+    let ans;
+    const dfs = (root, p, q) => {
+        if (root === null) return false;
+        const lson = dfs(root.left, p, q);
+        const rson = dfs(root.right, p, q);
+        if ((lson && rson) || ((root.val === p.val || root.val === q.val) && (lson || rson))) {
+            ans = root;
+        } 
+        return lson || rson || (root.val === p.val || root.val === q.val);
     }
-    inOrder(root);
-    return result
+    dfs(root, p, q);
+    return ans;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// let res = null
-//     let inOrderTraverseNode = function(node) {
-//         if(node !== null && k > 0) {
-//             // 先遍历左子树
-//             inOrderTraverseNode(node.left)
-//             // 然后根节点
-//             if(--k === 0) {
-//                 res = node.val
-//                 return 
-//             }
-//             // 再遍历右子树
-//             inOrderTraverseNode(node.right)
-//         }
-//     }
-//     inOrderTraverseNode(root)
-//     return res
-
-let cc = {val: 5, left: {val: 3,left: {val: 2, left: {}, right: {}},right: {val: 4,left: {val: 1,left: {}, right: {}},right: {}}}, right: {val: 6, left: {}, right: {}}}
-    console.log(kthSmallest(cc, 3))
 </script>
