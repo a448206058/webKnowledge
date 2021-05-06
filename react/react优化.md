@@ -257,3 +257,65 @@ Good luck!
 祝你好运！
 >I want to add a note that if you're using legacy context, you wont be able to get this optimization, as React has a special case for that here, so people concerned about performance should probably migrate from legacy context.
 》我想补充一点，如果您使用的是遗留上下文，您将无法得到这种优化，因为React在这里有一个特殊的情况，所以关注性能的人可能应该从遗留上下文迁移。
+
+
+## 如何对React函数式组件进行优化
+### React性能优化思路
+1. 减少重新render的次数。因为在react里花时间最长的一块就是reconciliation（简单的可以理解为diff），如果不render，就不会reconciliation
+
+2. 减少计算的量。主要是减少重复计算，对于函数式组件来说，每次render都会重新从头开始执行函数调用。
+
+在使用类组件的时候，使用的React优化API主要是shouldComponentUpdate和PureComponent，这俩个API所提供的解决思路都是为了减少重新render的次数，主要是减少父组件更新而子组件也更新的情况。
+
+### React.memo
+对标类组件里面的PureComponent，可以减少重新render的次数
+```JavaScript
+function MyComponent(props) {
+  /* 使用 props 渲染 */
+}
+function areEqual(prevProps, nextProps) {
+  /*
+  如果把 nextProps 传入 render 方法的返回结果与
+  将 prevProps 传入 render 方法的返回结果一致则返回 true，
+  否则返回 false
+  */
+}
+export default React.memo(MyComponent, areEqual);
+```
+
+### useCallback
+```JavaScript
+// index.js
+import React, { useState, useCallback } from "react";
+import ReactDOM from "react-dom";
+import Child from "./child";
+
+function App() {
+  const [title, setTitle] = useState("这是一个 title");
+  const [subtitle, setSubtitle] = useState("我是一个副标题");
+
+  const callback = () => {
+    setTitle("标题改变了");
+  };
+
+  // 通过 useCallback 进行记忆 callback，并将记忆的 callback 传递给 Child
+  const memoizedCallback = useCallback(callback, [])
+  
+  return (
+    <div className="App">
+      <h1>{title}</h1>
+      <h2>{subtitle}</h2>
+      <button onClick={() => setSubtitle("副标题改变了")}>改副标题</button>
+      <Child onClick={memoizedCallback} name="桃桃" />
+    </div>
+  );
+}
+
+const rootElement = document.getElementById("root");
+ReactDOM.render(<App />, rootElement);
+```
+
+### useMemo
+React.memo和useCallback都是为了减少重新render的次数。对于如何减少计算的量，就是useMemo
+
+参考资料：https://juejin.cn/post/6844904000043614222
