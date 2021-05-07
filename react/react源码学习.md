@@ -2690,3 +2690,120 @@ componentDidMount和componentDidUpdate会在layout阶段执行。此时current F
 
 ### 总结
 layout阶段会遍历effectList，依次执行commitLayoutEffects。该方法的主要工作为“根据effectTag调用不同的处理函数处理Fiber并更新ref。
+
+## diff算法
+对于update的组件，它会将当前组件与该组件在上次更新时对应的Fiber节点比较（也就是俗称的Diff算法），将比较的结果生成新Fiber节点
+
+1个DOM节点在某一时刻最多会有4个节点和它相关
+1. current Fiber。如果该DOM节点已在页面中,current Fiber代表该DOM节点对应的Fiber节点
+2. workInProgress Fiber。如果该DOM节点将在本次更新中渲染到页面中，workInProgress Fiber代表该DOM节点对应的Fiber节点
+3. DOM节点本身
+4. JSX对象。即ClassComponent的render方法的返回结果，或FuncionComponent的调用结果。JSX对象中包含描述DOM节点的信息。
+
+diff算法的本质是比较current Fiber和JSX对象生成workInProgress Fiber
+
+### diff的瓶颈以及React如何应对
+将前后俩棵树完全比对的算法的时间复杂度为O(n3)
+为了降低算法复杂度，React的diff会预设三个限制：
+1. 只对同级元素进行Diff。如果一个DOM节点在前后俩次更新中跨越了层级，那么React不会尝试复用它。
+2. 俩个不同类型的元素会产生出不同的树。如果元素由div变为p，React会销毁div及其子孙节点，并新建p及其子孙节点
+3. 开发者可以通过key prop来暗示哪些子元素在不同的渲染下能保持稳定
+
+### diff是如何实现的
+reconcileChildFibers函数会根据newChild(即JSX对象)类型调用不同的处理函数
+```JavaScript
+function reconcileChildFibers(
+  returnFiber: Fiber,
+  currentFirstChild: Fiber | null,
+  newChild: any
+): Fiber | null {
+  const isObject = typeof newChild === 'object' && newChild !== null;
+
+  if (isObject) {
+    // object类型，可能是 REACT_ELEMENT_TYPE 或 REACT_PORTAL_TYPE
+    switch (newChild.$$typeof) {
+      case REACT_ELEMENT_TYPE:
+        // 调用 reconcileSingleElement 处理
+    }
+  }
+
+  if (typeof newChild === 'string' || typeof newChild === 'number') {
+    // 调动 reconcileSingleTextNode 处理
+  }
+
+  if (isArray(newChild)) {
+    // 调用 reconcileChildrenArray 处理
+  }
+
+  // 以下都没有命中，删除节点
+  return deleteRemainingChildren(returnFiber, currentFirstChild);
+}
+```
+
+从同级的节点数量将Diff分为俩类：
+1. 当newChild类型为object、number、string，代表同级只有一个节点
+2. 当newChild类型为Array，同级有多个节点
+
+### reconcileSingleElement
+上次更新时的Fiber节点是否存在对应DOM节点 ——>是 DOM节点是否可以复用 ——>是 将上次更新的Fiber节点的副本作为本次新生成的Fiber节点并返回
+                                      ——>否 标记DOM需要被删除——> 新生成一个Fiber节点并返回
+
+```JavaScript
+function reconcileSingleElement(
+  returnFiber: Fiber,
+  currentFirstChild: Fiber | null,
+  element: ReactElement
+): Fiber {
+  const key = element.key;
+  let child = currentFirstChild;
+
+  // 首先判断是否存在对应DOM节点
+  while (child !== null) {
+    // 上一次更新存在DOM节点，接下来判断是否可复用
+
+    // 首先比较key是否相同
+    if (child.key === key) {
+      // key 相同，接下来比较type是否相同
+
+      switch (child.tag) {
+        // ...省略case
+
+        default: {
+          if (child.elementType === element.type) {
+            // type相同则表示可以复用
+            // 返回复用的fiber
+            return existing;
+          }
+
+          // type不同则跳出switch
+          break;
+        }
+      }
+
+      // 代码执行到这里代表：key相同但是type不同
+      // 将该fiber及其兄弟fiber标记为删除
+      deleteRemainingChildren(returnFiber, child);
+      break;
+    } else {
+      /// key不同，将该fiber标记为删除
+      deleteChild(returnFiber, child);
+    }
+    child = child.sibling;
+  }
+
+  // 创建新Fiber，并返回 ...省略
+}
+```
+
+### reconcileChildFibers
+处理同级多个节点的diff
+
+更新组件发生的频率更高。所以diff会优先判断当前节点是否属于更新。
+
+diff算法的整体逻辑会经历俩轮遍历：
+第一轮遍历： 处理更新的节点
+
+第二轮遍历： 处理剩下的不属于更新的节点
+
+### 第一轮遍历
+1. let i = 0

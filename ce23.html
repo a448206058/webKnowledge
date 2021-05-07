@@ -1,16 +1,46 @@
 <script>
-var lowestCommonAncestor = function(root, p, q) {
-    let ans;
-    const dfs = (root, p, q) => {
-        if (root === null) return false;
-        const lson = dfs(root.left, p, q);
-        const rson = dfs(root.right, p, q);
-        if ((lson && rson) || ((root.val === p.val || root.val === q.val) && (lson || rson))) {
-            ans = root;
-        } 
-        return lson || rson || (root.val === p.val || root.val === q.val);
+    let res = [];
+    let shuzu = {
+        0: "",
+        1: " ",
+        2: ["a", "b", "c"],
+        3: ["d", "e", "f"],
+        4: ["g", "h", "i"],
+        5: ["j", "k", "l"],
+        6: ["m", "n", "o"],
+        7: ["p", "q", "r", "s"],
+        8: ["t", "u", "v"],
+        9: ["w", "x", "y", "z"]
     }
-    dfs(root, p, q);
-    return ans;
-};
+    let search = function (value, index) {
+        if(value.length == index){
+            res.push(value);
+            return
+        }
+        var tmp = shuzu(value[index]);
+        for(let i = index; i < value.length; i++){
+            search(value + tmp[i], index+1);
+        }
+        return
+    }
+    var letterCombinations = function (digits) {
+        if(!digits){
+            return [];
+        }
+        const res = [];
+        const map = { '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl', '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz' };
+        const dfs = (curStr, i) => {
+            if (i > digits.length - 1) {
+                res.push(curStr);
+                return;
+            }
+            const letters = map[digits[i]];
+            for (const letter of letters) {
+                dfs(curStr + letter, i + 1);
+            }
+        }
+        dfs('', 0)
+        return res;
+    };
+    console.log(letterCombinations("23"))
 </script>
