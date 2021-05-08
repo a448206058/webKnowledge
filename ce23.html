@@ -1,46 +1,44 @@
 <script>
-    let res = [];
-    let shuzu = {
-        0: "",
-        1: " ",
-        2: ["a", "b", "c"],
-        3: ["d", "e", "f"],
-        4: ["g", "h", "i"],
-        5: ["j", "k", "l"],
-        6: ["m", "n", "o"],
-        7: ["p", "q", "r", "s"],
-        8: ["t", "u", "v"],
-        9: ["w", "x", "y", "z"]
-    }
-    let search = function (value, index) {
-        if(value.length == index){
-            res.push(value);
-            return
-        }
-        var tmp = shuzu(value[index]);
-        for(let i = index; i < value.length; i++){
-            search(value + tmp[i], index+1);
-        }
-        return
-    }
-    var letterCombinations = function (digits) {
-        if(!digits){
-            return [];
-        }
-        const res = [];
-        const map = { '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl', '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz' };
-        const dfs = (curStr, i) => {
-            if (i > digits.length - 1) {
-                res.push(curStr);
+    var restoreIpAddresses = function (s) {
+        const SEG_COUNT = 4;
+        const segments = new Array(SEG_COUNT);
+        const ans = [];
+
+        const dfs = (s, segId, segStart) => {
+            // 如果找到了 4 段 IP 地址并且遍历完了字符串，那么就是一种答案
+            if (segId === SEG_COUNT) {
+                if (segStart === s.length) {
+                    ans.push(segments.join('.'));
+                }
                 return;
             }
-            const letters = map[digits[i]];
-            for (const letter of letters) {
-                dfs(curStr + letter, i + 1);
+
+            // 如果还没有找到 4 段 IP 地址就已经遍历完了字符串，那么提前回溯
+            if (segStart === s.length) {
+                return;
+            }
+
+            // 由于不能有前导零，如果当前数字为 0，那么这一段 IP 地址只能为 0
+            if (s.charAt(segStart) === '0') {
+                segments[segId] = 0;
+                dfs(s, segId + 1, segStart + 1);
+            }
+
+            // 一般情况，枚举每一种可能性并递归
+            let addr = 0;
+            for (let segEnd = segStart; segEnd < s.length; ++segEnd) {
+                addr = addr * 10 + (s.charAt(segEnd) - '0');
+                if (addr > 0 && addr <= 0xFF) {
+                    segments[segId] = addr;
+                    dfs(s, segId + 1, segEnd + 1);
+                } else {
+                    break;
+                }
             }
         }
-        dfs('', 0)
-        return res;
+
+        dfs(s, 0, 0);
+        return ans;
     };
-    console.log(letterCombinations("23"))
+    console.log(restoreIpAddresses(s))
 </script>
