@@ -3006,3 +3006,101 @@ lastPlacedIndex初始为0，每遍历一个可复用的节点，如果oldIndex >
 render阶段开始于performSyncWorkOnRoot或performConcurrentWorkOnRoot方法的调用。这取决于本次更新是同步更新还是异步更新。
 
 ### commmit阶段的开始
+commit阶段开始于commitRoot方法的调用。其中rootFiber会作为传参。
+
+补全从触发状态更新到render阶段的路径
+```sh
+触发状态更新 --> ? --> render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`） --> commit阶段(`commitRoot`)
+```
+
+### 创建Update对象
+在React中，有如下方法可以触发状态更新
+* ReactDOM.render
+* this.setState
+* this.forceUpdate
+* useState
+* useReducer
+他们是如何接入同一套状态更新机制
+每次状态更新都会创建一个保存更新状态相关内容的对象，叫update。在render阶段的beginWork中会根据Update计算新的state
+
+### 从fiber到root
+现在触发状态更新的fiber上已经包含Update对象
+render阶段是从rootFiber开始向下遍历。那么如何从触发状态更新的fiber得到rootFiber?
+通过调用markUpdateLaneFromFiberToRoot方法
+
+从触发状态更新的fiber一直向上遍历到rootFiber，并返回rootFiber
+```JavaScript
+function markUpdateLaneFromFiberToRoot(
+  sourceFiber: Fiber,
+  lane: Lane,
+): FiberRoot | null {
+  // Update the source fiber's lanes
+  sourceFiber.lanes = mergeLanes(sourceFiber.lanes, lane);
+  let alternate = sourceFiber.alternate;
+  if (alternate !== null) {
+    alternate.lanes = mergeLanes(alternate.lanes, lane);
+  }
+  if (__DEV__) {
+    if (
+      alternate === null &&
+      (sourceFiber.effectTag & (Placement | Hydrating)) !== NoEffect
+    ) {
+      warnAboutUpdateOnNotYetMountedFiberInDEV(sourceFiber);
+    }
+  }
+  // Walk the parent path to the root and update the child expiration time.
+  let node = sourceFiber;
+  let parent = sourceFiber.return;
+  while (parent !== null) {
+     parent.childLanes = mergeLanes(parent.childLanes, lane);
+    alternate = parent.alternate;
+    if (alternate !== null) {
+      alternate.childLanes = mergeLanes(alternate.childLanes, lane);
+    } else {
+      if (__DEV__) {
+        if ((parent.effectTag & (Placement | Hydrating)) !== NoEffect) {
+          warnAboutUpdateOnNotYetMountedFiberInDEV(sourceFiber);
+        }
+      }
+    }
+    node = parent;
+    parent = parent.return;
+  }
+   if (node.tag === HostRoot) {
+    const root: FiberRoot = node.stateNode;
+    return root;
+  } else {
+    return null;
+  }
+}
+```
+
+### 调度更新
+现在我们拥有一个rootFiber，该rootFiber对应的Fiber树中某个Fiber节点包含一个Update
+
+接下来通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新。
+
+通过ensureRootIsScheduled
+```JavaScript
+if (newCallbackPriority === SyncLanePriority) {
+  // 任务已经过期，需要同步执行render阶段
+  newCallbackNode = scheduleSyncCallback(
+    performSyncWorkOnRoot.bind(null, root)
+  )
+} else {
+  // 根据任务优先级异步执行render阶段
+  var schedulerPriorityLevel = lanePriorityToSchedulerPriority(
+    newCallbackPriority
+  );
+  newCallbackNode = scheduleCallback(
+    schedulerPriorityLevel,
+    performConcurrentWorkOnRoot.bind(null, root)
+  )
+}
+```
+
+performSyncWorkOnRoot和performConcurrentWorkOnRoot即render阶段的入口函数
+至此，状态更新就和render阶段连接上了
+```sh
+触发状态更新 --> 创建Update对象 --> 从fiber到root（`markUpdateLaneFromFiberToRoot`） --> 调度更新（`ensureRootIsScheduled`） --> render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`） --> commit阶段（`commitRoot`）
+```
