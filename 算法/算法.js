@@ -411,6 +411,9 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 
 98 -1 450 -1 108 -1 230 -1 236 -1
 
+// 回溯
+17 93 131
+
 var pathSum = function(root, sum) {
     let res = [];
     help(root, sum, res, []);
