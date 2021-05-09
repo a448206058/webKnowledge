@@ -1,78 +1,92 @@
-## React理念
+## React 理念
+
 快速响应
 
 ### 制约快速响应的场景
-* 当遇到大计算量的操作或者设备性能不足使页面掉帧，导致卡顿  -- CPU的瓶颈
-* 发送网络请求后，由于需要等待数据返回才能进一步操作导致不能快速响应 -- IO的瓶颈
 
-### CPU的瓶颈
-主流浏览器刷新频率为60Hz，即每（1000ms/60Hz）16.6ms浏览器刷新一次
+- 当遇到大计算量的操作或者设备性能不足使页面掉帧，导致卡顿 -- CPU 的瓶颈
+- 发送网络请求后，由于需要等待数据返回才能进一步操作导致不能快速响应 -- IO 的瓶颈
 
-JS可以操作DOM，GUI渲染线程与JS线程是互斥的。所以JS脚本执行和浏览器布局、绘制不能同时执行。
+### CPU 的瓶颈
 
-在浏览器每一帧的事件中，预留一些事件给JS线程，React利用这部分时间更新组件（预留的初始时间是5ms）。当预留的时间不够用时，React将线程控制权交还给浏览器使其有时间渲染UI，React则等待下一帧时间到来继续被中断的工作。
+主流浏览器刷新频率为 60Hz，即每（1000ms/60Hz）16.6ms 浏览器刷新一次
 
-* 这种将长任务分拆到每一帧中，像蚂蚁搬家一样一次执行一小段任务的操作，被称为时间切片（time slice）
+JS 可以操作 DOM，GUI 渲染线程与 JS 线程是互斥的。所以 JS 脚本执行和浏览器布局、绘制不能同时执行。
 
-开启Concurrent Mode
+在浏览器每一帧的事件中，预留一些事件给 JS 线程，React 利用这部分时间更新组件（预留的初始时间是 5ms）。当预留的时间不够用时，React 将线程控制权交还给浏览器使其有时间渲染 UI，React 则等待下一帧时间到来继续被中断的工作。
+
+- 这种将长任务分拆到每一帧中，像蚂蚁搬家一样一次执行一小段任务的操作，被称为时间切片（time slice）
+
+开启 Concurrent Mode
+
 ```JavaScript
 // 通过使用ReactDOM.unstable_createRoot开启Concurrent Mode
 // ReactDOM.render(<App/>, rootEl);
 ReactDOM.unstable_createRoot(rootEl).render(<App/>);
 ```
 
-解决CPU瓶颈的关键是实现时间切片，而时间切片的关键是：将同步的更新变为可中断的异步更新。
+解决 CPU 瓶颈的关键是实现时间切片，而时间切片的关键是：将同步的更新变为可中断的异步更新。
 
-### IO的瓶颈
+### IO 的瓶颈
+
 网络延迟是前端开发者无法解决的。如何在网络延迟客观存在的情况下，减少用户对网络延迟的感知？
 
-解决办法是先在当前页面停留一小段时间，这一小段时间被用来请求数据。当这一小段时间足够短时，用户是无感知的。如果请求时间超过一个范围，再显示loading的效果。
+解决办法是先在当前页面停留一小段时间，这一小段时间被用来请求数据。当这一小段时间足够短时，用户是无感知的。如果请求时间超过一个范围，再显示 loading 的效果。
 
-React实现了Suspense功能及配套的hook-useDeferredValue
+React 实现了 Suspense 功能及配套的 hook-useDeferredValue
 
 而在源码内部，为了支持这些特性，同样需要将同步的更新变为可中断的异步更新
 
-### React15架构
+### React15 架构
+
 可以分为俩层：
 Reconciler（协调器）—— 负责找出变化的组件
 Renderer（渲染器）—— 负责将变化的组件渲染到页面上
 
 ### Reconciler（协调器）
-在React中可以通过this.setState、this.forceUpdate、ReactDOM.render等API触发更新。
-每当有更新发生时，Reconciler会做如下工作：
-* 调用函数组件、或class组件的render方法，将返回的JSX转化为虚拟DOM
-* 将虚拟DOM和上次更新时的虚拟DOM对比
-* 通知对比找出本次更新中变化的虚拟DOM
-* 通知Renderer将变化的虚拟DOM渲染到页面上
+
+在 React 中可以通过 this.setState、this.forceUpdate、ReactDOM.render 等 API 触发更新。
+每当有更新发生时，Reconciler 会做如下工作：
+
+- 调用函数组件、或 class 组件的 render 方法，将返回的 JSX 转化为虚拟 DOM
+- 将虚拟 DOM 和上次更新时的虚拟 DOM 对比
+- 通知对比找出本次更新中变化的虚拟 DOM
+- 通知 Renderer 将变化的虚拟 DOM 渲染到页面上
 
 ### Renderer（渲染器）
-* ReactDOM 浏览器环境渲染的Renderer
-* ReactNative 渲染App原生组件
-* ReactTest 渲染出纯Js对象用于测试
-* ReactArt 渲染到Canvas，SVG或VML
 
-在每次更新发生时，Renderer接到Reconciler通知，将变化的组件渲染在当前宿主环境
+- ReactDOM 浏览器环境渲染的 Renderer
+- ReactNative 渲染 App 原生组件
+- ReactTest 渲染出纯 Js 对象用于测试
+- ReactArt 渲染到 Canvas，SVG 或 VML
 
-### React15架构的缺点
-在Reconciler中，mount的组件会调用mountComponent，update的组件会调用updateComponent。这俩个方法都会递归更新子组件。
+在每次更新发生时，Renderer 接到 Reconciler 通知，将变化的组件渲染在当前宿主环境
 
-由于递归执行，所以更新一旦开始，中途就无法中断。当层级很深时，递归更新时间超过了16ms，用户交互就会卡顿。
+### React15 架构的缺点
 
-React15架构不能支持异步更新
+在 Reconciler 中，mount 的组件会调用 mountComponent，update 的组件会调用 updateComponent。这俩个方法都会递归更新子组件。
 
-### React16架构
+由于递归执行，所以更新一旦开始，中途就无法中断。当层级很深时，递归更新时间超过了 16ms，用户交互就会卡顿。
+
+React15 架构不能支持异步更新
+
+### React16 架构
+
 可以分为三层：
-Scheduler（调度器）—— 调度任务的优先级，高优任务优先进入Reconciler
+Scheduler（调度器）—— 调度任务的优先级，高优任务优先进入 Reconciler
 Reconciler（协调器）—— 负责找出变化的组件
 Renderer（渲染器） —— 负责将变化的组件渲染到页面上
 
 ### Scheduler（调度器）
+
 既然我们以浏览器是否有剩余时间作为中断的标准，那么我们需要一种机制，当浏览器有剩余时间时通知我们。
 
-React实现了requestIdleCallback polyfill，这就是Scheduler。除了在空闲时触发回调的功能外，Scheduler还提供了多种调度优先级供任务设置。
+React 实现了 requestIdleCallback polyfill，这就是 Scheduler。除了在空闲时触发回调的功能外，Scheduler 还提供了多种调度优先级供任务设置。
 
 ### Reconciler（协调器）
-更新工作从递归变成了可以中断的循环过程。每次循环都会调用shouldYield判断当前是否有剩余时间。
+
+更新工作从递归变成了可以中断的循环过程。每次循环都会调用 shouldYield 判断当前是否有剩余时间。
+
 ```JavaScript
 function workLoopConcurrent() {
   while (whorkInProgress !== null && !shouldYield()) {
@@ -81,7 +95,8 @@ function workLoopConcurrent() {
 }
 ```
 
-在React16中，Reconciler与Renderer不再是交替工作。当Scheduler将任务交给Reconciler后，Reconciler会为变化的虚拟DOM打上代表增/删/更新的标记。
+在 React16 中，Reconciler 与 Renderer 不再是交替工作。当 Scheduler 将任务交给 Reconciler 后，Reconciler 会为变化的虚拟 DOM 打上代表增/删/更新的标记。
+
 ```JavaScript
 export const Placement = /* */ 0b0000000000010
 export const Update = /* */ 0b0000000000100
@@ -89,44 +104,51 @@ export const PlacementAndUpdate  = /* */ 0b0000000000110
 export const Deletion = /* */ 0b0000000001000
 ```
 
-整个Scheduler与Reconciler的工作都在内存中进行。只有当所有组件都完成Reconciler的工作，才会统一交给Renderer。
+整个 Scheduler 与 Reconciler 的工作都在内存中进行。只有当所有组件都完成 Reconciler 的工作，才会统一交给 Renderer。
 
 ### Renderer（渲染器）
-Renderer根据Reconciler为虚拟DOM打的标记，同步执行对应的DOM操作。
 
-所有的工作都在内存中进行，不会更新页面上的DOM，所以即时反复中断，用户也不会看见更新不完全的DOM
+Renderer 根据 Reconciler 为虚拟 DOM 打的标记，同步执行对应的 DOM 操作。
 
-由于Scheduler和Reconciler都是平台无关的，所以React为他们单独发了一个包react-Reconciler。你可以用这个包自己实现一个ReactDOM
+所有的工作都在内存中进行，不会更新页面上的 DOM，所以即时反复中断，用户也不会看见更新不完全的 DOM
+
+由于 Scheduler 和 Reconciler 都是平台无关的，所以 React 为他们单独发了一个包 react-Reconciler。你可以用这个包自己实现一个 ReactDOM
 
 ### 什么是代数效应
+
 代数效应是函数式编程中的一个概念，用于将副作用从函数调用中分离。
 try handle
 
-从React15到React16，协调器（Reconciler）重构的一大目的是：将老的同步更新的架构变为异步可中断更新。
+从 React15 到 React16，协调器（Reconciler）重构的一大目的是：将老的同步更新的架构变为异步可中断更新。
 
 异步可中断更新可以理解为：更新在执行过程中可能会被打断（浏览器时间分片用尽或有更高优任务插队），当可以继续执行时回复之前执行的中间状态。
-这就是代数效应中try...handle的作用。
+这就是代数效应中 try...handle 的作用。
 
-### 代数效应与Fiber
-Fiber并不是计算机术语中的新名词，他的中文翻译叫做纤程，与进程（Process）、线程（Thread）、协程（Coroutine）同为程序执行过程。
+### 代数效应与 Fiber
 
-很多文字中将纤程理解为协程的一种实现。在JS中，协程的实现便是Generator。
+Fiber 并不是计算机术语中的新名词，他的中文翻译叫做纤程，与进程（Process）、线程（Thread）、协程（Coroutine）同为程序执行过程。
 
-可以将纤程（Fiber）、协程（Generator）理解为代数效应思想在JS中的体现
+很多文字中将纤程理解为协程的一种实现。在 JS 中，协程的实现便是 Generator。
 
-React Fiber可以理解为：
-React内部实现的一套状态更新机制。支持任务不同优先级，可中断与恢复，并且恢复后可以复用之前的中间状态。
+可以将纤程（Fiber）、协程（Generator）理解为代数效应思想在 JS 中的体现
 
-其中每个任务更新单元为React Element对应的Fiber节点。
+React Fiber 可以理解为：
+React 内部实现的一套状态更新机制。支持任务不同优先级，可中断与恢复，并且恢复后可以复用之前的中间状态。
 
-### Fiber的起源
-虚拟DOM在React16中的称呼
+其中每个任务更新单元为 React Element 对应的 Fiber 节点。
 
-### Fiber的含义
-Fiber包含三层含义：
-1. 作为架构来说，之前React15的Reconciler采用递归的方式执行，数据保存在递归调用栈中，所以被称为stack Reconciler。React16的Reconciler基于Fiber节点实现，被称为Fiber Reconciler。
-2. 作为静态的数据结构来说，每个Fiber节点对应一个React element，保存了该组件的类型、对应的DO节点等信息
-3. 作为动态的工作单元来说，每个Fiber节点保存了本次更新中该组件改变的状态、要执行的工作。
+### Fiber 的起源
+
+虚拟 DOM 在 React16 中的称呼
+
+### Fiber 的含义
+
+Fiber 包含三层含义：
+
+1. 作为架构来说，之前 React15 的 Reconciler 采用递归的方式执行，数据保存在递归调用栈中，所以被称为 stack Reconciler。React16 的 Reconciler 基于 Fiber 节点实现，被称为 Fiber Reconciler。
+2. 作为静态的数据结构来说，每个 Fiber 节点对应一个 React element，保存了该组件的类型、对应的 DO 节点等信息
+3. 作为动态的工作单元来说，每个 Fiber 节点保存了本次更新中该组件改变的状态、要执行的工作。
+
 ```JavaScript
 function FiberNode(
   tag; WorkTag,
@@ -181,66 +203,75 @@ function FiberNode(
   this.alternate = null;
 }
 ```
-为什么父级指针叫做return而不是Parent。因为作为一个工作单元，return指节点执行完completeWork后会返回的下一个节点。子Fiber节点及其兄弟节点完成工作后会返回其父级节点，所以用return指代父级节点。
 
-### Fiber架构的工作原理
-Fiber节点可以保存对应的DOM节点
-Fiber节点构成的Fiber树就对应DOM树。
+为什么父级指针叫做 return 而不是 Parent。因为作为一个工作单元，return 指节点执行完 completeWork 后会返回的下一个节点。子 Fiber 节点及其兄弟节点完成工作后会返回其父级节点，所以用 return 指代父级节点。
 
-用双缓存更新DOM
+### Fiber 架构的工作原理
+
+Fiber 节点可以保存对应的 DOM 节点
+Fiber 节点构成的 Fiber 树就对应 DOM 树。
+
+用双缓存更新 DOM
 
 ### 什么是双缓存
+
 在内存中构建并直接替换的技术叫做双缓存
-React使用双缓存来完成Fiber树的构建与替换——对应着DOM树的创建与更新。
+React 使用双缓存来完成 Fiber 树的构建与替换——对应着 DOM 树的创建与更新。
 
-### 双缓存Fiber树
-在React中最多会同时存在俩颗Fiber树。当前屏幕上显示内容对应的Fiber树称为current Fiber树，正在内存中构建的Fiber树称为workInProgress Fiber树
+### 双缓存 Fiber 树
 
-current Fiber树中的Fiber节点被称为current fiber，workInProgress Fiber树中的Fiber节点被称为workInProgress fiber，他们通过alternate属性连接。
+在 React 中最多会同时存在俩颗 Fiber 树。当前屏幕上显示内容对应的 Fiber 树称为 current Fiber 树，正在内存中构建的 Fiber 树称为 workInProgress Fiber 树
+
+current Fiber 树中的 Fiber 节点被称为 current fiber，workInProgress Fiber 树中的 Fiber 节点被称为 workInProgress fiber，他们通过 alternate 属性连接。
+
 ```JavaScript
 currentFiber.alternate === workInProgressFiber;
 workInProgressFiber.alternate === currentFiber;
 ```
 
-当workInProgress Fiber树构建完成交给Renderer渲染在页面上后，应用根节点的current执行指向workInProgress Fiber树，此时workInProgress Fiber树就变为current Fiber树。
+当 workInProgress Fiber 树构建完成交给 Renderer 渲染在页面上后，应用根节点的 current 执行指向 workInProgress Fiber 树，此时 workInProgress Fiber 树就变为 current Fiber 树。
 
-每次状态更新都会产生新的workInProgress Fiber树，通过current与workInProgress的替换，完成DOM更新。
+每次状态更新都会产生新的 workInProgress Fiber 树，通过 current 与 workInProgress 的替换，完成 DOM 更新。
 
-### mount时
-1. 首次执行ReactDOM.render会创建fiberRootNode（源码中叫fiberRoot）和rootFiber。其中fiberRootNode是整个应用的根节点，rootFiber是<App /> 所在组件树的根节点
+### mount 时
 
-之所以要区分fiberRootNode与rootFiber，是因为在应用中我们可以多次调用ReactDOM.render渲染不同的组件树，他们会拥有不同的rootFiber。但是整个应用的根节点只有一个，那就是fiberRootNode
+1. 首次执行 ReactDOM.render 会创建 fiberRootNode（源码中叫 fiberRoot）和 rootFiber。其中 fiberRootNode 是整个应用的根节点，rootFiber 是<App /> 所在组件树的根节点
 
-fiberRootNode的current会指向当前页面上已渲染内容对应Fiber树，即current Fiber树。
+之所以要区分 fiberRootNode 与 rootFiber，是因为在应用中我们可以多次调用 ReactDOM.render 渲染不同的组件树，他们会拥有不同的 rootFiber。但是整个应用的根节点只有一个，那就是 fiberRootNode
 
-2. 接下来进入render阶段，根据组件返回的JSX在内存中依次创建Fiber节点并连接在一起构建Fiber树，被称为workInProgress Fiber树
+fiberRootNode 的 current 会指向当前页面上已渲染内容对应 Fiber 树，即 current Fiber 树。
 
-3. 图中右侧已构建完的workInProgress Fiber树在commit阶段渲染到页面。
+2. 接下来进入 render 阶段，根据组件返回的 JSX 在内存中依次创建 Fiber 节点并连接在一起构建 Fiber 树，被称为 workInProgress Fiber 树
+
+3. 图中右侧已构建完的 workInProgress Fiber 树在 commit 阶段渲染到页面。
 
 ### update
-1. 开启一次新的render阶段并构建一颗新的workInProgress Fiber树
-和mount时一样，workInProgress fiber的创建可以复用current Fiber树对应的节点数据（决定是否复用的过程就是Diff算法）
 
-2. workInProgress Fiber树在render阶段完成构建后进入commit阶段渲染到页面上。渲染完毕后，workInProgress Fiber树变为current Fiber树
+1. 开启一次新的 render 阶段并构建一颗新的 workInProgress Fiber 树
+   和 mount 时一样，workInProgress fiber 的创建可以复用 current Fiber 树对应的节点数据（决定是否复用的过程就是 Diff 算法）
+
+2. workInProgress Fiber 树在 render 阶段完成构建后进入 commit 阶段渲染到页面上。渲染完毕后，workInProgress Fiber 树变为 current Fiber 树
 
 ### 顶层目录
-fixtures 包含一些给贡献者准备的小型React测试项目
-packages 包含元数据和React仓库中所有package的源码
-scripts 各种工具链的脚本，比如git、jest、eslint等
+
+fixtures 包含一些给贡献者准备的小型 React 测试项目
+packages 包含元数据和 React 仓库中所有 package 的源码
+scripts 各种工具链的脚本，比如 git、jest、eslint 等
 
 react 文件夹
-React的核心，包含所有全局React API
-* React.createElement
-* React.Component
-* React.Children
+React 的核心，包含所有全局 React API
+
+- React.createElement
+- React.Component
+- React.Children
 
 scheduler 文件夹
 scheduler（调度器）的实现
 
-shared文件夹
+shared 文件夹
 源码中其它模块公用的方法和全局变量
 
-renderer相关的文件夹
+renderer 相关的文件夹
 react-art
 react-dom
 react-native-renderer
@@ -248,27 +279,28 @@ react-noop-renderer
 react-test-renderer
 
 试验性包的文件夹
-react-server 创建自定义SSR流
+react-server 创建自定义 SSR 流
 react-client 创建自定义的流
 react-fetch 用于数据请求
-react-interactions 用于测试交互相关的内部特性，比如React的事件模型
-react-reconciler Reconciler的实现，你可以用他构建自己的Renderer
+react-interactions 用于测试交互相关的内部特性，比如 React 的事件模型
+react-reconciler Reconciler 的实现，你可以用他构建自己的 Renderer
 
 辅助包的文件夹
 react-is 用于测试组件是否是某类型
 react-client 创建自定义的流
 react-fetch 用于数据请求
-react-refresh 热重载的React官方实现
+react-refresh 热重载的 React 官方实现
 
-react-reconciler文件夹
-实验性的包，内部的很多功能在正式版本中还未开放，但是他一边对接scheduler，一边对接不同平台的renderer，构成了整个React16的架构体系。
+react-reconciler 文件夹
+实验性的包，内部的很多功能在正式版本中还未开放，但是他一边对接 scheduler，一边对接不同平台的 renderer，构成了整个 React16 的架构体系。
 
-### 深入理解JSX
-JSX作为描述组件内容的数据结构，为JS赋予了更多视觉表现力，是标签语法
+### 深入理解 JSX
 
-JSX在编译时会被Babel编译为React.createElement方法
+JSX 作为描述组件内容的数据结构，为 JS 赋予了更多视觉表现力，是标签语法
 
-JSX并不只能被编译为React.createElement方法，你可以通过@babel/plugin-transform-react-jsx插件显式告诉Babel编译时需要将JSX编译为什么函数的调用（默认为React.createElement）
+JSX 在编译时会被 Babel 编译为 React.createElement 方法
+
+JSX 并不只能被编译为 React.createElement 方法，你可以通过@babel/plugin-transform-react-jsx 插件显式告诉 Babel 编译时需要将 JSX 编译为什么函数的调用（默认为 React.createElement）
 
 ```JavaScript
 export function createElement(type, config, children) {
@@ -409,7 +441,9 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
 }
 
 ```
-验证合法React Element的全局API React.isValidElement
+
+验证合法 React Element 的全局 API React.isValidElement
+
 ```JavaScript
 export function isValidElement(object) {
   return (
@@ -420,10 +454,12 @@ export function isValidElement(object) {
 }
 ```
 
-在React中，所有JSX在运行时的返回结果（即React.createElement()的返回值）都是React Element。
+在 React 中，所有 JSX 在运行时的返回结果（即 React.createElement()的返回值）都是 React Element。
 
 ### React Component
-在React中，我们常使用ClassComponent与FunctionComponent构建组件
+
+在 React 中，我们常使用 ClassComponent 与 FunctionComponent 构建组件
+
 ```JavaScript
 class AppClass extends React.Component {
   render() {
@@ -432,20 +468,24 @@ class AppClass extends React.Component {
 }
 ```
 
-React通过ClassComponent实例原型上的isReactComponent变量判断是否是ClassComponent
+React 通过 ClassComponent 实例原型上的 isReactComponent 变量判断是否是 ClassComponent
+
 ```JavaScript
 ClassComponent.prototype.isReactComponent = {};
 ```
 
-### JSX与Fiber节点
-JSX是一种描述当前组件内容的数据结构，它不包含组件schedule、reconcile、render所需的相关信息
+### JSX 与 Fiber 节点
 
-在组件mount时，Reconciler根据JSX描述的组件内容生成组件对应的Fiber节点
-在update时，Reconciler将JSX与Fiber节点保存的数据对比，生成组件对应的Fiber节点，并根据对比结果为Fiber节点打上标记。
+JSX 是一种描述当前组件内容的数据结构，它不包含组件 schedule、reconcile、render 所需的相关信息
 
-## render阶段
+在组件 mount 时，Reconciler 根据 JSX 描述的组件内容生成组件对应的 Fiber 节点
+在 update 时，Reconciler 将 JSX 与 Fiber 节点保存的数据对比，生成组件对应的 Fiber 节点，并根据对比结果为 Fiber 节点打上标记。
+
+## render 阶段
+
 ### 流程概览
-render阶段开始于performSyncWorkOnRoot或performConcurrentWorkOnRoot方法的调用。这取决于本次更新是同步更新还是异步更新
+
+render 阶段开始于 performSyncWorkOnRoot 或 performConcurrentWorkOnRoot 方法的调用。这取决于本次更新是同步更新还是异步更新
 
 ```JavaScript
 // performSyncWorkOnRoot会调用该方法
@@ -466,7 +506,8 @@ function workLoopConcurrent() {
 }
 ```
 
-performUnitOfWork工作可以分为俩部分：递和归
+performUnitOfWork 工作可以分为俩部分：递和归
+
 ```JavaScript
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate.Ideally
@@ -498,8 +539,9 @@ function performUnitOfWork(unitOfWork: Fiber): void {
 ```
 
 ### 递阶段
-首先从rootFiber开始向下深度优先遍历，为遍历到的每个Fiber节点，调用beginWork方法
-该方法会根据传入的Fiber阶段创建子Fiber节点，并将这俩个Fiber节点连接起来
+
+首先从 rootFiber 开始向下深度优先遍历，为遍历到的每个 Fiber 节点，调用 beginWork 方法
+该方法会根据传入的 Fiber 阶段创建子 Fiber 节点，并将这俩个 Fiber 节点连接起来
 当遍历到叶子节点（即没有子组件的组件）时就会进入归阶段
 
 ```JavaScript
@@ -929,8 +971,10 @@ function beginWork(
 ```
 
 ### reconcileChildren
-* 对于mount的组件，他会创建新的子Fiber节点
-* 对于update的组件，他会将当前组件与该组件在上次更新时对应的Fiber节点比较（也就是俗称的Diff算法），将比较的结果生成新Fiber节点
+
+- 对于 mount 的组件，他会创建新的子 Fiber 节点
+- 对于 update 的组件，他会将当前组件与该组件在上次更新时对应的 Fiber 节点比较（也就是俗称的 Diff 算法），将比较的结果生成新 Fiber 节点
+
 ```JavaScript
 export function reconcileChildren(
   current: Fiber | null,
@@ -960,29 +1004,29 @@ export function reconcileChildren(
 ```
 
 ### effectTag
-render阶段的工作是在内存中进行，当工作结束后会通知Renderer需要执行的DOM操作。要执行DOM操作的具体类型就保存在fiber.effectTag中。
 
-通过二进制表示effectTag,可以方便的使用位操作为fiber.effectTag赋值多个effect。
+render 阶段的工作是在内存中进行，当工作结束后会通知 Renderer 需要执行的 DOM 操作。要执行 DOM 操作的具体类型就保存在 fiber.effectTag 中。
 
-如果要通知Render将Fiber节点对应的DOM节点插入页面中，需要满足俩个条件：
-1. fiber.stateNode存在，即Fiber节点中保存了对应的DOM节点
-fiber.stateNode会在completeWork中创建
+通过二进制表示 effectTag,可以方便的使用位操作为 fiber.effectTag 赋值多个 effect。
 
-2. (fiber.effectTag & Placement) !== 0, 即Fiber节点存在Placement effectTag
-在mount时只有rootFiber会赋值Placement effectTag,在commit阶段只会执行一次插入操作。
+如果要通知 Render 将 Fiber 节点对应的 DOM 节点插入页面中，需要满足俩个条件：
 
+1. fiber.stateNode 存在，即 Fiber 节点中保存了对应的 DOM 节点
+   fiber.stateNode 会在 completeWork 中创建
 
-
+2. (fiber.effectTag & Placement) !== 0, 即 Fiber 节点存在 Placement effectTag
+   在 mount 时只有 rootFiber 会赋值 Placement effectTag,在 commit 阶段只会执行一次插入操作。
 
 ### 归阶段
-在归阶段会调用completeWork处理Fiber节点
 
-当某个Fiber节点执行完completeWork，如果其存在兄弟Fiber节点（即fiber.sibling !== null），会进入其兄弟Fiber的递阶段。
+在归阶段会调用 completeWork 处理 Fiber 节点
 
-如果不存在兄弟Fiber，会进入父级Fiber的归阶段
-递和归阶段会交错执行直到归到rootFiber。至此，render阶段的工作就结束了
+当某个 Fiber 节点执行完 completeWork，如果其存在兄弟 Fiber 节点（即 fiber.sibling !== null），会进入其兄弟 Fiber 的递阶段。
 
-由于completeWork属于归阶段调用的函数，每次调用appendAllChildren时都会将已生成的子孙DOM节点插入当前生成的DOM节点下。那么当归到rootFiber时，我们已经有一个构建好的离屏DOM树
+如果不存在兄弟 Fiber，会进入父级 Fiber 的归阶段
+递和归阶段会交错执行直到归到 rootFiber。至此，render 阶段的工作就结束了
+
+由于 completeWork 属于归阶段调用的函数，每次调用 appendAllChildren 时都会将已生成的子孙 DOM 节点插入当前生成的 DOM 节点下。那么当归到 rootFiber 时，我们已经有一个构建好的离屏 DOM 树
 
 ```JavaScript
 function completeWork(
@@ -1729,15 +1773,16 @@ updateHostComponent = function(
 
 ### effectList
 
-在completeWork的上层函数completeUnitOfWork中，每个执行完completeWork且存在effectTag的Fiber节点会被保存在一条被称为effectList的单向链表中
+在 completeWork 的上层函数 completeUnitOfWork 中，每个执行完 completeWork 且存在 effectTag 的 Fiber 节点会被保存在一条被称为 effectList 的单向链表中
 
-effectList中第一个Fiber节点保存在fiber.firstEffect,最后一个元素保存在fiber.lastEffect
+effectList 中第一个 Fiber 节点保存在 fiber.firstEffect,最后一个元素保存在 fiber.lastEffect
 
-类似appendAllChildren,在"归"阶段，所有有effectTag的Fiber节点都会被追加在effectList中，最终形成一条以rootFiber.firstEffect为起点的单向链表
+类似 appendAllChildren,在"归"阶段，所有有 effectTag 的 Fiber 节点都会被追加在 effectList 中，最终形成一条以 rootFiber.firstEffect 为起点的单向链表
 
-这样，在commit阶段只需要遍历effectList就能执行所有effect了
+这样，在 commit 阶段只需要遍历 effectList 就能执行所有 effect 了
 
-在performSyncWorkOnRoot函数中fiberRootNode被传递给commitRoot方法，开启commit阶段工作流程。
+在 performSyncWorkOnRoot 函数中 fiberRootNode 被传递给 commitRoot 方法，开启 commit 阶段工作流程。
+
 ```JavaScript
 function completeUnitOfWork(unitOfWork: Fiber): void {
   // Attempt to complete the current unit of work, then move to the next
@@ -1877,23 +1922,27 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
 ```
 
 ## commit
-commitRoot方法是commit阶段工作的起点。fiberRootNode会作为传参。
+
+commitRoot 方法是 commit 阶段工作的起点。fiberRootNode 会作为传参。
+
 ```JavaScript
 commitRoot(root);
 ```
 
-rootFiber.firstEffect上保存了一条需要执行副作用的Fiber节点的单向链表effectList，这些Fiber节点的updateQueue中保存了变化的props。
+rootFiber.firstEffect 上保存了一条需要执行副作用的 Fiber 节点的单向链表 effectList，这些 Fiber 节点的 updateQueue 中保存了变化的 props。
 
-这些副作用对应的DOM操作在commit阶段执行
+这些副作用对应的 DOM 操作在 commit 阶段执行
 
-一些生命周期钩子（比如componentDidXXX）、hook（比如useEffect）需要在commit阶段执行
+一些生命周期钩子（比如 componentDidXXX）、hook（比如 useEffect）需要在 commit 阶段执行
 
-commit阶段的主要工作（即Renderer的工作流程）分为三部分：
-* before mutation阶段（执行DOM操作前）
-* mutation阶段（执行DOM操作）
-* layout阶段（执行DOM操作后）
+commit 阶段的主要工作（即 Renderer 的工作流程）分为三部分：
 
-### before mutation之前
+- before mutation 阶段（执行 DOM 操作前）
+- mutation 阶段（执行 DOM 操作）
+- layout 阶段（执行 DOM 操作后）
+
+### before mutation 之前
+
 ```JavaScript
 do {
   // 触发useEffect回调与其他同步任务。有这些任务可能触发新的渲染，所以这里要一直遍历执行直到没有任务
@@ -1953,10 +2002,12 @@ if (finishedWork.effectTag > PerformedWork) {
 }
 ```
 
-### layout之后
-1. useEffect相关的处理
+### layout 之后
+
+1. useEffect 相关的处理
 2. 性能追踪相关
-3. commit阶段会触发一些生命周期钩子
+3. commit 阶段会触发一些生命周期钩子
+
 ```JavaScript
 const rootDidHavePassiveEffects = rootDoesHavePassiveEffects;
 
@@ -1987,7 +2038,7 @@ if (enableSchedulerTracing) {
 // ...检测无限循环的同步任务
 if (remainingLanes === SyncLane) {
   // ...
-} 
+}
 
 // 在离开commitRoot函数前调用，触发一次新的调度，确保任何附加的任务被调度
 ensureRootIsScheduled(root, now());
@@ -2004,7 +2055,9 @@ return null;
 ```
 
 ### before mutation
-整个过程就是遍历effectList并调用commitBeforeMutationEffects函数处理
+
+整个过程就是遍历 effectList 并调用 commitBeforeMutationEffects 函数处理
+
 ```JavaScript
 // 保存之前的优先级，以同步优先级执行，执行完毕后恢复之前优先级
 const previousLanePriority = getCurrentUpdateLanePriority();
@@ -2025,9 +2078,11 @@ focusedInstanceHandle = null;
 ```
 
 ### commitBeforeMutationEffects
-1. 处理DOM节点渲染/删除后的autoFocus、blur逻辑
-2. 调用getSnapshotBeforeUpdate生命周期钩子
-3. 调度useEffect
+
+1. 处理 DOM 节点渲染/删除后的 autoFocus、blur 逻辑
+2. 调用 getSnapshotBeforeUpdate 生命周期钩子
+3. 调度 useEffect
+
 ```JavaScript
 function commitBeforeMutationEffects() {
   while (nextEffect !== null) {
@@ -2059,11 +2114,14 @@ function commitBeforeMutationEffects() {
 }
 ```
 
-### 调用getSnapshotBeforeUpdate
-getSnapshotBeforeUpdate是在commit阶段内的before mutation阶段调用的，由于commit阶段是同步的，所以不会遇到多次调用的问题。
+### 调用 getSnapshotBeforeUpdate
 
-### 调度useEffect
-scheduleCallback方法由Scheduler模块提供，用于以某个优先级异步调度一个回调函数
+getSnapshotBeforeUpdate 是在 commit 阶段内的 before mutation 阶段调用的，由于 commit 阶段是同步的，所以不会遇到多次调用的问题。
+
+### 调度 useEffect
+
+scheduleCallback 方法由 Scheduler 模块提供，用于以某个优先级异步调度一个回调函数
+
 ```JavaScript
 // 调度useEffect
 if ((effectTag & Passive) != NoEffect) {
@@ -2079,32 +2137,39 @@ if ((effectTag & Passive) != NoEffect) {
 ```
 
 ### 如何异步调度
-在flushPassiveEffects方法内部会从全局变量rootWithPendingPassiveEffects获取effectList。
-effectList保存了需要执行副作用的Fiber节点。其中副作用
-* 插入DOM节点
-* 更新DOM节点
-* 删除DOM节点
-除此外，当一个FunctionComponent含有useEffect或useLayoutEffect，他对应的Fiber节点也会被赋值effectTag
 
-useEffect异步调用分为三步：
-1. before mutation阶段在scheduleCallback中调度flushPassiveEffects
-2. layout阶段之后将effectList赋值给rootWithPendingPassiveEffects
-3. scheduleCallback触发flushPassiveEffects, flushPassiveEffects内部遍历rootWithPendingPassiveEffects
+在 flushPassiveEffects 方法内部会从全局变量 rootWithPendingPassiveEffects 获取 effectList。
+effectList 保存了需要执行副作用的 Fiber 节点。其中副作用
+
+- 插入 DOM 节点
+- 更新 DOM 节点
+- 删除 DOM 节点
+  除此外，当一个 FunctionComponent 含有 useEffect 或 useLayoutEffect，他对应的 Fiber 节点也会被赋值 effectTag
+
+useEffect 异步调用分为三步：
+
+1. before mutation 阶段在 scheduleCallback 中调度 flushPassiveEffects
+2. layout 阶段之后将 effectList 赋值给 rootWithPendingPassiveEffects
+3. scheduleCallback 触发 flushPassiveEffects, flushPassiveEffects 内部遍历 rootWithPendingPassiveEffects
 
 ### 为什么需要异步调用
 
 与 componentDidMount、componentDidUpdate 不同的是，在浏览器完成布局与绘制之后，传给 useEffect 的函数会延迟调用。这使得它适用于许多常见的副作用场景，比如设置订阅和事件处理等情况，因此不应在函数中执行阻塞浏览器更新屏幕的操作。
 
-useEffect异步执行的原因主要是防止同步执行时阻塞浏览器渲染。
+useEffect 异步执行的原因主要是防止同步执行时阻塞浏览器渲染。
 
 ### 总结
-在before mutation阶段，会遍历effectList，依次执行：
-1. 处理DOM节点渲染/删除后的 autoFocus、blur逻辑
-2. 调用getSnapshotBeforeUpdate生命周期钩子
-3. 调度useEffect
 
-## mutation阶段
-mutation阶段也是遍历effectList执行函数。执行的是commitMutationEffects
+在 before mutation 阶段，会遍历 effectList，依次执行：
+
+1. 处理 DOM 节点渲染/删除后的 autoFocus、blur 逻辑
+2. 调用 getSnapshotBeforeUpdate 生命周期钩子
+3. 调度 useEffect
+
+## mutation 阶段
+
+mutation 阶段也是遍历 effectList 执行函数。执行的是 commitMutationEffects
+
 ```JavaScript
 nextEffect = firstEffect;
 do {
@@ -2137,7 +2202,7 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
     }
 
     // 根据effectTag分别处理
-    const primaryEffectTag = 
+    const primaryEffectTag =
       effectTag & (Placement | Update | Deletion | Hydrating);
     switch (primaryEffectTag) {
       // 插入DOM
@@ -2188,27 +2253,34 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
   }
 }
 ```
-commitMutationEffects会遍历effectList,对每个Fiber节点执行以下三个操作：
-1. 根据ContentReset effectTag 重置文字节点
-2. 更新ref
-3. 根据effectTag分别处理，其中effectTag包括（placement | Update | Deletion | Hydrating）
+
+commitMutationEffects 会遍历 effectList,对每个 Fiber 节点执行以下三个操作：
+
+1. 根据 ContentReset effectTag 重置文字节点
+2. 更新 ref
+3. 根据 effectTag 分别处理，其中 effectTag 包括（placement | Update | Deletion | Hydrating）
 
 ### Placement effect
-当Fiber节点含有Placement effectTag，意味着该Fiber节点对应的DOM节点需要插入到页面中
-调用的方法为commitPlacement
-1. 获取父级DOM节点。其中finishedWork为传入的Fiber节点
+
+当 Fiber 节点含有 Placement effectTag，意味着该 Fiber 节点对应的 DOM 节点需要插入到页面中
+调用的方法为 commitPlacement
+
+1. 获取父级 DOM 节点。其中 finishedWork 为传入的 Fiber 节点
+
 ```JavaScript
 const parentFiber = getHostParentFiber(finishedWork);
 //父级DOM节点
 const parentStateNode = parentFiber.stateNode;
 ```
 
-2. 获取Fiber节点的DOM兄弟节点
+2. 获取 Fiber 节点的 DOM 兄弟节点
+
 ```JavaScript
 const before = getHostSibling(finishedWork);
 ```
 
-3. 根据DOM兄弟节点是否存在决定调用parentNode.insertBefore或parentNode.appendChild执行DOM插入操作。
+3. 根据 DOM 兄弟节点是否存在决定调用 parentNode.insertBefore 或 parentNode.appendChild 执行 DOM 插入操作。
+
 ```JavaScript
 // parentStateNode是否是rootFiber
 if (isContainer) {
@@ -2218,18 +2290,22 @@ if (isContainer) {
 }
 ```
 
-getHostSibling很耗时，这是因为Fiber节点不只包括HostComponent，所以Fiber树和渲染的DOM树节点并不是一一对应的。
+getHostSibling 很耗时，这是因为 Fiber 节点不只包括 HostComponent，所以 Fiber 树和渲染的 DOM 树节点并不是一一对应的。
 
 ### Update effect
-当Fiber节点含有Update effectTag，意味着该Fiber节点需要更新。调用的方法为commitWork，他会根据Fiber.tag分别处理。
+
+当 Fiber 节点含有 Update effectTag，意味着该 Fiber 节点需要更新。调用的方法为 commitWork，他会根据 Fiber.tag 分别处理。
 
 ### FunctionComponent mutation
-当fiber.tag为FunctionComponent,会调用commitHookEffectListUnmount。该方法会遍历effectList，执行所有useLayoutEffect hook的销毁函数。
+
+当 fiber.tag 为 FunctionComponent,会调用 commitHookEffectListUnmount。该方法会遍历 effectList，执行所有 useLayoutEffect hook 的销毁函数。
 
 ### HostComponent mutation
-当fiber.tag为HostComponent，会调用commitUpdate
 
-最终会在updateDOMProperties中将render阶段completeWork中为Fiber节点赋值的updateQueue中对应的内容渲染在页面上
+当 fiber.tag 为 HostComponent，会调用 commitUpdate
+
+最终会在 updateDOMProperties 中将 render 阶段 completeWork 中为 Fiber 节点赋值的 updateQueue 中对应的内容渲染在页面上
+
 ```JavaScript
 for (let i = 0; i < updatePayload.length; i += 2) {
   const propKey = updatePayload[i];
@@ -2252,11 +2328,14 @@ for (let i = 0; i < updatePayload.length; i += 2) {
 ```
 
 ### Deletion effect
-当Fiber节点含有Deletion effectTag，意味着该Fiber节点对应的DOM节点需要从页面中删除。调用的方法为commitDeletion。
+
+当 Fiber 节点含有 Deletion effectTag，意味着该 Fiber 节点对应的 DOM 节点需要从页面中删除。调用的方法为 commitDeletion。
 该方法会执行如下操作：
-1. 递归调用Fiber节点及其子孙Fiber节点中fiber.tag为ClassComponent的componentWillUnmount生命周期钩子，从页面移除Fiber节点对应DOM节点
-2. 解绑ref
-3. 调度useEffect的销毁函数
+
+1. 递归调用 Fiber 节点及其子孙 Fiber 节点中 fiber.tag 为 ClassComponent 的 componentWillUnmount 生命周期钩子，从页面移除 Fiber 节点对应 DOM 节点
+2. 解绑 ref
+3. 调度 useEffect 的销毁函数
+
 ```JavaScript
 function commitDeletion(
   finishedRoot: FiberRoot,
@@ -2280,14 +2359,17 @@ function commitDeletion(
 ```
 
 ### 总结
-mutation阶段会遍历effectList，依次执行commitMutationEffects。该方法的主要工作为"根据effectTag调用不同的处理函数处理Fiber。
 
-## Layout阶段
-该阶段的代码都是在DOM渲染完成（mutation阶段完成）后执行的
+mutation 阶段会遍历 effectList，依次执行 commitMutationEffects。该方法的主要工作为"根据 effectTag 调用不同的处理函数处理 Fiber。
 
-该阶段触发的生命周期钩子和hook可以直接访问到已经改变后的DOM，即该阶段是可以参与DOM layout的阶段
+## Layout 阶段
 
-layout阶段也是遍历effectList执行函数
+该阶段的代码都是在 DOM 渲染完成（mutation 阶段完成）后执行的
+
+该阶段触发的生命周期钩子和 hook 可以直接访问到已经改变后的 DOM，即该阶段是可以参与 DOM layout 的阶段
+
+layout 阶段也是遍历 effectList 执行函数
+
 ```JavaScript
 root.current = finishedWork;
 
@@ -2306,6 +2388,7 @@ nextEffect = null;
 ```
 
 ### commitLayoutEffects
+
 ```JavaScript
 function commitLayoutEffects(root: FiberRoot, committedLanes: Lanes) {
   while (nextEffect !== null) {
@@ -2328,7 +2411,9 @@ function commitLayoutEffects(root: FiberRoot, committedLanes: Lanes) {
 ```
 
 ### commitLayoutEffectOnFiber
-commitLayoutEffectOnFiber方法会根据fiber.tag对不同类型的节点分别处理。
+
+commitLayoutEffectOnFiber 方法会根据 fiber.tag 对不同类型的节点分别处理。
+
 ```JavaScript
 function commitLifeCycles(
   finishedRoot: FiberRoot,
@@ -2646,16 +2731,19 @@ function commitLifeCycles(
   );
 }
 ```
-mutation阶段会执行useLayoutEffect hook的销毁函数
 
-useLayoutEffect hook从上一次更新的销毁函数调用到本次更新的回调函数调用是同步执行的
+mutation 阶段会执行 useLayoutEffect hook 的销毁函数
 
-而useEffect则需要先调度，在Layout阶段完成后再异步执行
+useLayoutEffect hook 从上一次更新的销毁函数调用到本次更新的回调函数调用是同步执行的
+
+而 useEffect 则需要先调度，在 Layout 阶段完成后再异步执行
 
 ## commitAttachRef
-commitLayoutEffects会做的第二件事是commitAttachRef
 
-获取DOM实例，更新ref
+commitLayoutEffects 会做的第二件事是 commitAttachRef
+
+获取 DOM 实例，更新 ref
+
 ```JavaScript
 function commitAttachRef(finishedWork: Fiber) {
   const ref = finishedWork.ref;
@@ -2683,34 +2771,42 @@ function commitAttachRef(finishedWork: Fiber) {
 }
 ```
 
-### current Fiber树切换
-componentWillUnmount会在mutation阶段执行。此时current Fiber树还指向前一次更新的Fiber树，在生命周期钩子内获取的DOM还是更新前的。
+### current Fiber 树切换
 
-componentDidMount和componentDidUpdate会在layout阶段执行。此时current Fiber树已经指向更新后的Fiber树，在生命周期钩子内获取的DOM就是更新后的。
+componentWillUnmount 会在 mutation 阶段执行。此时 current Fiber 树还指向前一次更新的 Fiber 树，在生命周期钩子内获取的 DOM 还是更新前的。
+
+componentDidMount 和 componentDidUpdate 会在 layout 阶段执行。此时 current Fiber 树已经指向更新后的 Fiber 树，在生命周期钩子内获取的 DOM 就是更新后的。
 
 ### 总结
-layout阶段会遍历effectList，依次执行commitLayoutEffects。该方法的主要工作为“根据effectTag调用不同的处理函数处理Fiber并更新ref。
 
-## diff算法
-对于update的组件，它会将当前组件与该组件在上次更新时对应的Fiber节点比较（也就是俗称的Diff算法），将比较的结果生成新Fiber节点
+layout 阶段会遍历 effectList，依次执行 commitLayoutEffects。该方法的主要工作为“根据 effectTag 调用不同的处理函数处理 Fiber 并更新 ref。
 
-1个DOM节点在某一时刻最多会有4个节点和它相关
-1. current Fiber。如果该DOM节点已在页面中,current Fiber代表该DOM节点对应的Fiber节点
-2. workInProgress Fiber。如果该DOM节点将在本次更新中渲染到页面中，workInProgress Fiber代表该DOM节点对应的Fiber节点
-3. DOM节点本身
-4. JSX对象。即ClassComponent的render方法的返回结果，或FuncionComponent的调用结果。JSX对象中包含描述DOM节点的信息。
+## diff 算法
 
-diff算法的本质是比较current Fiber和JSX对象生成workInProgress Fiber
+对于 update 的组件，它会将当前组件与该组件在上次更新时对应的 Fiber 节点比较（也就是俗称的 Diff 算法），将比较的结果生成新 Fiber 节点
 
-### diff的瓶颈以及React如何应对
-将前后俩棵树完全比对的算法的时间复杂度为O(n3)
-为了降低算法复杂度，React的diff会预设三个限制：
-1. 只对同级元素进行Diff。如果一个DOM节点在前后俩次更新中跨越了层级，那么React不会尝试复用它。
-2. 俩个不同类型的元素会产生出不同的树。如果元素由div变为p，React会销毁div及其子孙节点，并新建p及其子孙节点
-3. 开发者可以通过key prop来暗示哪些子元素在不同的渲染下能保持稳定
+1 个 DOM 节点在某一时刻最多会有 4 个节点和它相关
 
-### diff是如何实现的
-reconcileChildFibers函数会根据newChild(即JSX对象)类型调用不同的处理函数
+1. current Fiber。如果该 DOM 节点已在页面中,current Fiber 代表该 DOM 节点对应的 Fiber 节点
+2. workInProgress Fiber。如果该 DOM 节点将在本次更新中渲染到页面中，workInProgress Fiber 代表该 DOM 节点对应的 Fiber 节点
+3. DOM 节点本身
+4. JSX 对象。即 ClassComponent 的 render 方法的返回结果，或 FuncionComponent 的调用结果。JSX 对象中包含描述 DOM 节点的信息。
+
+diff 算法的本质是比较 current Fiber 和 JSX 对象生成 workInProgress Fiber
+
+### diff 的瓶颈以及 React 如何应对
+
+将前后俩棵树完全比对的算法的时间复杂度为 O(n3)
+为了降低算法复杂度，React 的 diff 会预设三个限制：
+
+1. 只对同级元素进行 Diff。如果一个 DOM 节点在前后俩次更新中跨越了层级，那么 React 不会尝试复用它。
+2. 俩个不同类型的元素会产生出不同的树。如果元素由 div 变为 p，React 会销毁 div 及其子孙节点，并新建 p 及其子孙节点
+3. 开发者可以通过 key prop 来暗示哪些子元素在不同的渲染下能保持稳定
+
+### diff 是如何实现的
+
+reconcileChildFibers 函数会根据 newChild(即 JSX 对象)类型调用不同的处理函数
+
 ```JavaScript
 function reconcileChildFibers(
   returnFiber: Fiber,
@@ -2740,13 +2836,15 @@ function reconcileChildFibers(
 }
 ```
 
-从同级的节点数量将Diff分为俩类：
-1. 当newChild类型为object、number、string，代表同级只有一个节点
-2. 当newChild类型为Array，同级有多个节点
+从同级的节点数量将 Diff 分为俩类：
+
+1. 当 newChild 类型为 object、number、string，代表同级只有一个节点
+2. 当 newChild 类型为 Array，同级有多个节点
 
 ### reconcileSingleElement
-上次更新时的Fiber节点是否存在对应DOM节点 ——>是 DOM节点是否可以复用 ——>是 将上次更新的Fiber节点的副本作为本次新生成的Fiber节点并返回
-                                      ——>否 标记DOM需要被删除——> 新生成一个Fiber节点并返回
+
+上次更新时的 Fiber 节点是否存在对应 DOM 节点 ——>是 DOM 节点是否可以复用 ——>是 将上次更新的 Fiber 节点的副本作为本次新生成的 Fiber 节点并返回
+——>否 标记 DOM 需要被删除——> 新生成一个 Fiber 节点并返回
 
 ```JavaScript
 function reconcileSingleElement(
@@ -2796,25 +2894,28 @@ function reconcileSingleElement(
 ```
 
 ### reconcileChildFibers
-处理同级多个节点的diff
 
-更新组件发生的频率更高。所以diff会优先判断当前节点是否属于更新。
+处理同级多个节点的 diff
 
-diff算法的整体逻辑会经历俩轮遍历：
+更新组件发生的频率更高。所以 diff 会优先判断当前节点是否属于更新。
+
+diff 算法的整体逻辑会经历俩轮遍历：
 第一轮遍历： 处理更新的节点
 
 第二轮遍历： 处理剩下的不属于更新的节点
 
 ### 第一轮遍历
-1. let i = 0,遍历newChildren，将newChildren[i] 与 oldFiber比较，判断DOM节点是否复用
 
-2. 如果可复用，i++，继续比较newChildren[i]与oldFiber.sibling，可以复用则继续遍历。
+1. let i = 0,遍历 newChildren，将 newChildren[i] 与 oldFiber 比较，判断 DOM 节点是否复用
+
+2. 如果可复用，i++，继续比较 newChildren[i]与 oldFiber.sibling，可以复用则继续遍历。
 
 3. 如果不可复用，分俩种情况：
-* key不同导致不可复用，立即跳出整个遍历，第一轮遍历结束。
-* key相同 type不同导致不可复用，会将oldFiber标记为DELETION，并继续遍历
 
-4. 如果newChildren遍历完（即i === newChildren.length - 1)或者oldFiber遍历完（即oldFiber.sibling === null），跳出遍历，第一轮遍历结束。
+- key 不同导致不可复用，立即跳出整个遍历，第一轮遍历结束。
+- key 相同 type 不同导致不可复用，会将 oldFiber 标记为 DELETION，并继续遍历
+
+4. 如果 newChildren 遍历完（即 i === newChildren.length - 1)或者 oldFiber 遍历完（即 oldFiber.sibling === null），跳出遍历，第一轮遍历结束。
 
 ```JavaScript
 function reconcileChildrenArray(
@@ -2975,60 +3076,73 @@ function reconcileChildrenArray(
 ```
 
 ### 第二轮遍历
-newChildren 与 oldFiber同时遍历完
+
+newChildren 与 oldFiber 同时遍历完
 只需在第一轮遍历进行组件更新
 
-newChildren没遍历完，oldFiber遍历完
-意味着本次更新有新节点插入，遍历剩下的newChildren为生成的workInProgress fiber依次标记Placement
+newChildren 没遍历完，oldFiber 遍历完
+意味着本次更新有新节点插入，遍历剩下的 newChildren 为生成的 workInProgress fiber 依次标记 Placement
 
-newChildren遍历完，oldFiber没遍历完
-需要遍历剩下的oldFiber，依次标记Deletion
+newChildren 遍历完，oldFiber 没遍历完
+需要遍历剩下的 oldFiber，依次标记 Deletion
 
-newChildren与oldFiber都没遍历完
+newChildren 与 oldFiber 都没遍历完
 这意味着有节点在这次更新中改变了位置
 
 ### 处理移动的节点
-为了快速的找到key对应的oldFiber，我们将所有还未处理的oldFiber存入以key为key，oldFiber为value的Map中。
+
+为了快速的找到 key 对应的 oldFiber，我们将所有还未处理的 oldFiber 存入以 key 为 key，oldFiber 为 value 的 Map 中。
+
 ```JavaScript
 const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
 ```
-接下来遍历剩余的newChildren，通过newChildren[i].key就能在existingChildren中找到key相同的oldFiber
+
+接下来遍历剩余的 newChildren，通过 newChildren[i].key 就能在 existingChildren 中找到 key 相同的 oldFiber
 
 ### 标记节点是否移动
-节点是否移动以最后一个可复用的节点在oldFiber中的位置索引
 
-我们用变量oldIndex表示遍历到的可复用节点在oldFiber中的位置索引。如果oldIndex < lastPlacedIndex，代表本次更新该节点需要向右移动。
+节点是否移动以最后一个可复用的节点在 oldFiber 中的位置索引
 
-lastPlacedIndex初始为0，每遍历一个可复用的节点，如果oldIndex >= lastPlacedIndex，则lastPlacedIndex = oldIndex。
+我们用变量 oldIndex 表示遍历到的可复用节点在 oldFiber 中的位置索引。如果 oldIndex < lastPlacedIndex，代表本次更新该节点需要向右移动。
+
+lastPlacedIndex 初始为 0，每遍历一个可复用的节点，如果 oldIndex >= lastPlacedIndex，则 lastPlacedIndex = oldIndex。
 
 ## 状态更新
-### render阶段的开始
-render阶段开始于performSyncWorkOnRoot或performConcurrentWorkOnRoot方法的调用。这取决于本次更新是同步更新还是异步更新。
 
-### commmit阶段的开始
-commit阶段开始于commitRoot方法的调用。其中rootFiber会作为传参。
+### render 阶段的开始
 
-补全从触发状态更新到render阶段的路径
+render 阶段开始于 performSyncWorkOnRoot 或 performConcurrentWorkOnRoot 方法的调用。这取决于本次更新是同步更新还是异步更新。
+
+### commmit 阶段的开始
+
+commit 阶段开始于 commitRoot 方法的调用。其中 rootFiber 会作为传参。
+
+补全从触发状态更新到 render 阶段的路径
+
 ```sh
 触发状态更新 --> ? --> render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`） --> commit阶段(`commitRoot`)
 ```
 
-### 创建Update对象
-在React中，有如下方法可以触发状态更新
-* ReactDOM.render
-* this.setState
-* this.forceUpdate
-* useState
-* useReducer
-他们是如何接入同一套状态更新机制
-每次状态更新都会创建一个保存更新状态相关内容的对象，叫update。在render阶段的beginWork中会根据Update计算新的state
+### 创建 Update 对象
 
-### 从fiber到root
-现在触发状态更新的fiber上已经包含Update对象
-render阶段是从rootFiber开始向下遍历。那么如何从触发状态更新的fiber得到rootFiber?
-通过调用markUpdateLaneFromFiberToRoot方法
+在 React 中，有如下方法可以触发状态更新
 
-从触发状态更新的fiber一直向上遍历到rootFiber，并返回rootFiber
+- ReactDOM.render
+- this.setState
+- this.forceUpdate
+- useState
+- useReducer
+  他们是如何接入同一套状态更新机制
+  每次状态更新都会创建一个保存更新状态相关内容的对象，叫 update。在 render 阶段的 beginWork 中会根据 Update 计算新的 state
+
+### 从 fiber 到 root
+
+现在触发状态更新的 fiber 上已经包含 Update 对象
+render 阶段是从 rootFiber 开始向下遍历。那么如何从触发状态更新的 fiber 得到 rootFiber?
+通过调用 markUpdateLaneFromFiberToRoot 方法
+
+从触发状态更新的 fiber 一直向上遍历到 rootFiber，并返回 rootFiber
+
 ```JavaScript
 function markUpdateLaneFromFiberToRoot(
   sourceFiber: Fiber,
@@ -3076,11 +3190,13 @@ function markUpdateLaneFromFiberToRoot(
 ```
 
 ### 调度更新
-现在我们拥有一个rootFiber，该rootFiber对应的Fiber树中某个Fiber节点包含一个Update
 
-接下来通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新。
+现在我们拥有一个 rootFiber，该 rootFiber 对应的 Fiber 树中某个 Fiber 节点包含一个 Update
 
-通过ensureRootIsScheduled
+接下来通知 Scheduler 根据更新的优先级，决定以同步还是异步的方式调度本次更新。
+
+通过 ensureRootIsScheduled
+
 ```JavaScript
 if (newCallbackPriority === SyncLanePriority) {
   // 任务已经过期，需要同步执行render阶段
@@ -3099,8 +3215,116 @@ if (newCallbackPriority === SyncLanePriority) {
 }
 ```
 
-performSyncWorkOnRoot和performConcurrentWorkOnRoot即render阶段的入口函数
-至此，状态更新就和render阶段连接上了
+performSyncWorkOnRoot 和 performConcurrentWorkOnRoot 即 render 阶段的入口函数
+至此，状态更新就和 render 阶段连接上了
+
 ```sh
 触发状态更新 --> 创建Update对象 --> 从fiber到root（`markUpdateLaneFromFiberToRoot`） --> 调度更新（`ensureRootIsScheduled`） --> render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`） --> commit阶段（`commitRoot`）
 ```
+
+## 心智模型
+
+### 同步更新的 React
+
+更新机制类比代码版本控制
+
+在 React 中，所有通过 ReactDOM.render 创建的应用都是通过类似的方式更新状态
+
+即没有优先级概念，高优更新需要排在其他更新后面执行。
+
+### 并发更新的 React
+
+当有了代码版本控制，有紧急线上 bug 需要修复时，我们暂存当前分支的修改，在 master 分支修复 bug 并紧急上线。
+
+bug 修复上线后通过 git rebase 命令和开发分支连接上。开发分支基于修复 bug 的版本继续开发
+
+在 React 中，通过 ReactDOM.createBlockingRoot 和 ReactDOM.createRoot 创建的应用会采用并发的方式更新状态
+
+高优更新中断正在进行中的低优更新，先完成 render-commit 流程
+
+待高优更新完成后，低优更新基于高优更新的结果重新更新。
+
+## update 的分类
+
+状态更新流程开始后首先会创建 update 对象
+
+可以将 update 类比心智模型中的一次 commit
+
+### update 的分类
+
+将可以触发更新的方法所隶属的组件分类：
+
+- ReactDOM.render - HostRoot
+- this.setState - ClassComponent
+- this.forceUpdate - ClassComponent
+- useState - FunctionComponent
+- useReducer - FunctionComponent
+
+一共三种组件（HostRoot | ClassComponent | FunctionComponent）可以触发更新
+
+由于不同类型组件工作方法不同，所以存在俩种不同结构的 update，其中 classComponent 与 hostRoot 共用一套 update 结构。
+
+虽然他们的结构不同，但是他们工作机制与工作流程大体相同
+
+### update 的结构
+
+ClassComponent 与 HostRoot 共用同一种 update 结构
+
+```JavaScript
+const update: Update<*> = {
+  eventTime,
+  lane,
+  suspenseConfig,
+  tag: UpdateState,
+  payload: null,
+  callback: null,
+
+  next: null
+}
+```
+
+- eventTime: 任务时间，通过 performance.now()获取的毫秒数
+- lane：优先级相关字段
+- suspenseConfig: suspense 相关
+- tag：更新的类型，包括 UpdateState | ReplaceState | ForceUpdate | CaptureUpdate
+- payload: 更新挂载的数据，不同类型组件挂载的数据不同。对于 ClassComponent,payload 为 this.setState 的第一个传参。对于 HostRoot，payload 为 ReactDOM.render 的第一个传参。
+- callback：更新的回调函数。即在 commit 阶段的 layout 子阶段一节中提到的回调函数。
+- next：与其他 update 连接形成链表
+
+### Update 与 Fiber 的联系
+
+update 存在一个连接其他 update 形成链表的字段 next。
+
+Fiber 节点组成 Fiber 树，页面中最多同时存在俩颗 Fiber 树：
+
+- 代表当前页面状态的 current Fiber 树
+- 代表正在 render 阶段的 workInProgress Fiber 树
+  类似 Fiber 节点组成 Fiber 树，Fiber 节点上的多个 Update 会组成链表并被包含在 fiber.
+
+Fiber 节点最多同时存在俩个 updateQueue:
+
+- current fiber 保存的 updateQueue 即 current updateQueue
+- workInProgress fiber 保存的 updateQueue 即 workInProgress updateQueue
+  在 commit 阶段完成页面渲染后，workInProgress Fiber 树变为 current Fiber 树，workInProgress Fiber 树内 Fiber 节点的 updateQueue 就变成 current updateQueue
+
+### updateQueue
+
+ClassComponent 与 HostRoot 使用的 updateQueue
+
+```JavaScript
+const queue: UpdateQueue<State> = {
+  //  本次更新前该fiber节点的state，update基于该state计算更新后的state
+  baseState: fiber.memoizedState,
+  // 本次更新前该fiber节点已保存的update。以链表形式存在，链表头为firstBaseUpdate，链表尾为lastBaseUpdate。
+  firstBaseUpdate: null,
+  lastBaseUpdate: null,
+  // 触发更新时，产生的update会保存在shared.pending中形成单向环状链表。当由update计算state时这个环会被剪开并连接在lastBaseUpdate后面
+  shared: {
+    pending: null
+  },
+  // 数组。保存update.callback !== null 的update
+  effects: null
+}
+```
+
+updateQueue 由 initializeUpdateQueue 方法返回
