@@ -3328,3 +3328,119 @@ const queue: UpdateQueue<State> = {
 ```
 
 updateQueue 由 initializeUpdateQueue 方法返回
+
+## 深入理解优先级
+### 什么是优先级
+状态更新由用户交互产生，用户心里对交互执行顺序有个预期。React根据人机交互研究的结果中用户对交互的预期顺序为交互产生的状态更新赋予不同优先级。
+
+* 生命周期方法：同步执行
+* 受控的用户输入：比如输入框输入文字，同步执行
+* 交互事件：比如动画，高优先级执行
+* 其他：比如数据请求，低优先级执行
+
+### 如何调度优先级
+react通过scheduler调度任务
+
+每当需要调度任务时，React会调用Scheduler提供的方法runWithPriority
+
+该方法接收一个优先级常量与一个回调函数作为参数。回调函数会以优先级高低为顺序排列在一个定时器中并在合适的时间触发
+
+对于更新来讲，传递的回调函数一般为render的入口函数
+
+优先级最终会反映到update.lane变量上。
+
+### 如何保证状态正确
+* render阶段可能被中断。如何保证updateQueue中保存的Update不丢失？
+* 有时候当前状态需要依赖前一个状态。如何在支持跳过低优先级状态的同时保证状态依赖的连续性？
+
+### 如何保证update不丢失
+当render阶段被中断后重新开始时，会基于current updateQueue克隆出workInProgress updateQueue。由于current updateQueue.lastBaseUpdate已经保存了上一次的Update，所以不会丢失。
+
+当commit阶段完成渲染，由于workInProgress updateQueue.lastBaseUpdate中保存了上一次的Update，所以 workInProgress Fiber树变成current Fiber树后也不会造成Update丢失。
+
+### 如何保证状态依赖的连续性
+当某个Update由于优先级低而被跳过时，保存在baseUpdate中的不仅是该Update，还包括链表中该Update之后的所有Update。
+
+## ReactDOM.render
+
+### 创建fiber
+首次执行ReactDOM.render会创建fiberRootNode和rootFiber。其中fiberRootNode是整个应用的根节点，rootFiber是渲染组件所在组件树的根节点。
+
+这一步发生在调用ReactDOM.render后进入的legacyRenderSubtreeIntoContainer方法中
+```JavaScript
+// container指ReactDOM.render的第二个参数
+root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
+  container,
+  forceHydrate,
+);
+fiberRoot = root._internalRoot;
+```
+
+legacyCreateRootFromDOMContainer方法内部会调用createFiberRoot方法完成fiberRootNode和rootFiber的创建以及关联。并初始化updateQueue
+```JavaScript
+export function createFiberRoot(
+  containerInfo: any,
+  tag: RootTag,
+  hydrate: boolean,
+  hydrationCallbacks: null | SuspenseHydrationCallbacks
+): FiberRoot {
+  // 创建fiberRootNode
+  const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any)
+
+  // 创建rootFiber
+  const uninitializedFiber = createHostRootFiber(tag);
+
+  // 连接rootFiber与fiberRootNode
+  root.current = uninitializedFiber;
+  uninitializedFiber.stateNode = root;
+
+  // 初始化updateQueue
+  initializeUpdateQueue(uninitializedFiber);
+
+  return root;
+}
+```
+
+### 创建update
+这一步发生在updateContainer方法中
+```JavaScript
+export function updateContainer(
+  element: ReactNodeList,
+  container: OpaqueRoot,
+  parentComponent: ?React$Component<any, any>,
+  callback: ?Function,
+): Lane {
+  // 创建update
+  const update = createUpdate(eventTime, lane, suspenseConfig)
+
+  // update.payload为需要挂载在根节点的组件
+  update.payload = {element};
+
+  // callback为ReactDOM.render的第三个参数 - 回调函数
+  callback = callback === undefined ? null : callback;
+  if (callback !== null) {
+    update.callback = callback;
+  }
+
+  // 将生成的update加入updateQueue
+  enqueueUpdate(current, update);
+
+  // 调度更新
+  scheduleUpdateOnFiber(current, lane, eventTime);
+}
+```
+
+### 流程概览
+```JavaScript
+创建fiberRootNode、rootFiber、updateQueue（`legacyCreateRootFromDOMContainer`）
+|
+创建update对象（`updateContainer`）
+|
+从fiber到root（`markUpdateLaneFromFiberToRoot`）
+|
+调度更新（`ensureRootIsScheduled`）
+|
+render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`）
+|
+commit阶段（`commitRoot`）
+```
