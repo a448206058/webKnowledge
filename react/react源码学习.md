@@ -3444,3 +3444,212 @@ render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`）
 |
 commit阶段（`commitRoot`）
 ```
+
+### React的其他入口函数
+当前React共有三种模式：
+* legacy，这是当前React使用的方式
+* blocking，开启部分concurrent模式特性的中间模式
+* concurrent，面向未来的开发模式
+
+## this.setState
+this.setState内会调用this.updater.enqueueSetState
+```JavaScript
+Component.prototype.setState = function (partialState, callback) {
+  if (!(typeof partialState === 'object') || typeof partialState === 'function' || partialState == null) {
+    throw Error("setState(...): takes an object of state variables to update or a function which returns an object of state variables.");
+  }
+}
+this.updater.enqueueSetState(this, partialState, callback, 'setState');
+```
+
+enqueueSetState 就是从创建update到调度update的流程
+```JavaScript
+enqueueSetState(inst, payload, callback) {
+  // 通过组件实例获取对应fiber
+  const fiber = getInstance(inst);
+
+  const eventTime = requestEventTime();
+  const suspenseConfig = requestCurrentSuspenseConfig();
+
+  // 获取优先级
+  const lane = requestUpdateLane(fiber, suspenseConfig);
+
+  // 创建update
+  const update = createUpdate(eventTime, lane, suspenseConfig);
+
+  update.payload = payload
+
+  // 赋值回调函数
+  if (callback !== undefined && callback !== null) {
+    update.callback = callback;
+  }
+
+  // 将update插入updateQueue
+  enqueueUpdate(fiber, update);
+  // 调度update
+  scheduleUpdateOnFiber(fiber, lane, eventTime);
+}
+```
+
+### this.forceUpdate
+在this.updater上，除了enqueueSetState外，还存在enqueueForceUpdate，当我们调用this.forceUpdate时会调用他
+```JavaScript
+enqueueForceUpdate(inst, callback) {
+  const fiber = getInstance(inst);
+  const eventTime = requestEventTime();
+  const suspenseConfig = requestCurrentSuspenseConfig();
+  const lane = requestUpdateLane(fiber, suspenseConfig);
+
+  const update = createUpdate(eventTime, lane, suspenseConfig);
+
+  // 赋值tag为ForceUpdate
+  update.tag = ForceUpdate
+
+  if (callback !== undefined && callback !== null) {
+    update.callback = callback;
+  }
+
+  enqueueUpdate(fiber, update);
+  scheduleUpdateOnFiber(fiber, lane, eventTime);
+}
+```
+
+判断 classComponent是否需要更新时有俩个条件需要满足：
+```JavaScript
+const shouldUpdate =
+  checkHasForceUpdateAfterProcessing() ||
+  checkShouldComponentUpdate(
+    workInProgress,
+    ctor,
+    oldProps,
+    newProps,
+    oldState,
+    newState,
+    nextContext
+  )
+```
+
+* checkHasForceUpdateAfterProcessing：内部会判断本次更新的Update是否为ForceUpdate。如果本次更新的update中存在tag为forceUpdate，则返回true
+
+* checkShouldComponentUpdate:内部会调用shouldComponentUpdate方法。以及当该classComponent为pureComponent时会浅比较state与props。
+
+所以，当某次更新含有tag为ForceUpdate的Update，那么当前ClassComponent不会受其他性能优化手段（shouldComponentUpdate|PureComponent）影响，一定会更新。
+
+## 极简Hooks实现
+```JavaScript
+function dispatchAction(queue, action) {
+  // 创建update
+  const update = {
+    action,
+    next: null
+  }
+
+  // 环状单向链表操作
+  if (queue.pending === null) {
+    update.next = update;
+  } else {
+    update.next = queue.pending.next;
+    queue.pending.next = update;
+  }
+  queue.pending = update;
+
+  // 模拟React开始调度更新
+  schedule();
+}
+```
+更新产生的update对象保存在queue中
+FunctionComponent对应的fiber保存queue
+```JavaScript
+// App组件对应的fiber对象
+const fiber = {
+  // 保存该FunctionComponent对应的Hooks链表
+  memoizedState: null,
+  // 指向App函数
+  stateNode: App
+}
+```
+
+### hook 数据结构
+hook与update类似，都通过链表连接。不过Hook是无环的单向链表
+```JavaScript
+hook = {
+  // 保存update的queue,即上文介绍的queue
+  queue: {
+    pending: null
+  },
+  // 保存hook对应的state
+  memoizedState: initialState,
+  // 与下一个Hook连接形成单向无环链表
+  next: null
+}
+```
+
+### 模拟React调度更新流程
+```JavaScript
+// 首次render时是mount
+isMount = true;
+
+function schedule() {
+  // 更新前将workInProgressHook重置为fiber保存的第一个Hook
+  workInProgressHook = fiber.memoizedState;
+  // 触发组件render
+  fiber.stateNode();
+  // 组件首次render为mount，以后再触发的更新为update
+  isMount = false;
+}
+```
+
+```JavaScript
+function useState(initialState) {
+  // 当前useState使用的hook会被赋值该变量
+  let hook;
+
+  if (isMount) {
+    // ...mount时需要生成hook对象
+    hook = {
+      queue: {
+        pending: null
+      },
+      memoizedState: initialState,
+      next: null
+    }
+
+    // 将hook插入fiber.memoizedState链表末尾
+    if (!fiber.memoizedState) {
+      fiber.memoizedState = hook;
+    } else {
+      workInProgressHook.next = hook;
+    }
+    // 移动workInProgressHook指针
+    workInProgressHook = hook;
+  } else {
+    // update时从workInProgressHook中取出该useState对应的hook
+    hook = workInProgressHook;
+    // 移动workInProgressHook指针
+    workInProgressHook = workInProgressHook.next
+  }
+
+  // update执行前的初始state
+  let baseState = hook.memoizedState;
+  if (hook.queue.pending) {
+    // 根据queue.pending中保存的update更新state
+    let firstUpdate = hook.queue.pending.next;
+
+    do {
+      // 执行update action
+      const action = firstUpdate.action;
+      baseState = action(baseState)
+      firstUpdate = firstUpdate.next
+
+      // 最后一个update执行完后跳出循环
+    } while (firstUpdate !== hook.queue.pending)
+
+    // 清空queue.pending
+    hook.queue.pending = null
+  }
+  // 将update action 执行完后的state作为memoizedState
+  hook.memoizedState = baseState;
+
+  return [baseState, dispatchAction.bind(null, hook.queue)]
+}
+```
