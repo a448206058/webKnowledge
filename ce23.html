@@ -1,76 +1,66 @@
 <script>
-    // var s = "aab";
-    // var partition = function (s) {
-    //     var result = [];
-    //     var search = function (value, index) {
-    //         if (index == s.length) {
-    //             result.push(value.slice())
-    //             return
-    //         }
-    //         for (let i = index; i < s.length; i++) {
-    //             if (isPali(s, index, i)) {
-    //                 value.push(s.substring(index, i + 1));
-    //                 search(value, index + 1);
-    //                 value.pop()
-    //             }
-    //         }
-    //     }
-    //     search([], 0)
-    //     return result;
-    // };
+  /**
+   * @param {number[]} nums
+   * @return {number[][]}
+   */
 
-    var s = "aab";
-    var partition = function (s) {
-    const res = []; 
+  const permute = (nums) => {
+    const res = [];
+    const used = {};
 
-    function dfs(temp, start) { 
-        if (start == s.length) {
-            res.push(temp.slice());
-            return;
-        }
-        for (let i = start; i < s.length; i++) {
-            if (isPali(s, start, i)) {
-                temp.push(s.substring(start, i + 1));
-                dfs(temp, i + 1);
-                temp.pop();
-            }
-        }
+    function dfs(path) {
+      if (path.length == nums.length) {
+        // 个数选够了
+        res.push(path.slice()); // 拷贝一份path，加入解集res
+        return; // 结束当前递归分支
+      }
+      for (const num of nums) {
+        // for枚举出每个可选的选项
+        // if (path.includes(num)) continue; // 别这么写！查找的时间是O(n)，增加时间复杂度
+        if (used[num]) continue; // 使用过的，跳过
+        path.push(num); // 选择当前的数，加入path
+        used[num] = true; // 记录一下 使用了
+        dfs(path); // 基于选了当前的数，递归
+        path.pop(); // 上一句的递归结束，回溯，将最后选的数pop出来
+        used[num] = false; // 撤销这个记录
+      }
     }
-    dfs([], 0); 	
+
+    dfs([]); // 递归的入口，空path传进去
     return res;
-    };
-
-    function isPali(s, l, r) {
-        while (l < r) {
-            if (s[l] != s[r]) {
-                return false;
-            }
-            l++;
-            r--;
-        }
-        return true;
+  };
+  let ss = [];
+  var permute = function (nums) {
+    let res = [];
+    let used = [];
+    nums.map((item) => {
+      used.push(false);
+    });
+    if (nums.length === 0) {
+      return res;
     }
+    const generatePermutation = function (value, index, p) {
+      if (index == nums.length) {
+        console.log(p);
+        ss.push(p);
+        res.push(p);
+        console.log(ss);
+        return;
+      }
+      for (let i = 0; i < value.length; i++) {
+        if (!used[i]) {
+          p.push(value[i]);
+          used[i] = true;
+          generatePermutation(value, index + 1, p);
+          p.pop();
+          used[i] = false;
+        }
+      }
+      return;
+    };
+    generatePermutation(nums, 0, []);
+    return res;
+  };
 
-    // const res = [];
-    // const dfs = (value, index) => {
-    //     if(value.length === 4 && index === s.length){
-    //         res.push(value.join("."))
-    //     }
-    //     if(value.length === 4 && index < s.length){
-    //         return
-    //     }
-    //     for(let i = 1;i <= 3;i++){
-    //         if (index + i - 1 >= s.length) return
-    //         if (i != 1 && s[index] == '0') return;
-
-    //         const str = s.substring(index, index + i);
-    //         if (i == 3 && +str > 255) return;
-    //         value.push(str)
-    //         dfs(value, index + i)
-    //         value.pop()
-    //     }
-    // }
-    // dfs([], 0);
-    // return res;
-    console.log(partition(s))
+  console.log(permute([1, 2, 3]));
 </script>
