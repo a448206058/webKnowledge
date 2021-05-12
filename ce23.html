@@ -1,76 +1,36 @@
 <script>
-    // var s = "aab";
-    // var partition = function (s) {
-    //     var result = [];
-    //     var search = function (value, index) {
-    //         if (index == s.length) {
-    //             result.push(value.slice())
-    //             return
-    //         }
-    //         for (let i = index; i < s.length; i++) {
-    //             if (isPali(s, index, i)) {
-    //                 value.push(s.substring(index, i + 1));
-    //                 search(value, index + 1);
-    //                 value.pop()
-    //             }
-    //         }
-    //     }
-    //     search([], 0)
-    //     return result;
-    // };
+    /**
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number}
+ */
+    var permuteUnique = function (nums) {
+        const res = [];
+        const used = {};
+        let map = new Map();
 
-    var s = "aab";
-    var partition = function (s) {
-    const res = []; 
-
-    function dfs(temp, start) { 
-        if (start == s.length) {
-            res.push(temp.slice());
-            return;
-        }
-        for (let i = start; i < s.length; i++) {
-            if (isPali(s, start, i)) {
-                temp.push(s.substring(start, i + 1));
-                dfs(temp, i + 1);
-                temp.pop();
+        function dfs(path) {
+            if (path.length == nums.length) { // 个数选够了
+                if(map.has(path.slice().toString())){
+                    return;
+                }
+                map.set(path.slice().toString(), true)
+                res.push(path.slice()); // 拷贝一份path，加入解集res
+                return;                 // 结束当前递归分支
+            }
+            for (let i = 0; i < nums.length; i++){
+                if(used[i]) continue;
+                path.push(nums[i]);
+                used[i] = true;
+                dfs(path);
+                path.pop();
+                used[i] = false;
             }
         }
-    }
-    dfs([], 0); 	
-    return res;
+
+        dfs([]); // 递归的入口，空path传进去
+        return res;
     };
 
-    function isPali(s, l, r) {
-        while (l < r) {
-            if (s[l] != s[r]) {
-                return false;
-            }
-            l++;
-            r--;
-        }
-        return true;
-    }
-
-    // const res = [];
-    // const dfs = (value, index) => {
-    //     if(value.length === 4 && index === s.length){
-    //         res.push(value.join("."))
-    //     }
-    //     if(value.length === 4 && index < s.length){
-    //         return
-    //     }
-    //     for(let i = 1;i <= 3;i++){
-    //         if (index + i - 1 >= s.length) return
-    //         if (i != 1 && s[index] == '0') return;
-
-    //         const str = s.substring(index, index + i);
-    //         if (i == 3 && +str > 255) return;
-    //         value.push(str)
-    //         dfs(value, index + i)
-    //         value.pop()
-    //     }
-    // }
-    // dfs([], 0);
-    // return res;
-    console.log(partition(s))
+    console.log(permuteUnique([1,2,3]))
 </script>
