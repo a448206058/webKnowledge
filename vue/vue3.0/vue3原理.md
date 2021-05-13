@@ -1327,3 +1327,145 @@ export function trigger(
     effects.forEach(run)
  }
 ```
+
+## effect.spec
+
+1. 传递给 effect 的方法，会立即执行一次
+2. 在 effect 执行将 observe 对基本类型赋值，oberve 进行改变时，将反应到基本类型上
+3. effect 是有 cache 存在
+4. 在多个 effect 处理 observe，当 observe 发生改变时，将同步到多个 effect
+5. 嵌套的 observe 做出改变时，也会产生响应
+6. 在 effect 执行将 observe 对基本类型赋值，observe 进行删除操作时，将反应到基本类型上
+7. 在 effect 执行将 observe in 操作，observe 进行删除操作时，将反应到基本类型上
+8. 对 prototype 的操作也能响应
+9. 对 function 的操作也能响应
+10. 对 iteration 响应
+11. 数组隐式的变化可以响应
+12. 计算操作可以被响应
+13. symbol 类型可以响应
+14. well-known symbol 不能被观察
+15. function 的变更可以响应
+16. this 会被响应
+17. 改变原始对象不产生响应
+18. 可以避免隐性递归导致的无限循环
+19. 可以显式递归调用
+20. 每次返回都是新函数
+21. 当结果未发生变动时不做处理，发生改变时应该产生响应
+22. 每次返回的是一个新函数，原始对象是同一个
+23. 单一的改变只会执行一次
+24. effect 可以嵌套
+25. JSON 方法可以响应
+26. Class 方法调用可以观察
+27. 传入参数 lazy，不会立即执行，支持 lazy 调用
+28. 传入参数 scheduler，支持自定义调度
+29. observer 的每次响应都会被 track
+30. observer 的每次响应会触发 trigger
+31. observer 支持 stop，stop 后支持手动调用
+32. effect 被 stop 后，scheduler 不会再响应
+33. 支持 stop 回调
+34. 标记为原始数据的不能响应
+35. 当新值和旧值都是 NaN 时，不会 trigger
+36. 当数组长度设置为 0 时，会触发所有 effect
+
+## computed
+
+传入一个 getter 函数，返回一个默认不可手动修改的 ref 对象
+
+```JavaScript
+const count = ref(1)
+const plusOne = computed(() => count.value + 1)
+
+console.log(plusOne.value) // 2
+
+plusOne.value++ // 错误！
+```
+
+或者传入一个拥有 get 和 set 函数的对象，创建一个可手动修改的计算状态。
+
+```JavaScript
+const count = ref(1)
+const plusOne = computed({
+    get: () => count.value + 1,
+    set: (val) => {
+        count.value = val - 1
+    }
+})
+
+plusOne.value = 1
+console.log(count.value) // 0
+```
+
+计算属性，可能会依赖其他 reactive 的值，同时会延迟和缓存计算值
+
+```JavaScript
+export function  computed<T>(
+    getterOrOptions: ComputedGetter<T> | WritableComputedOptions<T>
+) {
+    let getter: ComputedGetter<T>
+    let setter: ComputedSetter<T>
+
+    // 如果传入是function 说明是只读computed
+    if (isfFunction(getterOrOptions)) {
+        getter = getterOrOptions
+        setter = __DEV__
+            ? () => {
+                console.warn('Write operation failed: computed value is readonly')
+            }
+            : NOOP
+    } else {
+        // 不是方法说明是自定义的 getter setter
+        getter = getterOrOptions.get
+        setter = getterOrOptions.set
+    }
+
+    let dirty = true
+    let value: T
+    let computed: ComputedRef<T>
+
+      // 创建 effect, 我们在看 effect 源码时知道了传入 lazy 代表不会立即执行，computed 表明 computed 上游依赖改变的时候，会优先 trigger runner effect, scheduler 表示 effect trigger 的时候会调用 scheduler 而不是直接调用 effect
+    const runner = effect(getter, {
+        lazy: true,
+        // mark effect as computed so that it gets priority during trigger
+        computed: true,
+        scheduler: () => {
+            // 再触发更新时把dirty置为true,不会立即更新
+            if (!dirty) {
+                dirty = true
+                trigger(computed, TriggerOpTypes.SET, 'value')
+            }
+        }
+    })
+
+    // 构造一个 computed 返回
+    computed = {
+        __v_isRef: true,
+        // expose effect so computed can be stopped
+        effect: runner,
+        get value() {
+            // dirty为true,get 操作时，执行effect获取最新值
+            if (dirty) {
+                value = runner()
+                dirty = false
+            }
+            // dirty 为 false, 表示值未更新，直接返回
+            track(computed, TrackOpTypes.GET, 'value')
+            return value
+        },
+        set value(newValue: T) {
+            setter(newValue)
+        }
+    } as any
+    return computed
+}
+```
+
+## computed spec
+1. 每次返回的是最新的值
+2. 计算属性默认是 lazy 不会立即执行, 取的值未发生变化不会执行
+3. 如果有effect是依赖 computed 结果的，当它改变时，effect 也会执行
+4. computed 之间可以相互依赖
+5. computed 可以 stop, stop 后不再响应
+6. 支持自定义 setter , setter 会触发 effect
+7. 默认是只读对象，修改会抛出错误
+
+
