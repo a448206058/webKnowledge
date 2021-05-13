@@ -3747,6 +3747,214 @@ function App() {
 该方法内部会执行FunctionComponent对应函数
 ```JavaScript
 function useState(initialState) {
-  var dispatcher = resolve
+  var dispatcher = resolveDispatcher();
+  return dispatcher.useState(initialState);
+}
+
+function useReducer(reducer, initialArg, init) {
+  var dispatcher = resolveDispatcher();
+  return dispatcher.useReducer(reducer, initialArg, init);
+}
+```
+* mount时
+mount时，useReducer会调用mountReducer，useState会调用mountState
+```JavaScript
+function mountState<S>(
+  initialState: (() => S) | S,
+): [S, Dispatch<BasicStateAction<S>>] {
+  // 创建并返回当前的hook
+  const hook = mountWorkInProgressHook();
+
+  // ...赋值初始state
+  const queue = (hook.queue = {
+    pending: null,
+    dispatch: null,
+    lastRenderedReducer: reducer,
+    lastRenderedState: (initialState: any),
+  });
+
+  // ...创建dispatch
+  return [hook.memoizedState, dispatch];
+}
+
+function mountReducer<S, I, A>(
+  reducer: (S, A) => S,
+  initialArg: I,
+  init?: I => S,
+): [S, Dispatch<A>] {
+  // 创建并返回当前的hook
+  const hook = mountWorkInProgressHook();
+
+  // ...赋值初始state
+
+  // 创建queue
+  const queue = (hook.queue = {
+    // 保存update对象
+    pending: null,
+    // 保存dispatchAction.bind()的值
+    dispatch: null,
+    // 上一次render时使用的reducer
+    lastRenderedReducer: reducer,
+    // 上一次render时的state
+    lastRenderedState: (initialState: any)
+  });
+
+  // ... 创建dispatch
+  return [hook.memoizedState, dispatch];
+}
+```
+
+basicStateReducer
+```JavaScript
+function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
+  return typeof action === 'function' ? action(state) : action;
+}
+```
+
+### update
+update时，useReduce与useState调用的是同一个updateReducer
+```JavaScript
+function updateReducer<S, I, A>(
+  reducer: (S, A) => S,
+  initialArg: I,
+  init?: I => S,
+): [S, Dispatch<A>] {
+  // 获取当前hook
+  const hook = updateWorkInProgressHook();
+  const queue = hook.queue;
+
+  queue.lastRenderedReducer = reducer;
+
+  // ...同update与updateQueue类似的更新逻辑
+
+  const dispatch: Dispatch<A> = (queue.dispatch: any);
+
+  return [hook.memoizedState, dispatch]
+}
+```
+找到对应的hook，根据update计算该hook的新state并返回
+
+mount时获取当前hook使用的是mountWorkInProgressHook，而update时使用的是updateWorkInProgressHook
+* mount时可以确定是调用ReactDOM.render或相关初始化API产生的更新，只会执行一次
+* update可能是在事件回调或副作用中触发的更新或者是render阶段触发的更新，为了避免组件无限循环更新，后者需要区别对待。
+
+### 调用阶段
+调用阶段会执行dispatchAction，此时该FunctionComponent对应的fiber以及hook.queue已经通过bind方法预先作为参数传入
+
+```JavaScript
+function dispatchAction(fiber, queue, action) {
+  // ... 创建update
+  var update = {
+    eventTime: eventTime,
+    lane: lane,
+    suspenseConfig: suspenseConfig,
+    action: action,
+    eagerReducer: null,
+    eagerState: null,
+    next: null
+  };
+
+  // ...将update加入queue.pending
+
+  var alternate = fiber.alternate;
+
+  if (fiber === currentlyRenderingFiber$1 || alternate !== null && alternate === currentlyRenderingFiber$1) {
+    // render阶段触发的更新
+    didScheduleRenderPhaseUpdateDuringThisPass = didScheduleRenderPhaseUpdate = true;
+  } else {
+    // fiber.lanes保存fiber上存在的update的优先级
+    // fiber.lanes === NoLanes 意味着fiber上不存在update
+    if (fiber.lanes === NoLanes && (alternate === null || alternate.lanes === NoLanes)) {
+      // ...fiber的updateQueue为空，优化路径
+    }
+
+    scheduleUpdateOnFiber(fiber, lane, eventTime)
+  }
+}
+```
+
+## useEffect
+### flushPassiveEffectsImpl
+flushPassiveEffects内部会设置优先级，并执行flushPassiveEffectsImpl
+* 调用该useEffect在上一次render时的销毁函数
+* 调用该useEffect在本次render时的回调函数
+* 如果存在同步任务，不需要等待下次事件循环的宏任务，提前执行前俩步
+
+useEffect的俩个阶段会在页面渲染后（layout阶段后）异步执行
+### 阶段一：销毁函数的执行
+useEffect的执行需要保证所有组件useEffect的销毁函数必须都执行完后才能执行任意一个组件的useEffect的回调函数
+
+这是因为多个组件间可能共用同一个ref。
+
+如果不是按照“全部销毁”再“全部执行”的顺序，那么在某个组件useEffect的销毁函数中修改的ref.current可能影响另一个组件useEffect的回调函数中的同一个ref的current属性。
+
+在useLayoutEffect中也有同样的问题，所以他们都遵循“全部销毁”再“全部执行”的顺序。
+
+在阶段一，会遍历并执行所有useEffect的销毁函数。
+```JavaScript
+// pendingPassiveHookEffectsUnmount中保存了所有需要执行销毁的useEffect
+const unmountEffects = pendingPassiveHookEffectsUnmount;
+pendingPassiveHookEffectsUnmount = [];
+for (let i = 0; i < unmountEffects.length; i += 2) {
+  const effect = ((unmountEffect[i]: any): HookEffect);
+  const fiber = ((unmountEffects[i + 1]: any): Fiber);
+  const destroy = effect.destroy;
+  effect.destroy = undefined;
+
+  if (typeof destroy === 'function') {
+    // 销魂函数存在则执行
+    try {
+      destroy()
+    } catch (error) {
+      captureCommitPhaseError(fiber, error);
+    }
+  }
+}
+```
+其中pendingPassiveHookEffectsUnmount数组的索引i保存需要销毁的effect，i+1保存该effects对应的fiber。
+
+向pendingPassiveHookEffectsUnmount数组内push数据的操作发生在layout阶段commitLayoutEffectOnFiber方法内部的schedulePassiveEffects方法中
+```JavaScirpt
+function schedulePassiveEffects(finishedWork: Fiber) {
+  const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
+  const lastEffect = updateQueue !== null ? updateQueue.lastEffect: null;
+  if (lastEffect !== null) {
+    const firstEffect = lastEffect.next;
+    let effect = firstEffect;
+    do {
+      const {next, tag} = effect;
+      if (
+        (tag & HookPassive) !== NoHookEffect &&
+        (tag & HookHasEffect) !== NoHookEffect
+      ) {
+        // 向`pendingPassiveHookEffectsUnmount`数组内`push`要销毁的effect
+        enqueuePendingPassiveHookEffectUnmount(finishedWork, effect);
+        // 向`pendingPassiveHookEffectsMount`数组内`push`要执行回调的effect
+        enqueuePendingPassiveHookEffectMount(finishedWork, effect);
+      }
+      effect = next;
+    } while (effect !== firstEffect);
+  }
+}
+```
+
+### 回调函数的执行
+同样遍历数组，执行对应effect的回调函数
+
+其中向pendingPassiveHookEffectsMount中push数据的操作同样发生在schedulePassiveEffects中。
+```JavaScript
+// pendingPassiveHookEffectsMount中保存了所有需要执行回调的useEffect
+const mountEffects = pendingPassiveHookEffectsMount;
+pendingPassiveHookEffectsMount = [];
+for (let i = 0; i < mountEffects.length; i+=2) {
+  const effect = ((mountEffects[i]: any): HookEffect);
+  const fiber = ((mountEffects[i + 1]: any): Fiber);
+
+  try {
+    const create = effect.create
+    effect.destroy = create();
+  } catch (error) {
+    captureCommitPhaseError(fiber, error);
+  }
 }
 ```
