@@ -3653,3 +3653,100 @@ function useState(initialState) {
   return [baseState, dispatchAction.bind(null, hook.queue)]
 }
 ```
+
+## Hooks数据结构
+组件mount是的hook鱼update时的hook来源于不同的对象，这类对象在源码中被称为dispatcher。
+```JavaScript
+// mount时的dispatcher
+const HooksDispatcherOnMount: Dispatcher = {
+  useCallback: mountCallback,
+  useContext: readContext,
+  useEffect: mountEffect,
+  useImperativeHandle: mountImperativeHandle,
+  useLayoutEffect: mountLayoutEffect,
+  useMemo: mountMemo,
+  useReducer: mountReducer,
+  useRef: mountRef,
+  useState: mountState
+}
+
+// update时的dispatcher
+const HooksDispatcherOnUpdate: Dispatcher = {
+  useCallback: updateCallback,
+  useContext: readContext,
+  useEffect: updateEffect,
+  useImperativeHandle: updateImperativeHandle,
+  useLayoutEffect: updateLayoutEffect,
+  useMemo: updateMemo,
+  useReducer: updateReducer,
+  useRef: updateRef,
+  useState: updateState
+}
+```
+
+在FunctionComponent render前，会根据FunctionComponent对应fiber的以下条件区分mount与update
+```JavaScript
+current === null || current.memoizedState === null
+```
+并将不同情况对应的dispatcher赋值给全局变量ReactCurrentDispatcher的current属性
+```JavaScript
+ReactCurrentDispatcher.current = 
+  current === null || current.memoizedState === null
+  ? HooksDispatcherOnMount
+  : HooksDispatcherOnUpdate
+```
+
+在FuntionComponent render时，会从ReactCurrentDispatcher.current（即当前dispatcher）中寻找需要的hook。
+
+不同的调用栈上下文为ReactCurrentDispatcher.current赋值不同的dispatcher,则FunctionComponent render时调用的hook也是不同的函数
+
+### HooK的数据结构
+```JavaScript
+const hook: Hook = {
+  memoizedState: null,
+  baseState: null,
+  baseQueue: null,
+  queue: null,
+  next: null
+}
+```
+
+### memoizedState
+fiber.memoizedState: FunctionComponent 对应fiber保存的Hooks链表
+hook.memoizedState: Hooks链表中保存的单一hook对应的数据
+不同类型hook的memoizedState保存不同类型数据
+* useState: 对于const [state, updateState] = useState(initialState),memoizedState保存state的值
+* useReducer：对于const [state, dispatch] = useReducer(reducer, {});,memoizedState保存state的值
+* useRef: 对于useRef(1), memoizedState保存{current: 1}
+* useMemo：对于useMemo(callback, [depA]), memoizedState保存[callback(), depA]
+* useCallback: 对于useCallback(callback, [depA]),memoizedState保存[callback, depA]。与useMemo的区别是，useCallback保存的是callback函数本身，而useMemo保存的是callback函数的执行结果
+
+## useState与useReducer
+useState只是预置了reducer的useReducer
+### 流程概览
+将这俩个hook的工作流程分为声明阶段和调用阶段
+```JavaScript
+function App() {
+  const [state, dispatch] = useReducer(reducer, {a: 1});
+
+  const [num, updateNum] = useState(0);
+
+  return (
+    <div>
+      <button onClick={() => dispatch({type: 'a'})}>{state.a}</button>
+      <button onClick={() => updateNum(num => num + 1)}>{num}</button>
+    </div>
+  )
+}
+```
+声明阶段 即 App调用时，会一次执行useReducer与useState方法
+调用阶段 即 点击按钮后，dispatch或updateNum被调用时。
+
+### 声明阶段
+当FunctionComponent进入render阶段的beginWork时，会调用renderWithHooks方法
+该方法内部会执行FunctionComponent对应函数
+```JavaScript
+function useState(initialState) {
+  var dispatcher = resolve
+}
+```
