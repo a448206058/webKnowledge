@@ -1,1 +1,27 @@
-<script></script>
+<script>
+    var combinationSum = function (candidates, target) {
+        var res = [];
+        if (candidates.length < 1) {
+            return res;
+        }
+        var search = function (start, c, all) {
+            if (all == target) {
+                res.push(c.slice());
+                return;
+            }
+            if (all > target) {
+                return;
+            }
+            for (let i = start; i < candidates.length; i++) {
+                c.push(candidates[i]);
+                search(i, c, all + candidates[i]);
+                c.pop();
+            }
+            return;
+        }
+        search(0, [], 0)
+        return res;
+    };
+
+    console.log(combinationSum([2, 3, 5], 8));
+</script>

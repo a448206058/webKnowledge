@@ -3958,3 +3958,150 @@ for (let i = 0; i < mountEffects.length; i+=2) {
   }
 }
 ```
+
+## useRef
+ref是reference的缩写。在React中，我们习惯用ref保存DOM。
+
+对于mount和update useRef对应俩个不同的dispatcher
+```JavaScript
+function mountRef<T>(initialValue: T): {|current: T|} {
+  // 获取当前useRef hook
+  const hook = mountWorkInProgressHook()
+  // 创建ref
+  const ref = {current: initialValue};
+  hook.memoizedState = ref;
+  return ref;
+}
+
+function updateRef<T>(initialValue: T): {|current: T|} {
+  // 获取当前useRef hook
+  const hook = updateWorkInProgressHook();
+  // 返回保存的数据
+  return hook.memoizedState;
+}
+```
+
+useRef仅仅是返回一个包含current属性的对象
+```JavaScript
+export function createRef(): RefObject {
+  const refObject = {
+    current: null
+  };
+  return refObject;
+}
+```
+
+### ref的工作流程
+* render阶段为含有ref属性的fiber添加 Ref effectTag
+* commit阶段 为包含Ref effectTag的fiber执行对应操作
+
+### render阶段
+在render阶段的beginWork与completeWork中有个同名方法markRef用于为含有ref属性的fiber增加Ref effectTag
+```JavaScript
+// beginWork的markRef
+function markRef(current: Fiber | null, workInProgress: Fiber) {
+  const ref = workInProgress.ref;
+  if (
+    (current === null && ref !== null) ||
+    (current |== null && current.ref !== ref)
+  ) {
+    // Schedule a Ref effect
+    workInProgress.effectTag |= Ref;
+  }
+}
+// completeWork的markRef
+function markRef(workInProgress: Fiber) {
+  workInProgress.effectTag |= Ref;
+}
+```
+在beginWork中，以下俩处调用了markRef：
+* updateClassComponent内的finishClassComponent，对应ClassComponent
+* updateHostComponent，对应HostComponent
+
+在completeWork中，以下俩处调用了markRef：
+* completeWork中的HostComponent类型
+* completeWork中的ScopeComponent类型
+
+* fiber类型为HostComponent、ClassComponent、ScopeComponent
+* 对于mount，workInProgress.ref !== null，即存在ref属性
+* 对于update，current.ref !== workInProgress.ref，即ref属性改变
+
+### commit阶段
+在commit阶段的mutation阶段中，对于ref属性改变的情况，需要先移除之前的ref
+```JavaScript
+function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
+  while (nextEffect !== null) {
+    
+    const effectTag = nextEffect.effectTag;
+
+    // ...
+    if (effectTag & Ref) {
+      const current = nextEffect.alternate;
+      if (current !== null) {
+        // 移除之前的ref
+        commitDetachRef(current);
+      }
+    }
+    // ...
+  }
+  // ...
+}
+
+function commitDetachRef(current: Fiber) {
+  const currentRef = current.ref;
+  if (currentRef !== null){
+    if (typeof currentRef === 'function') {
+      // function类型ref，调用他，传参为null
+      currentRef(null);
+    } else {
+      // 对象类型ref，current赋值为null
+      currentRef.current = null;
+    }
+  }
+}
+```
+
+```JavaScript
+function safelyDetachRef(current: Fiber) {
+  const ref = current.ref;
+  if (ref !== null) {
+    if (typeof ref === 'function') {
+      try {
+        ref(null);
+      } catch (refError) {
+        captureCommitPhaseError(current, refError);
+      }
+    } else {
+      ref.current = null;
+    }
+  }
+}
+```
+commitLayoutEffect会执行commitAttachRef（赋值ref）
+```JavaScript
+function commitAttachRef(finishedWork: Fiber) {
+  const ref = finishedWork.ref;
+  if (ref !== null) {
+    // 获取ref属性对应的component实例
+    const instance = finishedWork.stateNode;
+    let instanceToUse;
+    switch (finishedWork.tag) {
+      case HostComponent:
+        instanceToUse = getPublicInstance(instance);
+        break;
+      default:
+        instanceToUse = instance;
+    }
+
+    // 赋值ref
+    if (typeof ref === 'function') {
+      ref(instanceToUse);
+    } else {
+      ref.current = instanceToUse;
+    }
+  }
+}
+```
+### 总结
+* 对于FunctionComponent， useRef负责创建并返回对应的ref。
+* 对于赋值了ref属性的HostComponent与ClassComponent，会在render阶段经历赋值Ref effectTag，在commit阶段执行对应ref操作。
