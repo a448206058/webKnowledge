@@ -112,3 +112,91 @@ Promise 解决了什么问题？
   -- Restful API
   -- headers
   -- 缓存策略
+
+### 如何理解 HTML 语义化？
+
+增加代码可读性
+更利于 SEO
+
+### 块状元素 & 内联元素？
+
+display: block/table;有 div h1 h2 table ul ol p 等
+display: inline/inline-block;有 span img input button 等
+
+### 盒模型宽度计算
+
+- offsetWidth = (内容宽度 + 内边距 + 边框)，无外边距
+  box-sizing: border-box;
+
+### margin 纵向重叠问题
+
+- 相邻元素的 maring-top 和 maring-bottom 会发生重叠
+- 空白内容也会重叠
+
+### margin 负值问题
+
+- marigin-top 和 margin-left 负值，元素向上、向左移动
+- margin-right 负值，右侧元素左移，自身不受影响
+- margin-bottom 负值，下方元素上移，自身不受影响
+
+### BFC 理解与应用
+
+- Block format context 块级格式化上下文
+- 一块独立渲染区域，内部元素的渲染不会影响边界以外的元素
+
+形成 BFC 的常见条件
+
+- float 不是 none
+- position 是 absolute 或 fixed
+- overflow 不是 visible
+- display 是 flec inline-block 等
+
+BFC 的常见应用
+
+- 清除浮动
+
+### float 布局
+
+- 如何实现圣杯布局和双飞翼布局
+  圣杯布局和双飞翼布局的目的
+- 三栏布局，中间一栏最先加载和渲染（内容最重要）
+- 俩侧内容固定，中间内容随着宽度自适应
+- 一般用于 PC 网页
+
+圣杯布局和双飞翼布局的技术总结
+
+- 使用 float 布局
+- 俩侧使用 margin 负值，以便和中间内容横向重叠
+- 防止中间内容被俩侧覆盖，一个用 padding 一个用 margin
+
+- 手写 clearfix
+  .clearfix:after {
+  content: '';
+  display: table;
+  clear: both;
+  }
+
+  .clearfix {
+  \*zoom: 1;
+  }
+
+### absolute 和 relative 定位
+
+- relative 依据自身定位
+- absolute 依据最近一层的定位元素定位
+  定位元素
+
+* absulte fixed relative
+
+### 水平居中
+
+- inline 元素： text-align: center
+- block 元素：margin: auto
+- absolute 元素： left: 50% + margin-left 负值
+
+### 垂直居中
+
+- inline 元素：line-height 的值等于 height 值
+- absolute 元素： top 50% + margin-top 负值
+- absolute 元素：transform(-50%, -50%)
+- absolute 元素：top, left, bottom, right = 0 + margin: auto

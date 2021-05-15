@@ -1,27 +1,56 @@
 <script>
-    var combinationSum = function (candidates, target) {
-        var res = [];
-        if (candidates.length < 1) {
-            return res;
-        }
-        var search = function (start, c, all) {
-            if (all == target) {
-                res.push(c.slice());
-                return;
-            }
-            if (all > target) {
-                return;
-            }
-            for (let i = start; i < candidates.length; i++) {
-                c.push(candidates[i]);
-                search(i, c, all + candidates[i]);
-                c.pop();
-            }
-            return;
-        }
-        search(0, [], 0)
-        return res;
+  var combinationSum = function (candidates, target) {
+    var res = [];
+    if (candidates.length < 1) {
+      return res;
+    }
+    var search = function (start, c, all) {
+      if (all == target) {
+        res.push(c.slice());
+        return;
+      }
+      if (all > target) {
+        return;
+      }
+      for (let i = start; i < candidates.length; i++) {
+        c.push(candidates[i]);
+        search(i, c, all + candidates[i]);
+        c.pop();
+      }
+      return;
+    };
+    search(0, [], 0);
+    return res;
+  };
+
+  var combinationSum2 = function (candidates, target) {
+    candidates.sort((a, b) => a - b);
+    var res = [];
+    if (candidates.length == 0) {
+      return res;
+    }
+    const dep = (c, start, all) => {
+      if (all == target) {
+        res.push(c.slice());
+        return;
+      }
+      if (all > target) {
+        return;
+      }
+      for (let i = start; i < candidates.length; i++) {
+        // if (i - 1 >= start && candidates[i - 1] == candidates[i]) {
+        //   continue;
+        // }
+        c.push(candidates[i]);
+        dep(c, i + 1, all + candidates[i]);
+        c.pop();
+      }
+      return;
     };
 
-    console.log(combinationSum([2, 3, 5], 8));
+    dep([], 0, 0);
+    return res;
+  };
+
+  console.log(combinationSum2([10, 1, 2, 7, 6, 1, 5], 8));
 </script>
