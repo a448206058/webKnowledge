@@ -68,3 +68,57 @@ JavaScript 是通过<script>元素插入到 HTML 页面中的。这个元素可�
 - 可以使用 defer 属性把脚本推迟到文档渲染完毕后再执行。推迟的脚本原则上按照它们被列出 的次序执行。
 - 可以使用 async 属性表示脚本不需要等待其他脚本，同时也不阻塞文档渲染，即异步加载。异 步脚本不能保证按照它们在页面中出现的次序执行。
 - 通过使用<noscript>元素，可以指定在浏览器不支持脚本时显示的内容。如果浏览器支持并启 用脚本，则<noscript>元素中的任何内容都不会被渲染。
+
+## 语言基础
+
+### 语法
+
+区分大小写
+标识符
+注释
+严格模式
+语句
+
+### 关键词与保留字
+
+关键字：
+break do
+case else
+catch export
+class extends
+const finally
+continue for
+debugger function this
+default if throw
+delete import try
+in typeof
+instanceof var
+new void
+return while
+super with
+switch yield
+
+保留字：将来用
+enum
+严格模式下保留:
+implements package public
+interface protected static
+let private
+模块代码中保留: await
+
+### 变量
+
+ECMAScript 变量是松散类型的，意思是变量可以用于保存任何类型的数据
+var let const
+优先使用 const let var
+
+### 数据类型
+
+6 种简单数据类型（也称为原始类型）：Undefined、Null、Boolean、Number、String 和 Symbol。还有一种复杂数据类型叫 Object
+
+typeof undefined boolean string number (object 或 null） function sumbol
+特殊值 null 被认为是一个对空对象的引用。
+
+Number()、parseInt()和 parseFloat()
+
+## 操作符

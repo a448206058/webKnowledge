@@ -761,3 +761,448 @@ Ok, so we got a little distracted overthinking performance for a second there. T
 
 So next time you're maintaining the state of your app and trying to figure out a synchronization bug, think about how you could make it derived on the fly instead. And in the few instances you bump into performance issues you can reach to a few optimization strategies to help alleviate some of that pain. Good luck!
 所以，下次当你维护应用程序的状态并试图找出一个同步错误时，想想如何让它在运行中派生出来。在少数情况下，您会遇到性能问题，您可以使用一些优化策略来帮助减轻这些痛苦。祝你好运！
+
+## The State Reducer Pattern with React Hooks
+
+## 带 React 钩子的状态还原模式
+
+A pattern for you to use in custom hooks to enhance the power and flexibility of your hooks.
+供您在自定义钩子中使用的模式，以增强钩子的能力和灵活性。
+
+### Some History
+
+### 一些历史
+
+A while ago, I developed a new pattern for enhancing your React components called the state reducer pattern. I used it in downshift to enable an awesome API for people who wanted to make changes to how downshift updates state internally.
+不久前，我开发了一个新的模式来增强 React 组件，称为 state reducer 模式。我在 downshift 中使用了它，为那些想要改变 downshift 内部更新状态的人提供了一个很棒的 API。
+
+> If you're unfamiliar with downshift, just know that it's an "enhanced input" component that allows you to build things like accessible autocomplete/typeahead/dropdown components. It's important to know that it manages the following items of state: isOpen, selectedItem, highlightedIndex, and inputValue.
+> 如果您不熟悉降档，只需知道它是一个“增强的输入”组件，允许您构建诸如可访问的自动完成/typeahead/dropdown 组件之类的东西.重要的是要知道它管理以下状态项：isOpen、selectedItem、highlightedIndex 和 inputValue。
+
+Downshift is currently implemented as a render prop component, because at the time, render props was the best way to make a "Headless UI Component" (typically implemented via a "render prop" API) which made it possible for you to share logic without being opinionated about the UI. This is the major reason that downshift is so successful.
+Downshift 目前是作为 render prop 组件实现的，因为在当时，render props 是制作“Headless UI 组件”（通常通过“render prop”API 实现）的最佳方式，这使得您可以共享逻辑而不必对 UI 固执己见。这是降档如此成功的主要原因。
+
+Today however, we have React Hooks and hooks are way better at doing this than render props. So I thought I'd give you all an update of how this pattern transfers over to this new API the React team has given us. (Note: Downshift has plans to implement a hook)
+然而，今天我们有了 React 钩子，钩子比渲染 prop 做得更好。所以我想我应该给大家一个关于这个模式如何转换到 React 团队给我们的这个新 API 的更新。（注：降档计划使用挂钩）
+
+As a reminder, the benefit of the state reducer pattern is in the fact that it allows "inversion of control" which is basically a mechanism for the author of the API to allow the user of the API to control how things work internally. For an example-based talk about this, I strongly recommend you give my React Rally 2018 talk a watch:
+提醒一下，state reducer 模式的好处在于它允许“控制反转”，这基本上是 API 作者允许 API 用户控制内部工作方式的一种机制。关于这一点，我强烈建议您给我的 React Rally 2018 演讲看一看：
+
+> Read also on my blog: "Inversion of Control"
+> 在我的博客上也读到：“控制反转”
+
+So in the downshift example, I had made the decision that when an end user selects an item, the isOpen should be set to false (and the menu should be closed). Someone was building a multi-select with downshift and wanted to keep the menu open after the user selects an item in the menu (so they can continue to select more).
+因此，在降档示例中，我决定当最终用户选择一个项目时，应将 isOpen 设置为 false（并且应关闭菜单）。有人正在构建一个带有降档的多选择菜单，并希望在用户选择菜单中的某个项目后保持菜单打开（以便他们可以继续选择更多）。
+
+By inverting control of state updates with the state reducer pattern, I was able to enable their use case as well as any other use case people could possibly want when they want to change how downshift operates internally. Inversion of control is an enabling computer science principle and the state reducer pattern is an awesome implementation of that idea that translates even better to hooks than it did to regular components.
+通过使用 state reducer 模式反转状态更新的控制，我能够启用他们的用例，以及当他们想要改变降档操作的内部方式时人们可能想要的任何其他用例。控制反转是一个使能的计算机科学原理，状态约简模式是这个思想的一个令人敬畏的实现，它对钩子的转化甚至比对常规组件的转化更好。
+
+### Using a State Reducer with Hooks
+
+### 用一个 state reducer 钩子
+
+Ok, so the concept goes like this:
+好吧，这个概念是这样的：
+
+1. End user does an action
+1. 最终用户执行操作
+1. Dev calls dispatch
+1. 开发人员呼叫调度
+1. Hook determines the necessary changes
+1. 钩子决定了必要的改变
+1. Hook calls dev's code for further changes 👈 this is the inversion of control part
+1. Hook 调用 dev 的代码进行进一步的更改 👈 这是控制部分的反转
+1. Hook makes the state changes
+   WARNING: Contrived example ahead: To keep things simple, I'm going to use a simple useToggle hook and component as a starting point. It'll feel contrived, but I don't want you to get distracted by a complicated example as I teach you how to use this pattern with hooks. Just know that this pattern works best when it's applied to complex hooks and components (like downshift).
+1. 钩子使状态改变。警告：前面的人为示例：为了保持简单，我将使用一个简单的 usetokle 钩子和组件作为起点。这会让人觉得做作，但我不想让你被一个复杂的例子分心，因为我教你如何使用这个模式与钩子。只需知道，这种模式适用于复杂的挂钩和组件（如降档）时效果最佳。
+
+```JavaScript
+function useToggle() {
+  const [on, setOnState] = React.useState(false)
+
+  const toggle = () => setOnState(o => !o)
+  const setOn = () => setOnState(true)
+  const setOff = () => setOnState(false)
+
+  return {on, toggle, setOn, setOff}
+}
+
+function Toggle() {
+  const {on, toggle, setOn, setOff} = useToggle()
+
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch on={on} onClick={toggle} />
+    </div>
+  )
+}
+
+function App() {
+  return <Toggle />
+}
+
+ReactDOM.render(<App />, document.getElementById('root'))
+```
+
+Now, let's say we wanted to adjust the <Toggle /> component so the user couldn't click the <Switch /> more than 4 times in a row unless they click a "Reset" button:
+现在，假设我们想调整<Toggle/>组件，以便用户不能连续单击<Switch/>超过 4 次，除非他们单击“Reset”按钮：
+
+```JavaScript
+function Toggle() {
+  const [clicksSinceReset, setClicksSinceReset] = React.useStata(0)
+  const tooManyClicks = clicksSinceReset >= 4
+
+  const {on, toggle, setOn, setOff} = useToggle()
+
+  function handleClick() {
+    toggle()
+    setClicksSinceReset(count => count + 1)
+  }
+
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch on={on} onClick={handleClick} />
+      {tooManyClicks ? (
+        <button onClick={() => setClicksSinceReset(0)}>Reset</button>
+      ): null}
+    </div>
+  )
+}
+```
+
+Cool, so an easy solution to this problem would be to add an if statement in the handleClick function and not call toggle if tooManyClicks is true, but let's keep going for the purposes of this example.
+很酷，所以解决这个问题的一个简单方法是在 handleClick 函数中添加一个 if 语句，如果 tooManyClicks 为 true，则不调用 toggle，但是为了这个示例的目的，让我们继续。
+
+How could we change the useToggle hook, to invert control in this situation? Let's think about the API first, then the implementation second. As a user, it'd be cool if I could hook into every state update before it actually happens and modify it, like so:
+在这种情况下，我们如何改变 usetokle 钩子来反转控件？让我们先考虑 API，然后再考虑实现。作为一个用户，如果我能在每一个状态更新真正发生之前就将其挂接并进行修改，那就太酷了，就像这样：
+
+```JavaScript
+function Toggle() {
+  const [clicksSinceReset, setClicksSinceReset] = React.useState(0)
+  const tooManyClicks = clicksSinceReset >= 4
+
+  const {on, toggle, setOn, setOff} = useToggle({
+    modifyStateChange(currentState, changes) {
+      if (tooManyClicks) {
+        // other changes are fine, but on needs to be unchanged
+        return {...changes, on: currentState.on}
+      } else {
+        // the changes are fine
+        return changes
+      }
+    },
+  })
+
+  function handleClick() {
+    toggle()
+    setClicksSinceReset(count => count + 1)
+  }
+
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch on={on} onClick={handleClick} />
+      {tooManyClicks ? (
+        <button onClick={() => setClicksSinceReset(0)}>Reset</button>
+      ): null}
+    </div>
+  )
+}
+
+```
+
+So that's great, except it prevents changes from happening when people click the "Switch Off" or "Switch On" buttons, and we only want to prevent the <Switch /> from toggling the state.
+所以这很好，除了它可以防止人们点击“关闭”或“打开”按钮时发生变化，我们只想防止<Switch/>切换状态。
+
+Hmmm... What if we change modifyStateChange to be called reducer and it accepts an action as the second argument? Then the action could have a type that determines what type of change is happening, and we could get the changes from the toggleReducer which would be exported by our useToggle hook. We'll just say that the type for clicking the switch is TOGGLE.
+如果我们将 modifyStateChange 改为 reducer，并且它接受一个操作作为第二个参数呢？然后动作可以有一个类型来确定发生了什么类型的更改，我们可以从 toggleReducer 中获取更改，该更改将由 usetokle 钩子导出。我们只能说点击开关的类型是 TOGGLE。
+
+```JavaScript
+function Toggle() {
+  const [clicksSinceReset, setClicksSinceReset] = React.useState(0)
+  const tooManyClicks = clicksSinceReset >= 4
+  const {on, toggle, setOn, setOff} = useToggle({
+    reducer(currentState, action) {
+      const changes = toggleReducer(currentState, action)
+      if (tooManyClicks && action.type === 'TOGGLE') {
+        // other changes are fine, but on needs to be unchanged
+        return {...changes, on: currentState.on}
+      } else {
+        // the changes are fine
+        return changes
+      }
+    },
+  })
+  function handleClick() {
+    toggle()
+    setClicksSinceReset(count => count + 1)
+  }
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch on={on} onClick={handleClick} />
+      {tooManyClicks ? (
+        <button onClick={() => setClicksSinceReset(0)}>Reset</button>
+      ) : null}
+    </div>
+  )
+}
+```
+
+Nice! This gives us all kinds of control. One last thing, let's not bother with the string 'TOGGLE' for the type. Instead we'll have an object of all the change types that people can reference instead. This'll help avoid typos and improve editor autocompletion (for folks not using TypeScript):
+很好！这给了我们各种各样的控制。最后一件事，让我们不用为类型的字符串'TOGGLE'操心。取而代之的是，我们将有一个对象，它包含了人们可以引用的所有更改类型。这将有助于避免打字错误并改进编辑器的自动完成（对于不使用 TypeScript 的用户）：
+
+```JavaScript
+function Toggle() {
+  const [clicksSinceReset, setClicksSinceReset] = React.useState(0)
+  const tooManyClicks = clicksSinceReset >= 4
+  const {on, toggle, setOn, setOff} = useToggle({
+    reducer(currentState, action) {
+      const changes = toggleReducer(currenState, action)
+      if (tooManyClicks && action.type === actionTypes.toggle) {
+        // other changes are fine, but on needs to be unchanged
+        return {...changes, on: currentState.on}
+      } else {
+        // the changes are fine
+        return changes
+      }
+    },
+  })
+  function handleClick() {
+    toggle()
+    setClicksSinceReset(count => count + 1)
+  }
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch on={on} onClick={handleClick} />
+      {tooManyClicks ? (
+        <button onClick={() => setClicksSinceReset(0)}>Reset</button>
+      ) : null}
+    </div>
+  )
+}
+
+```
+
+### Implementing a State Reducer with Hooks
+
+### 用钩子实现状态约简
+
+Alright, I'm happy with the API we're exposing here. Let's take a look at how we could implement this with our useToggle hook. In case you forgot, here's the code for that:
+好吧，我对我们在这里展示的 API 很满意。让我们看看如何用 useToggle 钩子实现这个功能。万一你忘了，下面是代码：
+
+```JavaScript
+function useToggle() {
+  const [on, setOnState] = React.useState(false)
+  const toggle = () => setOnState(o => !o)
+  const setOn = () => setOnState(true)
+  const setOff = () => setOnState(false)
+  return {on, toggle, setOn, setOff}
+}
+```
+
+We could add logic to every one of these helper functions, but I'm just going to skip ahead and tell you that this would be really annoying, even in this simple hook. Instead, we're going to rewrite this from useState to useReducer and that'll make our implementation a LOT easier:
+我们可以为每一个 helper 函数添加逻辑，但我只想跳到前面，告诉您，即使在这个简单的钩子中，这也会非常烦人。相反，我们将把它从 useState 重写为 useReducer，这将使我们的实现更加容易：
+
+```JavaScript
+function toggleReducer(state, action) {
+  switch (action.type) {
+    case 'TOGGLE': {
+      return {on: !state.on}
+    }
+    case 'ON': {
+      return {on: true}
+    }
+    case 'OFF': {
+      return {on: false}
+    }
+    default: {
+      throw new Error(`Unhandled type: ${action.type}`)
+    }
+  }
+}
+function useToggle() {
+  const [{on}, dispatch] = React.useReducer(toggleReducer, {on: false})
+  const toggle = () => dispatch({type: 'TOGGLE'})
+  const setOn = () => dispatch({type: 'ON'})
+  const setOff = () => dispatch({type: 'OFF'})
+  return {on, toggle, setOn, setOff}
+}
+```
+
+Ok, cool. Really quick, let's add that types property to our useToggle to avoid the strings thing. And we'll export that so users of our hook can reference them:
+很酷。很快，让我们将 types 属性添加到 usethoggle 中，以避免使用字符串。我们将导出它，以便钩子的用户可以引用它们：
+
+```JavaScript
+const actionTypes = {
+  toggle: 'TOGGLE',
+  on: 'ON',
+  off: 'OFF',
+}
+function toggleReducer(state, action) {
+  switch (action.type) {
+    case actionTypes.toggle: {
+      return {on: !state.on}
+    }
+    case actionTypes.on: {
+      return {on: true}
+    }
+    case actionTypes.off: {
+      return {on: false}
+    }
+    default: {
+      throw new Error(`Unhandled type: ${action.type}`)
+    }
+  }
+}
+function useToggle() {
+  const [{on}, dispatch] = React.useReducer(toggleReducer, {on: false})
+  const toggle = () => dispatch({type: actionTypes.toggle})
+  const setOn = () => dispatch({type: actionTypes.on})
+  const setOff = () => dispatch({type: actionTypes.off})
+  return {on, toggle, setOn, setOff}
+}
+export {useToggle, actionTypes}
+
+```
+
+Cool, so now, users are going to pass reducer as a configuration object to our useToggle function, so let's accept that:
+很酷，所以现在，用户将把 reducer 作为配置对象传递给我们的 useTokle 函数，所以让我们接受以下事实：
+
+```JavaScript
+function useToggle({reducer}) {
+  const [{on}, dispatch] = React.useReducer(toggleReducer, {on: false})
+  const toggle = () => dispatch({type: actionTypes.toggle})
+  const setOn = () => dispatch({type: actionTypes.on})
+  const setOff = () => dispatch({type: actionTypes.off})
+  return {on, toggle, setOn, setOff}
+}
+```
+
+Great, so now that we have the developer's reducer, how do we combine that with our reducer? Well, if we're truly going to invert control for the user of our hook, we don't want to call our own reducer. Instead, let's expose our own reducer and they can use it themselves if they want to, so let's export it, and then we'll use the reducer they give us instead of our own:
+太好了，既然我们有了开发者的 reducer，我们如何将它与 reducer 结合起来呢？好吧，如果我们真的要反转钩子用户的控制，我们不想调用我们自己的 reducer。相反，让我们展示我们自己的 reducer，如果他们愿意，他们可以自己使用，所以让我们导出它，然后我们将使用他们给我们的 reducer，而不是我们自己的 reducer：
+
+```JavaScript
+function useToggle({reducer}) {
+  const [{on}, dispatch] = React.useReducer(reducer, {on: false})
+  const toggle = () => dispatch({type: actionTypes.toggle})
+  const setOn = () => dispatch({type: actionTypes.on})
+  const setOff = () => dispatch({type: actionTypes.off})
+  return {on, toggle, setOn, setOff}
+}
+export {useToggle, actionTypes, toggleReducer}
+```
+
+Great, but now everyone using our component has to provide a reducer which is not really what we want. We want to enable inversion of control for people who do want control, but for the more common case, they shouldn't have to do anything special, so let's add some defaults:
+太好了，但是现在每个使用我们组件的人都必须提供一个不是我们真正想要的 recuer。我们希望为确实需要控制的人启用控制反转，但对于更常见的情况，他们不必做任何特殊的操作，因此让我们添加一些默认值：
+
+```JavaScript
+function useToggle({reducer = toggleReducer} = {}) {
+  const [{on}, dispatch] = React.useReducer(reducer, {on: false})
+  const toggle = () => dispatch({type: actionTypes.toggle})
+  const setOn = () => dispatch({type: actionTypes.on})
+  const setOff = () => dispatch({type: actionTypes.off})
+  return {on, toggle, setOn, setOff}
+}
+export {useToggle, actionTypes, toggleReducer}
+```
+
+Sweet, so now people can use our useToggle hook with their own reducer or they can use it with the built-in one. Either way works just as well.
+甜蜜，所以现在人们可以使用我们的 UseTokle 钩与他们自己的 reducer 或他们可以使用它与内置的一个。任何一种方法都同样有效。
+
+### Conclusion
+
+### 结论
+
+Here's the final version:
+这是最终的版本：
+
+```JavaScript
+import * as React from 'react'
+import ReactDOM from 'react-dom'
+import Switch from './switch'
+const actionTypes = {
+  toggle: 'TOGGLE',
+  on: 'ON',
+  off: 'OFF',
+}
+function toggleReducer(state, action) {
+  switch (action.type) {
+    case actionTypes.toggle: {
+      return {on: !state.on}
+    }
+    case actionTypes.on: {
+      return {on: true}
+    }
+    case actionTypes.off: {
+      return {on: false}
+    }
+    default: {
+      throw new Error(`Unhandled type: ${action.type}`)
+    }
+  }
+}
+function useToggle({reducer = toggleReducer} = {}) {
+  const [{on}, dispatch] = React.useReducer(reducer, {on: false})
+  const toggle = () => dispatch({type: actionTypes.toggle})
+  const setOn = () => dispatch({type: actionTypes.on})
+  const setOff = () => dispatch({type: actionTypes.off})
+  return {on, toggle, setOn, setOff}
+}
+// export {useToggle, actionTypes, toggleReducer}
+function Toggle() {
+  const [clicksSinceReset, setClicksSinceReset] = React.useState(0)
+  const tooManyClicks = clicksSinceReset >= 4
+  const {on, toggle, setOn, setOff} = useToggle({
+    reducer(currentState, action) {
+      const changes = toggleReducer(currentState, action)
+      if (tooManyClicks && action.type === actionTypes.toggle) {
+        // other changes are fine, but on needs to be unchanged
+        return {...changes, on: currentState.on}
+      } else {
+        // the changes are fine
+        return changes
+      }
+    },
+  })
+  return (
+    <div>
+      <button onClick={setOff}>Switch Off</button>
+      <button onClick={setOn}>Switch On</button>
+      <Switch
+        onClick={() => {
+          toggle()
+          setClicksSinceReset(count => count + 1)
+        }}
+        on={on}
+      />
+      {tooManyClicks ? (
+        <button onClick={() => setClicksSinceReset(0)}>Reset</button>
+      ) : null}
+    </div>
+  )
+}
+function App() {
+  return <Toggle />
+}
+ReactDOM.render(<App />, document.getElementById('root'))
+```
+
+And here it is running in a codesandbox:
+Remember, what we've done here is enable users to hook into every state update of our reducer to make changes to it. This makes our hook WAY more flexible, but it also means that the way we update state is now part of the API and if we make changes to how that happens, then it could be a breaking change for users. It's totally worth the trade-off for complex hooks/components, but it's just good to keep that in mind.
+它在一个代码沙盒中运行：
+请记住，我们在这里所做的是使用户能够挂接到我们的 reducer 的每个状态更新中对其进行更改。这使得我们的钩子方式更加灵活，但这也意味着我们更新状态的方式现在是 API 的一部分，如果我们对如何进行更改，那么对用户来说可能是一个突破性的更改。对于复杂的钩子/组件来说，这是完全值得权衡的，但是记住这一点是很好的。
+
+I hope you find patterns like this useful. Thanks to useReducer, this pattern just kinda falls out (thank you React!). So give it a try on your codebase!
+我希望你觉得这样的模式很有用。多亏了 useReducer，这种模式才有点过时（谢谢你！）。所以在你的代码库上试试吧！
+
+Good luck!
+好运！

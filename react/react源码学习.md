@@ -3330,43 +3330,51 @@ const queue: UpdateQueue<State> = {
 updateQueue 由 initializeUpdateQueue 方法返回
 
 ## 深入理解优先级
-### 什么是优先级
-状态更新由用户交互产生，用户心里对交互执行顺序有个预期。React根据人机交互研究的结果中用户对交互的预期顺序为交互产生的状态更新赋予不同优先级。
 
-* 生命周期方法：同步执行
-* 受控的用户输入：比如输入框输入文字，同步执行
-* 交互事件：比如动画，高优先级执行
-* 其他：比如数据请求，低优先级执行
+### 什么是优先级
+
+状态更新由用户交互产生，用户心里对交互执行顺序有个预期。React 根据人机交互研究的结果中用户对交互的预期顺序为交互产生的状态更新赋予不同优先级。
+
+- 生命周期方法：同步执行
+- 受控的用户输入：比如输入框输入文字，同步执行
+- 交互事件：比如动画，高优先级执行
+- 其他：比如数据请求，低优先级执行
 
 ### 如何调度优先级
-react通过scheduler调度任务
 
-每当需要调度任务时，React会调用Scheduler提供的方法runWithPriority
+react 通过 scheduler 调度任务
+
+每当需要调度任务时，React 会调用 Scheduler 提供的方法 runWithPriority
 
 该方法接收一个优先级常量与一个回调函数作为参数。回调函数会以优先级高低为顺序排列在一个定时器中并在合适的时间触发
 
-对于更新来讲，传递的回调函数一般为render的入口函数
+对于更新来讲，传递的回调函数一般为 render 的入口函数
 
-优先级最终会反映到update.lane变量上。
+优先级最终会反映到 update.lane 变量上。
 
 ### 如何保证状态正确
-* render阶段可能被中断。如何保证updateQueue中保存的Update不丢失？
-* 有时候当前状态需要依赖前一个状态。如何在支持跳过低优先级状态的同时保证状态依赖的连续性？
 
-### 如何保证update不丢失
-当render阶段被中断后重新开始时，会基于current updateQueue克隆出workInProgress updateQueue。由于current updateQueue.lastBaseUpdate已经保存了上一次的Update，所以不会丢失。
+- render 阶段可能被中断。如何保证 updateQueue 中保存的 Update 不丢失？
+- 有时候当前状态需要依赖前一个状态。如何在支持跳过低优先级状态的同时保证状态依赖的连续性？
 
-当commit阶段完成渲染，由于workInProgress updateQueue.lastBaseUpdate中保存了上一次的Update，所以 workInProgress Fiber树变成current Fiber树后也不会造成Update丢失。
+### 如何保证 update 不丢失
+
+当 render 阶段被中断后重新开始时，会基于 current updateQueue 克隆出 workInProgress updateQueue。由于 current updateQueue.lastBaseUpdate 已经保存了上一次的 Update，所以不会丢失。
+
+当 commit 阶段完成渲染，由于 workInProgress updateQueue.lastBaseUpdate 中保存了上一次的 Update，所以 workInProgress Fiber 树变成 current Fiber 树后也不会造成 Update 丢失。
 
 ### 如何保证状态依赖的连续性
-当某个Update由于优先级低而被跳过时，保存在baseUpdate中的不仅是该Update，还包括链表中该Update之后的所有Update。
+
+当某个 Update 由于优先级低而被跳过时，保存在 baseUpdate 中的不仅是该 Update，还包括链表中该 Update 之后的所有 Update。
 
 ## ReactDOM.render
 
-### 创建fiber
-首次执行ReactDOM.render会创建fiberRootNode和rootFiber。其中fiberRootNode是整个应用的根节点，rootFiber是渲染组件所在组件树的根节点。
+### 创建 fiber
 
-这一步发生在调用ReactDOM.render后进入的legacyRenderSubtreeIntoContainer方法中
+首次执行 ReactDOM.render 会创建 fiberRootNode 和 rootFiber。其中 fiberRootNode 是整个应用的根节点，rootFiber 是渲染组件所在组件树的根节点。
+
+这一步发生在调用 ReactDOM.render 后进入的 legacyRenderSubtreeIntoContainer 方法中
+
 ```JavaScript
 // container指ReactDOM.render的第二个参数
 root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
@@ -3376,7 +3384,8 @@ root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
 fiberRoot = root._internalRoot;
 ```
 
-legacyCreateRootFromDOMContainer方法内部会调用createFiberRoot方法完成fiberRootNode和rootFiber的创建以及关联。并初始化updateQueue
+legacyCreateRootFromDOMContainer 方法内部会调用 createFiberRoot 方法完成 fiberRootNode 和 rootFiber 的创建以及关联。并初始化 updateQueue
+
 ```JavaScript
 export function createFiberRoot(
   containerInfo: any,
@@ -3401,8 +3410,10 @@ export function createFiberRoot(
 }
 ```
 
-### 创建update
-这一步发生在updateContainer方法中
+### 创建 update
+
+这一步发生在 updateContainer 方法中
+
 ```JavaScript
 export function updateContainer(
   element: ReactNodeList,
@@ -3431,6 +3442,7 @@ export function updateContainer(
 ```
 
 ### 流程概览
+
 ```JavaScript
 创建fiberRootNode、rootFiber、updateQueue（`legacyCreateRootFromDOMContainer`）
 |
@@ -3445,14 +3457,18 @@ render阶段（`performSyncWorkOnRoot`或`performConcurrentWorkOnRoot`）
 commit阶段（`commitRoot`）
 ```
 
-### React的其他入口函数
-当前React共有三种模式：
-* legacy，这是当前React使用的方式
-* blocking，开启部分concurrent模式特性的中间模式
-* concurrent，面向未来的开发模式
+### React 的其他入口函数
+
+当前 React 共有三种模式：
+
+- legacy，这是当前 React 使用的方式
+- blocking，开启部分 concurrent 模式特性的中间模式
+- concurrent，面向未来的开发模式
 
 ## this.setState
-this.setState内会调用this.updater.enqueueSetState
+
+this.setState 内会调用 this.updater.enqueueSetState
+
 ```JavaScript
 Component.prototype.setState = function (partialState, callback) {
   if (!(typeof partialState === 'object') || typeof partialState === 'function' || partialState == null) {
@@ -3462,7 +3478,8 @@ Component.prototype.setState = function (partialState, callback) {
 this.updater.enqueueSetState(this, partialState, callback, 'setState');
 ```
 
-enqueueSetState 就是从创建update到调度update的流程
+enqueueSetState 就是从创建 update 到调度 update 的流程
+
 ```JavaScript
 enqueueSetState(inst, payload, callback) {
   // 通过组件实例获取对应fiber
@@ -3492,7 +3509,9 @@ enqueueSetState(inst, payload, callback) {
 ```
 
 ### this.forceUpdate
-在this.updater上，除了enqueueSetState外，还存在enqueueForceUpdate，当我们调用this.forceUpdate时会调用他
+
+在 this.updater 上，除了 enqueueSetState 外，还存在 enqueueForceUpdate，当我们调用 this.forceUpdate 时会调用他
+
 ```JavaScript
 enqueueForceUpdate(inst, callback) {
   const fiber = getInstance(inst);
@@ -3514,7 +3533,8 @@ enqueueForceUpdate(inst, callback) {
 }
 ```
 
-判断 classComponent是否需要更新时有俩个条件需要满足：
+判断 classComponent 是否需要更新时有俩个条件需要满足：
+
 ```JavaScript
 const shouldUpdate =
   checkHasForceUpdateAfterProcessing() ||
@@ -3529,13 +3549,14 @@ const shouldUpdate =
   )
 ```
 
-* checkHasForceUpdateAfterProcessing：内部会判断本次更新的Update是否为ForceUpdate。如果本次更新的update中存在tag为forceUpdate，则返回true
+- checkHasForceUpdateAfterProcessing：内部会判断本次更新的 Update 是否为 ForceUpdate。如果本次更新的 update 中存在 tag 为 forceUpdate，则返回 true
 
-* checkShouldComponentUpdate:内部会调用shouldComponentUpdate方法。以及当该classComponent为pureComponent时会浅比较state与props。
+- checkShouldComponentUpdate:内部会调用 shouldComponentUpdate 方法。以及当该 classComponent 为 pureComponent 时会浅比较 state 与 props。
 
-所以，当某次更新含有tag为ForceUpdate的Update，那么当前ClassComponent不会受其他性能优化手段（shouldComponentUpdate|PureComponent）影响，一定会更新。
+所以，当某次更新含有 tag 为 ForceUpdate 的 Update，那么当前 ClassComponent 不会受其他性能优化手段（shouldComponentUpdate|PureComponent）影响，一定会更新。
 
-## 极简Hooks实现
+## 极简 Hooks 实现
+
 ```JavaScript
 function dispatchAction(queue, action) {
   // 创建update
@@ -3557,8 +3578,10 @@ function dispatchAction(queue, action) {
   schedule();
 }
 ```
-更新产生的update对象保存在queue中
-FunctionComponent对应的fiber保存queue
+
+更新产生的 update 对象保存在 queue 中
+FunctionComponent 对应的 fiber 保存 queue
+
 ```JavaScript
 // App组件对应的fiber对象
 const fiber = {
@@ -3570,7 +3593,9 @@ const fiber = {
 ```
 
 ### hook 数据结构
-hook与update类似，都通过链表连接。不过Hook是无环的单向链表
+
+hook 与 update 类似，都通过链表连接。不过 Hook 是无环的单向链表
+
 ```JavaScript
 hook = {
   // 保存update的queue,即上文介绍的queue
@@ -3584,7 +3609,8 @@ hook = {
 }
 ```
 
-### 模拟React调度更新流程
+### 模拟 React 调度更新流程
+
 ```JavaScript
 // 首次render时是mount
 isMount = true;
@@ -3654,8 +3680,10 @@ function useState(initialState) {
 }
 ```
 
-## Hooks数据结构
-组件mount是的hook鱼update时的hook来源于不同的对象，这类对象在源码中被称为dispatcher。
+## Hooks 数据结构
+
+组件 mount 是的 hook 鱼 update 时的 hook 来源于不同的对象，这类对象在源码中被称为 dispatcher。
+
 ```JavaScript
 // mount时的dispatcher
 const HooksDispatcherOnMount: Dispatcher = {
@@ -3684,23 +3712,27 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 }
 ```
 
-在FunctionComponent render前，会根据FunctionComponent对应fiber的以下条件区分mount与update
+在 FunctionComponent render 前，会根据 FunctionComponent 对应 fiber 的以下条件区分 mount 与 update
+
 ```JavaScript
 current === null || current.memoizedState === null
 ```
-并将不同情况对应的dispatcher赋值给全局变量ReactCurrentDispatcher的current属性
+
+并将不同情况对应的 dispatcher 赋值给全局变量 ReactCurrentDispatcher 的 current 属性
+
 ```JavaScript
-ReactCurrentDispatcher.current = 
+ReactCurrentDispatcher.current =
   current === null || current.memoizedState === null
   ? HooksDispatcherOnMount
   : HooksDispatcherOnUpdate
 ```
 
-在FuntionComponent render时，会从ReactCurrentDispatcher.current（即当前dispatcher）中寻找需要的hook。
+在 FuntionComponent render 时，会从 ReactCurrentDispatcher.current（即当前 dispatcher）中寻找需要的 hook。
 
-不同的调用栈上下文为ReactCurrentDispatcher.current赋值不同的dispatcher,则FunctionComponent render时调用的hook也是不同的函数
+不同的调用栈上下文为 ReactCurrentDispatcher.current 赋值不同的 dispatcher,则 FunctionComponent render 时调用的 hook 也是不同的函数
 
-### HooK的数据结构
+### HooK 的数据结构
+
 ```JavaScript
 const hook: Hook = {
   memoizedState: null,
@@ -3712,19 +3744,25 @@ const hook: Hook = {
 ```
 
 ### memoizedState
-fiber.memoizedState: FunctionComponent 对应fiber保存的Hooks链表
-hook.memoizedState: Hooks链表中保存的单一hook对应的数据
-不同类型hook的memoizedState保存不同类型数据
-* useState: 对于const [state, updateState] = useState(initialState),memoizedState保存state的值
-* useReducer：对于const [state, dispatch] = useReducer(reducer, {});,memoizedState保存state的值
-* useRef: 对于useRef(1), memoizedState保存{current: 1}
-* useMemo：对于useMemo(callback, [depA]), memoizedState保存[callback(), depA]
-* useCallback: 对于useCallback(callback, [depA]),memoizedState保存[callback, depA]。与useMemo的区别是，useCallback保存的是callback函数本身，而useMemo保存的是callback函数的执行结果
 
-## useState与useReducer
-useState只是预置了reducer的useReducer
+fiber.memoizedState: FunctionComponent 对应 fiber 保存的 Hooks 链表
+hook.memoizedState: Hooks 链表中保存的单一 hook 对应的数据
+不同类型 hook 的 memoizedState 保存不同类型数据
+
+- useState: 对于 const [state, updateState] = useState(initialState),memoizedState 保存 state 的值
+- useReducer：对于 const [state, dispatch] = useReducer(reducer, {});,memoizedState 保存 state 的值
+- useRef: 对于 useRef(1), memoizedState 保存{current: 1}
+- useMemo：对于 useMemo(callback, [depA]), memoizedState 保存[callback(), depA]
+- useCallback: 对于 useCallback(callback, [depA]),memoizedState 保存[callback, depA]。与 useMemo 的区别是，useCallback 保存的是 callback 函数本身，而 useMemo 保存的是 callback 函数的执行结果
+
+## useState 与 useReducer
+
+useState 只是预置了 reducer 的 useReducer
+
 ### 流程概览
-将这俩个hook的工作流程分为声明阶段和调用阶段
+
+将这俩个 hook 的工作流程分为声明阶段和调用阶段
+
 ```JavaScript
 function App() {
   const [state, dispatch] = useReducer(reducer, {a: 1});
@@ -3739,12 +3777,15 @@ function App() {
   )
 }
 ```
-声明阶段 即 App调用时，会一次执行useReducer与useState方法
-调用阶段 即 点击按钮后，dispatch或updateNum被调用时。
+
+声明阶段 即 App 调用时，会一次执行 useReducer 与 useState 方法
+调用阶段 即 点击按钮后，dispatch 或 updateNum 被调用时。
 
 ### 声明阶段
-当FunctionComponent进入render阶段的beginWork时，会调用renderWithHooks方法
-该方法内部会执行FunctionComponent对应函数
+
+当 FunctionComponent 进入 render 阶段的 beginWork 时，会调用 renderWithHooks 方法
+该方法内部会执行 FunctionComponent 对应函数
+
 ```JavaScript
 function useState(initialState) {
   var dispatcher = resolveDispatcher();
@@ -3756,8 +3797,10 @@ function useReducer(reducer, initialArg, init) {
   return dispatcher.useReducer(reducer, initialArg, init);
 }
 ```
-* mount时
-mount时，useReducer会调用mountReducer，useState会调用mountState
+
+- mount 时
+  mount 时，useReducer 会调用 mountReducer，useState 会调用 mountState
+
 ```JavaScript
 function mountState<S>(
   initialState: (() => S) | S,
@@ -3805,6 +3848,7 @@ function mountReducer<S, I, A>(
 ```
 
 basicStateReducer
+
 ```JavaScript
 function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
   return typeof action === 'function' ? action(state) : action;
@@ -3812,7 +3856,9 @@ function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
 ```
 
 ### update
-update时，useReduce与useState调用的是同一个updateReducer
+
+update 时，useReduce 与 useState 调用的是同一个 updateReducer
+
 ```JavaScript
 function updateReducer<S, I, A>(
   reducer: (S, A) => S,
@@ -3832,14 +3878,17 @@ function updateReducer<S, I, A>(
   return [hook.memoizedState, dispatch]
 }
 ```
-找到对应的hook，根据update计算该hook的新state并返回
 
-mount时获取当前hook使用的是mountWorkInProgressHook，而update时使用的是updateWorkInProgressHook
-* mount时可以确定是调用ReactDOM.render或相关初始化API产生的更新，只会执行一次
-* update可能是在事件回调或副作用中触发的更新或者是render阶段触发的更新，为了避免组件无限循环更新，后者需要区别对待。
+找到对应的 hook，根据 update 计算该 hook 的新 state 并返回
+
+mount 时获取当前 hook 使用的是 mountWorkInProgressHook，而 update 时使用的是 updateWorkInProgressHook
+
+- mount 时可以确定是调用 ReactDOM.render 或相关初始化 API 产生的更新，只会执行一次
+- update 可能是在事件回调或副作用中触发的更新或者是 render 阶段触发的更新，为了避免组件无限循环更新，后者需要区别对待。
 
 ### 调用阶段
-调用阶段会执行dispatchAction，此时该FunctionComponent对应的fiber以及hook.queue已经通过bind方法预先作为参数传入
+
+调用阶段会执行 dispatchAction，此时该 FunctionComponent 对应的 fiber 以及 hook.queue 已经通过 bind 方法预先作为参数传入
 
 ```JavaScript
 function dispatchAction(fiber, queue, action) {
@@ -3874,23 +3923,29 @@ function dispatchAction(fiber, queue, action) {
 ```
 
 ## useEffect
+
 ### flushPassiveEffectsImpl
-flushPassiveEffects内部会设置优先级，并执行flushPassiveEffectsImpl
-* 调用该useEffect在上一次render时的销毁函数
-* 调用该useEffect在本次render时的回调函数
-* 如果存在同步任务，不需要等待下次事件循环的宏任务，提前执行前俩步
 
-useEffect的俩个阶段会在页面渲染后（layout阶段后）异步执行
+flushPassiveEffects 内部会设置优先级，并执行 flushPassiveEffectsImpl
+
+- 调用该 useEffect 在上一次 render 时的销毁函数
+- 调用该 useEffect 在本次 render 时的回调函数
+- 如果存在同步任务，不需要等待下次事件循环的宏任务，提前执行前俩步
+
+useEffect 的俩个阶段会在页面渲染后（layout 阶段后）异步执行
+
 ### 阶段一：销毁函数的执行
-useEffect的执行需要保证所有组件useEffect的销毁函数必须都执行完后才能执行任意一个组件的useEffect的回调函数
 
-这是因为多个组件间可能共用同一个ref。
+useEffect 的执行需要保证所有组件 useEffect 的销毁函数必须都执行完后才能执行任意一个组件的 useEffect 的回调函数
 
-如果不是按照“全部销毁”再“全部执行”的顺序，那么在某个组件useEffect的销毁函数中修改的ref.current可能影响另一个组件useEffect的回调函数中的同一个ref的current属性。
+这是因为多个组件间可能共用同一个 ref。
 
-在useLayoutEffect中也有同样的问题，所以他们都遵循“全部销毁”再“全部执行”的顺序。
+如果不是按照“全部销毁”再“全部执行”的顺序，那么在某个组件 useEffect 的销毁函数中修改的 ref.current 可能影响另一个组件 useEffect 的回调函数中的同一个 ref 的 current 属性。
 
-在阶段一，会遍历并执行所有useEffect的销毁函数。
+在 useLayoutEffect 中也有同样的问题，所以他们都遵循“全部销毁”再“全部执行”的顺序。
+
+在阶段一，会遍历并执行所有 useEffect 的销毁函数。
+
 ```JavaScript
 // pendingPassiveHookEffectsUnmount中保存了所有需要执行销毁的useEffect
 const unmountEffects = pendingPassiveHookEffectsUnmount;
@@ -3911,9 +3966,11 @@ for (let i = 0; i < unmountEffects.length; i += 2) {
   }
 }
 ```
-其中pendingPassiveHookEffectsUnmount数组的索引i保存需要销毁的effect，i+1保存该effects对应的fiber。
 
-向pendingPassiveHookEffectsUnmount数组内push数据的操作发生在layout阶段commitLayoutEffectOnFiber方法内部的schedulePassiveEffects方法中
+其中 pendingPassiveHookEffectsUnmount 数组的索引 i 保存需要销毁的 effect，i+1 保存该 effects 对应的 fiber。
+
+向 pendingPassiveHookEffectsUnmount 数组内 push 数据的操作发生在 layout 阶段 commitLayoutEffectOnFiber 方法内部的 schedulePassiveEffects 方法中
+
 ```JavaScirpt
 function schedulePassiveEffects(finishedWork: Fiber) {
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
@@ -3939,9 +3996,11 @@ function schedulePassiveEffects(finishedWork: Fiber) {
 ```
 
 ### 回调函数的执行
-同样遍历数组，执行对应effect的回调函数
 
-其中向pendingPassiveHookEffectsMount中push数据的操作同样发生在schedulePassiveEffects中。
+同样遍历数组，执行对应 effect 的回调函数
+
+其中向 pendingPassiveHookEffectsMount 中 push 数据的操作同样发生在 schedulePassiveEffects 中。
+
 ```JavaScript
 // pendingPassiveHookEffectsMount中保存了所有需要执行回调的useEffect
 const mountEffects = pendingPassiveHookEffectsMount;
@@ -3960,9 +4019,11 @@ for (let i = 0; i < mountEffects.length; i+=2) {
 ```
 
 ## useRef
-ref是reference的缩写。在React中，我们习惯用ref保存DOM。
 
-对于mount和update useRef对应俩个不同的dispatcher
+ref 是 reference 的缩写。在 React 中，我们习惯用 ref 保存 DOM。
+
+对于 mount 和 update useRef 对应俩个不同的 dispatcher
+
 ```JavaScript
 function mountRef<T>(initialValue: T): {|current: T|} {
   // 获取当前useRef hook
@@ -3981,7 +4042,8 @@ function updateRef<T>(initialValue: T): {|current: T|} {
 }
 ```
 
-useRef仅仅是返回一个包含current属性的对象
+useRef 仅仅是返回一个包含 current 属性的对象
+
 ```JavaScript
 export function createRef(): RefObject {
   const refObject = {
@@ -3991,12 +4053,15 @@ export function createRef(): RefObject {
 }
 ```
 
-### ref的工作流程
-* render阶段为含有ref属性的fiber添加 Ref effectTag
-* commit阶段 为包含Ref effectTag的fiber执行对应操作
+### ref 的工作流程
 
-### render阶段
-在render阶段的beginWork与completeWork中有个同名方法markRef用于为含有ref属性的fiber增加Ref effectTag
+- render 阶段为含有 ref 属性的 fiber 添加 Ref effectTag
+- commit 阶段 为包含 Ref effectTag 的 fiber 执行对应操作
+
+### render 阶段
+
+在 render 阶段的 beginWork 与 completeWork 中有个同名方法 markRef 用于为含有 ref 属性的 fiber 增加 Ref effectTag
+
 ```JavaScript
 // beginWork的markRef
 function markRef(current: Fiber | null, workInProgress: Fiber) {
@@ -4014,24 +4079,29 @@ function markRef(workInProgress: Fiber) {
   workInProgress.effectTag |= Ref;
 }
 ```
-在beginWork中，以下俩处调用了markRef：
-* updateClassComponent内的finishClassComponent，对应ClassComponent
-* updateHostComponent，对应HostComponent
 
-在completeWork中，以下俩处调用了markRef：
-* completeWork中的HostComponent类型
-* completeWork中的ScopeComponent类型
+在 beginWork 中，以下俩处调用了 markRef：
 
-* fiber类型为HostComponent、ClassComponent、ScopeComponent
-* 对于mount，workInProgress.ref !== null，即存在ref属性
-* 对于update，current.ref !== workInProgress.ref，即ref属性改变
+- updateClassComponent 内的 finishClassComponent，对应 ClassComponent
+- updateHostComponent，对应 HostComponent
 
-### commit阶段
-在commit阶段的mutation阶段中，对于ref属性改变的情况，需要先移除之前的ref
+在 completeWork 中，以下俩处调用了 markRef：
+
+- completeWork 中的 HostComponent 类型
+- completeWork 中的 ScopeComponent 类型
+
+- fiber 类型为 HostComponent、ClassComponent、ScopeComponent
+- 对于 mount，workInProgress.ref !== null，即存在 ref 属性
+- 对于 update，current.ref !== workInProgress.ref，即 ref 属性改变
+
+### commit 阶段
+
+在 commit 阶段的 mutation 阶段中，对于 ref 属性改变的情况，需要先移除之前的 ref
+
 ```JavaScript
 function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
   while (nextEffect !== null) {
-    
+
     const effectTag = nextEffect.effectTag;
 
     // ...
@@ -4077,7 +4147,9 @@ function safelyDetachRef(current: Fiber) {
   }
 }
 ```
-commitLayoutEffect会执行commitAttachRef（赋值ref）
+
+commitLayoutEffect 会执行 commitAttachRef（赋值 ref）
+
 ```JavaScript
 function commitAttachRef(finishedWork: Fiber) {
   const ref = finishedWork.ref;
@@ -4102,6 +4174,93 @@ function commitAttachRef(finishedWork: Fiber) {
   }
 }
 ```
+
 ### 总结
-* 对于FunctionComponent， useRef负责创建并返回对应的ref。
-* 对于赋值了ref属性的HostComponent与ClassComponent，会在render阶段经历赋值Ref effectTag，在commit阶段执行对应ref操作。
+
+- 对于 FunctionComponent， useRef 负责创建并返回对应的 ref。
+- 对于赋值了 ref 属性的 HostComponent 与 ClassComponent，会在 render 阶段经历赋值 Ref effectTag，在 commit 阶段执行对应 ref 操作。
+
+## useMemo 与 useCallback
+
+### mount
+
+```JavaScript
+function mountMemo<T>(
+  nextCreate: () => T,
+  deps: Array<mixed> | void | null,
+): T {
+  // 创建并返回当前hook
+  const hook = mountWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  // 计算value
+  const nextValue = nextCreate();
+  // 将value与deps保存在hook.memoizedState
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
+}
+
+function mountCallback<T>(callback: T， deps: Array<mixed> | void | null): T {
+  // 创建并返回当前hook
+  const hook = mountWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  // 将value与deps保存在hook.memoizedState
+  hook.memoizedState = [callback, nextDeps];
+  return callback;
+}
+```
+
+- mountMemo 会将回调函数(nextCreate)的执行结果作为 value 保存
+- mountCallback 会保存回调函数果作为 value 保存
+
+### update
+
+```JavaScript
+function updateMemo<T>(
+  nextCreate: () => T,
+  deps: Array<mixed> | void | null,
+): T {
+  // 返回当前hook
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const prevState = hook.memoizedState;
+
+  if (prevState !== null) {
+    if (nextDeps !== null) {
+      const prevDeps: Array<mixed> | null = prevState[1];
+      // 判断update前后value是否变化
+      if (areHookInputsEqueal(nextDeps, prevDeps)) {
+        // 未变化
+        return prevState[0];
+      }
+    }
+  }
+  // 变化，重新计算value
+  const nextValuee = nextCreate();
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
+}
+
+function updateCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
+  // 返回当前hook
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const prevState = hook.memoizedState;
+
+  if (prevState !== null) {
+    if (nextDeps !== null) {
+      const prevDeps: Array<mixed> | null = prevState[1];
+      // 判断update前后value是否变化
+      if (areHookInputsEqual(nextDeps, prevDeps)) {
+        // 未变化
+        return prevState[0];
+      }
+    }
+  }
+
+  // 变化，将新的callback作为value
+  hook.memoizedState = [callback, nextDeps];
+  return callback;
+}
+```
+
+这两个 hook 的唯一区别也是是回调函数本身还是回调函数的执行结果作为 value。

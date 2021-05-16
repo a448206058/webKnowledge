@@ -38,9 +38,9 @@
         return;
       }
       for (let i = start; i < candidates.length; i++) {
-        // if (i - 1 >= start && candidates[i - 1] == candidates[i]) {
-        //   continue;
-        // }
+        if (i - 1 >= start && candidates[i - 1] == candidates[i]) {
+          continue;
+        }
         c.push(candidates[i]);
         dep(c, i + 1, all + candidates[i]);
         c.pop();
@@ -52,5 +52,29 @@
     return res;
   };
 
-  console.log(combinationSum2([10, 1, 2, 7, 6, 1, 5], 8));
+  var combinationSum3 = function (k, n) {
+    var res = [];
+    var dep = (c, start, all) => {
+      if (all === n && c.length == k) {
+        console.log(c);
+        res.push(c.slice());
+        return;
+      }
+      if (c.length > k) {
+        return;
+      }
+      if (all > n) {
+        return;
+      }
+      for (let i = start; i <= k, i <= 9; i++) {
+        c.push(i);
+        dep(c, i + 1, all + i);
+        c.pop();
+      }
+    };
+    dep([], 1, 0);
+    return res;
+  };
+
+  console.log(combinationSum3(9, 45));
 </script>

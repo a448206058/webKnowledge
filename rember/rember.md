@@ -200,3 +200,74 @@ BFC 的常见应用
 - absolute 元素： top 50% + margin-top 负值
 - absolute 元素：transform(-50%, -50%)
 - absolute 元素：top, left, bottom, right = 0 + margin: auto
+
+### rem 是什么
+
+rem 是一个长度单位
+
+- px，绝对长度单位，最常用
+- em，相对长度单位，相对于父元素，不常用
+- rem,相对长度单位，相对于根元素，常用于响应式布局
+
+### 响应式布局的常用方案
+
+- media-query，根据不同的屏幕宽度设置根元素 font-size
+- rem，基于根元素的相对单位
+- vw/vh vmax 取俩者最大值 vmin 取俩者最小值
+
+### 网页视口尺寸
+
+- window.screen.height // 屏幕高度
+- window.innerHeight // 网页视口高度
+- document.body.clientHeight // body 高度
+
+### 变量类型和计算
+
+### typeof 运算符
+
+- 识别所有值类型
+- 识别函数
+- 判断是否是引用类型
+
+### 深拷贝
+
+```JavaScript
+function deepClone(obj = {}) {
+  if (typeof obj !== 'object' || obj == null) {
+    return obj
+  }
+
+  let result
+  if (obj instanceof Array) {
+    result = []
+  } else {
+    result = {}
+  }
+
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      result[key] = deepClone(obj[key]);
+    }
+  }
+}
+```
+
+### 变量计算 - 类型转换
+
+除了 == null 之外，其他一律用===
+
+### 值类型和引用类型的区别
+
+值类型是存放在栈中
+引用类型是存放在堆中
+
+### if 语句和逻辑运算
+
+- truly 变量： !!a === true 的变量
+- falsely 变量： !!a == false
+  !!0 === false
+  !!NaN === false
+  !!'' === false
+  !!null === false
+  !!undefined === false
+  !!false === false
