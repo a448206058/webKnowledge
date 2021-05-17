@@ -4264,3 +4264,50 @@ function updateCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
 ```
 
 这两个 hook 的唯一区别也是是回调函数本身还是回调函数的执行结果作为 value。
+
+
+## Concurrent Mode
+Concurrent模式是一组React的新功能，可帮助应用保持响应，并根据设备性能和网速进行适当的调整。
+
+### 底层架构 ——— Fiber架构
+实现异步可中断的更新
+
+Fiber机构的意义在于，它将单个组件作为工作单元，使以组件为粒度的异步可中断的更新成为可能。
+
+### 架构的驱动力 ——— Scheduler
+当我们配合时间切片，就能根据宿主环境性能，为每个工作单元分配一个可运行时间，实现"异步可中断的更新"。于是，scheduler（调度器）产生了。
+
+### 架构运行策略 ——— lane模型
+React可以控制更新在Fiber架构中运行/中断/继续运行。
+
+基于当前的架构，当一次更新在运行过程中被中断，过段时间再继续运行，这就是“异步可中断的更新”。
+
+### 上层实现
+从源码层面讲，Concurrent Mode是一套可控的“多优先级更新架构”。
+
+### batchedUpdates
+如果我们在一次事件回调中触发多次更新，他们会被合并为一次更新进行处理。
+```JavaScript
+onClick() {
+  this.setState({stateA: 1});
+  this.setState({stateB: false});
+  this.setState({stateA： 2})
+}
+```
+这种合并多个更新的优化方式被称为batchedUpdates。
+
+在Concurrent Mode中，是以优先级为依据对更新进行合并的
+### Suspense
+Suspense可以在组件请求数据时展示一个pending状态。
+
+本质上讲Suspense内的组件子树比组件树的其他部分拥有更低的优先级。
+### useDeferredValue
+useDeferredValue返回一个延迟响应的值，该值可能"延后"的最长时间为timeoutMs
+```JavaScript
+const deferredValue = useDeferredValue(value, {timeoutMs: 2000})
+```
+在useDeferredValue内部会调用useState并触发一次更新。
+
+这次更新的优先级很低，所以当前如果有正在进行中的更新，不会受useDeferredValue产生的更新影响。所以useDeferredValue能够返回延迟的值。
+
+当超过timeoutMs后useDeferredValue产生的更新还没进行（由于优先级太低一直被打断），则会再触发一次高优先级更新。

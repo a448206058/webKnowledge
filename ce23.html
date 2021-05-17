@@ -1,80 +1,86 @@
 <script>
-  var combinationSum = function (candidates, target) {
-    var res = [];
-    if (candidates.length < 1) {
-      return res;
-    }
-    var search = function (start, c, all) {
-      if (all == target) {
-        res.push(c.slice());
-        return;
-      }
-      if (all > target) {
-        return;
-      }
-      for (let i = start; i < candidates.length; i++) {
-        c.push(candidates[i]);
-        search(i, c, all + candidates[i]);
-        c.pop();
-      }
-      return;
-    };
-    search(0, [], 0);
-    return res;
-  };
+  // var subsetsWithDup = function (nums) {
+  //   var res = [];
+  //   var map = new Map();
+  //   if (nums.length == 0) {
+  //     return res;
+  //   }
+  //   nums = nums.sort((a, b) => a - b);
+  //   var dep = (c, start) => {
+  //     if (c.length > nums.length) {
+  //       return;
+  //     }
+  //     // if (map.has(c.slice().toString())) {
+  //     //   return;
+  //     // } else {
+  //     //   map.set(c.slice().toString(), 1);
+  //     //   res.push(c.slice());
+  //     // }
 
-  var combinationSum2 = function (candidates, target) {
-    candidates.sort((a, b) => a - b);
+  //     res.push(c.slice());
+
+  //     if (nums[start - 1] === nums[start]) {
+  //       return;
+  //     }
+
+  //     for (let i = start; i < nums.length; i++) {
+  //       c.push(nums[i]);
+  //       dep(c, i + 1);
+  //       c.pop();
+  //     }
+  //   }
+  //   dep([], 0)
+  //   return res;
+  // };
+
+  var subsetsWithDup = function (nums) {
     var res = [];
-    if (candidates.length == 0) {
+    if (nums.length == 0) {
       return res;
     }
-    const dep = (c, start, all) => {
-      if (all == target) {
-        res.push(c.slice());
+    nums = nums.sort((a, b) => a - b);
+    var dep = (c, start, choosePre) => {
+      if (c.length > nums.length) {
         return;
       }
-      if (all > target) {
-        return;
-      }
-      for (let i = start; i < candidates.length; i++) {
-        if (i - 1 >= start && candidates[i - 1] == candidates[i]) {
-          continue;
+
+      res.push(c.slice());
+
+      for (let i = start; i < nums.length; i++) {
+        if (i > start && nums[i] == nums[i - 1]) {
+            continue;
         }
-        c.push(candidates[i]);
-        dep(c, i + 1, all + candidates[i]);
+        c.push(nums[i]);
+        dep(c, i + 1, true);
         c.pop();
       }
-      return;
-    };
-
-    dep([], 0, 0);
+    }
+    dep([], 0, false)
     return res;
   };
 
-  var combinationSum3 = function (k, n) {
-    var res = [];
-    var dep = (c, start, all) => {
-      if (all === n && c.length == k) {
-        console.log(c);
-        res.push(c.slice());
-        return;
-      }
-      if (c.length > k) {
-        return;
-      }
-      if (all > n) {
-        return;
-      }
-      for (let i = start; i <= k, i <= 9; i++) {
-        c.push(i);
-        dep(c, i + 1, all + i);
-        c.pop();
-      }
-    };
-    dep([], 1, 0);
-    return res;
-  };
+  // var subsetsWithDup = function (nums) {
+  //   nums.sort((a, b) => a - b);
+  //   let t = [], ans = [];
+  //   const dfs = (choosePre, cur, nums) => {
+  //     if (cur === nums.length) {
+  //       ans.push(t.slice());
+  //       return;
+  //     }
+  //     dfs(false, cur + 1, nums);
+  //     if (!choosePre && cur > 0 && nums[cur - 1] === nums[cur]) {
+  //       return;
+  //     }
+  //     t.push(nums[cur]);
+  //     dfs(true, cur + 1, nums);
+  //     t = t.slice(0, t.length - 1);
+  //   }
+  //   dfs(false, 0, nums);
+  //   return ans;
+  // };
 
-  console.log(combinationSum3(9, 45));
+  // [[],[1],[1,2],[1,2,2],[2],[2,2]]
+  // [] [1]
+
+  console.log(subsetsWithDup([1, 2, 2]));
 </script>
