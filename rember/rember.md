@@ -271,3 +271,71 @@ function deepClone(obj = {}) {
   !!null === false
   !!undefined === false
   !!false === false
+
+### class
+
+- constructor
+- 属性
+- 方法
+
+### 原型
+
+**proto** 隐式原型
+prototype 显示原型
+child.**proto** === parent.prototype
+
+- 每个 class 都有显示原型 prototype
+- 每个实例都有隐式原型**proto**
+- 实例的**proto**指向对应 class 的 prototype
+
+### 基于原型的执行规则
+
+- 获取属性 xiaoluo.name 或执行方法 xialuo.sayhi()时
+- 先在自身属性和方法寻找
+- 如果找不到则自动去**proto**中查找
+
+### 原型链
+
+People.prototype === Student.prototype.**proto**
+
+### instanceof
+
+顺着原型链往上找
+
+### 如何准确判断一个变量是数组
+
+a instanceof Array
+
+### class 的原型本质
+
+- 原型和原型链的图示
+- 属性和方法的执行规则
+
+### 手写简易的 jquery
+
+```JavaScript
+class jQuery {
+  constructor(selector) {
+    const result = document.querySelectorAll(selector)
+    const length = result.length
+    for (let i = 0; i < length; i++) {
+      this[i] = result[i]
+    }
+    this.length = length
+  }
+  get(index) {
+    return this[index]
+  }
+  each(fn) {
+    for (let i = 0; i < this.length;i++){
+      const elem = this[i]
+      fn(elem)
+    }
+  },
+  on(type, fn) {
+    return this.each(elem => {
+      elem.addEventListener(type, fn, false)
+    })
+  }
+}
+```
