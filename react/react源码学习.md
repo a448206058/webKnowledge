@@ -4311,3 +4311,107 @@ const deferredValue = useDeferredValue(value, {timeoutMs: 2000})
 这次更新的优先级很低，所以当前如果有正在进行中的更新，不会受useDeferredValue产生的更新影响。所以useDeferredValue能够返回延迟的值。
 
 当超过timeoutMs后useDeferredValue产生的更新还没进行（由于优先级太低一直被打断），则会再触发一次高优先级更新。
+
+## Scheduler的原理与实现
+### 时间切片原理
+时间切片的本质是模拟实现requestIdleCallback
+
+除去"浏览器重排/重绘"
+```
+一个task（宏任务） -- 队列中全部job（微任务）-- requestAnimationFrame -- 浏览器重排/重绘 -- requestIdleCallback
+```
+
+requestIdleCallback是在"浏览器重排/重绘"后如果当前帧还有空余时间时被调用
+
+浏览器并没有提供其它API能够在同样的时机（浏览器重排/重绘后）调用以模拟其实现。
+
+唯一能精准控制调用时机的API是requestAnimationFrame，他能让我们在"浏览器重排/重绘"之前执行JS。
+
+这也是为什么我们通常用这个API实现JS动画 —— 这是浏览器渲染前的最后时机，所以动画能快速被渲染
+
+Scheduler的事件切片功能是通过task（宏任务）实现的。
+
+最常见的task当属setTimeout。但是有个task比setTimeout执行时机更靠前，那就是MessageChannel
+
+所以Scheduler将需要被执行的回调函数作为MessageChannel的回调执行。如果当前宿主环境不支持MessageChannel，则使用setTimeout。
+
+所以Scheduler将需要被执行的回调函数作为MessageChannel的回调执行。如果当前宿主环境不支持MessageChannel，则使用setTimeout。
+
+在React的render阶段，开启Concurrent Mode时，每次遍历前，都会通过Scheduler提供的shouldYield方法判断是否需要中断遍历，使浏览器有时间渲染。
+```JavaScript
+function workLoopConcurrent() {
+  // Perform work until Scheduler asks us to yield
+  while (workInProgress !== null && !shouldYield()) {
+    performUnitOfWork(workInProgress);
+  }
+}
+```
+
+### 优先级调度
+Scheduler是独立于React的包，所以他的优先级也是独立于React的优先级的
+
+Scheduler对外暴露了一个方法unstable_runWithPriority
+
+这个方法接受一个优先级与一个回调函数，在回调函数内部调用获取优先级的方法都会取得第一个参数对应的优先级
+```JavaScript
+function unstable_runWithPriority(priorityLevel, evenHandler) {
+  switch (priorityLevel) {
+    // 最高优先级，会立即执行
+    case ImmediatePriority:
+    case UserBlockingPriority:
+    case NormalPriority:
+    case LowPriority:
+    case IdlePriority:
+      break;
+    default:
+      priorityLevel = NormalPriority;
+  }
+
+  var previousPriorityLevel = currentPriorityLevel;
+  currentPriorityLevel = priorityLevel;
+
+  try {
+    return eventHandler();
+  } finally {
+    currentPriorityLevel = previousPriorityLevel;
+  }
+}
+```
+
+### 优先级的意义
+Scheduler 对外暴露最重要的方法便是unstable_scheduleCallback。该方法用于以某个优先级注册回调函数。
+
+不同优先级意味着不同时长的任务过期时间：
+```JavaScript
+var timeout;
+switch (priorityLevel) {
+  case ImmediatePriority:
+    timeout = IMMEDIATE_PRIORITY_TIMEOUT;
+    break;
+  case UserBlockingPriority:
+    timeout = USER_BLOCKING_PRIORITY_TIMEOUT;
+    break;
+  case IdlePriority:
+    timeout = IDLE_PRIORITY_TIMEOUT;
+    break;
+  case LowPriority:
+    timeout = LOW_PRIORITY_TIMEOUT;
+    break;
+  case NormalPriority:
+  default:
+    timeout = NORMAL_PRIORITY_TIMEOUT;
+    break;
+}
+
+var expirationTime = startTime + timeout;
+```
+
+```JavaScript
+var IMMEDIATE_PRIORITY_TIMEOUT = -1;
+// Eventually times out
+var USER_BLOCKING_PRIORITY_TIMEOUT = 250;
+var NORMAL_PRIORITY_TIMEOUT = 5000;
+var LOW_PRIORITY_TIMEOUT = 10000;
+// Never times out
+var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt;
+```
