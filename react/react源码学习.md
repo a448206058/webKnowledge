@@ -4415,3 +4415,156 @@ var LOW_PRIORITY_TIMEOUT = 10000;
 // Never times out
 var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt;
 ```
+
+### 不同优先级任务的排序
+按是否被延迟分为：
+* 已就绪任务
+* 未就绪任务
+```JavaScript
+if (typeof options === 'object' && options !== null) {
+  var delay = options.delay;
+  if (typeof delay === 'number' && delay > 0) {
+    // 任务被延迟
+    startTime = currentTime + delay;
+  } else {
+    startTime = currentTime;
+  }
+} else {
+  startTime = currentTime;
+}
+```
+
+Scheduler存在俩个队列：
+* timerQueue:保存未就绪任务
+* taskQueue:保存已就绪任务
+
+每当有新的未就绪的任务被注册，我们将其插入timerQueue并根据开始时间重新排列timerQueue中的任务的顺序。
+
+当timerQueue中有任务就绪，即startTime <= currentTime，我们将其取出并加入taskQueue。
+
+取出taskQueue中最早过期的任务并执行
+
+为了能在O(1)复杂度找到俩个队列中时间最早的那个任务，Scheduler使用小顶堆实现了优先级队列。
+
+那么当shouldYield为true，以至于performUnitOfWork被中断后是如何重新启动的呢？
+
+```JavaScript
+const continuationCallback = callback(didUserCallbackTimeout);
+currentTime = getCurrentTime();
+if (typeof continuationCallback === 'function'){
+  // continuationCallback是函数
+  currentTask.callback = continuationCallback;
+  markTaskYield(currentTask, currentTime);
+} else {
+  if (enableProfiling) {
+    markTaskCompleted(currentTask, currentTime);
+    currentTask.isQueued = false;
+  }
+  if (currentTask === peek(taskQueue)) {
+    // 将当前任务清除
+    pop(taskQueue);
+  }
+}
+advanceTimers(currentTime);
+```
+当注册的回调函数执行后的返回值continutationCallback为function，会将continutaionCallback作为当前任务的回调函数。
+
+如果返回值不是function，则将当前被执行的任务清除出taskQueue
+
+render阶段被调度的函数为performConcurrentWorkOnRoot，在该函数末尾有这样一段代码
+```JavaScript
+if (root.callbackNode === oriinalCallbackNode) {
+  // The task node scheduled for this root is the same one that's
+  // currently executed.Need to return a continuation.
+  return performConcurrentWorkOnRoot.bind(null, root);
+}
+```
+
+## lane模型
+在React中，存在多种使用不同优先级的情况
+Concurrent Mode开启情况
+* 过期任务或者同步任务使用同步优先级
+* 用户交互产生的更新（比如点击事件）使用高优先级
+* 网络请求产生的更新使用一般优先级
+* Suspense使用低优先级
+
+设计优先级机制：
+* 可以表示优先级的不同
+* 可能同时存在几个同优先级的更新，所以还得能表示批的概念
+* 方便进行优先级相关计算
+
+### 表示优先级不同
+lane模型借鉴了同样的概念，使用31位的二进制表示31条赛道，位数越小的赛道优先级越高，某些相邻的赛道拥有相同优先级
+```JavaScript
+export const NoLanes: Lanes = /*                        */ 0b0000000000000000000000000000000;
+export const NoLane: Lane = /*                          */ 0b0000000000000000000000000000000;
+
+export const SyncLane: Lane = /*                        */ 0b0000000000000000000000000000001;
+export const SyncBatchedLane: Lane = /*                 */ 0b0000000000000000000000000000010;
+
+export const InputDiscreteHydrationLane: Lane = /*      */ 0b0000000000000000000000000000100;
+const InputDiscreteLanes: Lanes = /*                    */ 0b0000000000000000000000000011000;
+
+const InputContinuousHydrationLane: Lane = /*           */ 0b0000000000000000000000000100000;
+const InputContinuousLanes: Lanes = /*                  */ 0b0000000000000000000000011000000;
+
+export const DefaultHydrationLane: Lane = /*            */ 0b0000000000000000000000100000000;
+export const DefaultLanes: Lanes = /*                   */ 0b0000000000000000000111000000000;
+
+const TransitionHydrationLane: Lane = /*                */ 0b0000000000000000001000000000000;
+const TransitionLanes: Lanes = /*                       */ 0b0000000001111111110000000000000;
+
+const RetryLanes: Lanes = /*                            */ 0b0000011110000000000000000000000;
+
+export const SomeRetryLane: Lanes = /*                  */ 0b0000010000000000000000000000000;
+
+export const SelectiveHydrationLane: Lane = /*          */ 0b0000100000000000000000000000000;
+
+const NonIdleLanes = /*                                 */ 0b0000111111111111111111111111111;
+
+export const IdleHydrationLane: Lane = /*               */ 0b0001000000000000000000000000000;
+const IdleLanes: Lanes = /*                             */ 0b0110000000000000000000000000000;
+
+export const OffscreenLane: Lane = /*    
+```
+同步优先级占用的赛道为第一位
+
+### 表示"批"的概念
+```JavaScript
+// 用户交互触发更新会拥有的优先级范围
+const InputDiscreteLanes: Lanes = /*                    */ 0b0000000000000000000000000011000;
+// 是请求数据返回后触发更新拥有的优先级范围
+export const DefaultLanes: Lanes = /*                   */ 0b0000000000000000000111000000000;
+// Suspense、useTransition、useDeferredValue拥有的优先级范围
+const TransitionLanes: Lanes = /*                       */ 0b0000000001111111110000000000000;
+```
+
+lanes
+越低优先级的lanes占用的位越多。
+
+越低优先级的更新越容易被打断，最高优的同步更新SyncLane不需要多余的lanes
+
+### 方便进行优先级相关计算
+优先级相关计算其实就是位运算
+```JavaScript
+
+// a b 是否存在交集
+export function includesSomeLane(a: Lanes | Lane, b: Lanes | Lane) {
+  return (a & b) !== NoLanes;
+}
+
+// 判断 a 的lanes是否 b lanes的子集
+export function isSubsetOfLanes(set: Lanes, subset: Lanes | Lane) {
+  return (set & subset) === subset;
+}
+
+// 合并
+export function mergeLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
+  return a | b;
+}
+
+// 删除
+export function removeLanes(set: Lanes, subset: Lanes | Lane): Lanes {
+  return set & ~subset;
+}
+```
