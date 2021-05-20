@@ -2,33 +2,90 @@
   // 8 4 2 1
   // 32 16 8 4 2 1
   // 1
-  var readBinaryWatch = function(num) {
-    let res=[]
-    
-    const DFS=(num,pos,time)=>{
-        if(num==0){
-            let hour= time[0] + 2 * time[1] + 4 * time[2] + 8 * time[3];
-            let minute = time[4] + 2 * time[5] + 4 * time[6] + 8 * time[7] + 16 * time[8] + 32 * time[9];
-             if (hour < 12 && minute < 60) {
-                 
-                res.push(hour+":"+(minute < 10 ? "0"+minute : minute));
-            }
-            return;
-        }
-        
-        for (let i = pos; i <= 10 - num; i++) {
-            time[i]++;
-            DFS(num-1, i + 1, time);
-            time[i]--;
-        }
+
+  // [["X","X","X","X"],["X","X","X","X"],["X","X","X","X"],["X","O","X","X"]]
+
+  // X X X X 
+  // X O O X
+  // X X O X
+  // X O X X
+  var solve = function (board) {
+    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+    let m = board.length, n = board[0].length;
+    const visited = new Array(m);
+    for (let i = 0; i < visited.length; i++) {
+      visited[i] = new Array(n).fill(false);
     }
-    
-    DFS(num,0,new Array(10).fill(0))
-    
-    return res
-        
-    
+
+    const inArea = (x, y) => {
+      return x >= 0 && x < m && y >= 0 && y < n;
+    }
+
+    const dfs = (grid, x, y) => {
+      visited[x][y] = true;
+      for (let i = 0; i < 4;i++){
+        let newx = x + d[i][0];
+        let newy = y + d[i][1];
+        if(inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == 'O'){
+          dfs(grid, newx, newy)
+        }
+      }
+    }
+
+    const res = 0;
+
+    for(let i = 0;i < board.length; i++){
+      for (let j = 0;j < board[i].length;j++){
+        if(board[i][j] === "O" && !visited[i][j]){
+          res++;
+        }
+      }
+    }
   };
 
-  console.log(readBinaryWatch(2));
+  var board = [["X", "X", "X", "X"], ["X", "O", "O", "X"], ["X", "X", "O", "X"], ["X", "O", "X", "X"]];
+  console.log(solve(board));
+
+
+  var numIslands = function (board) {
+    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+    let m, n;
+    m = board.length;
+    if (m == 0) {
+      return m
+    }
+    n = board[0].length;
+    const visited = new Array(m);
+    for (let i = 0; i < visited.length; ++i) {
+      visited[i] = new Array(n).fill(false);
+    }
+    const inArea = (x, y) => {
+      return x >= 0 && x < m && y >= 0 && y < n;
+    }
+
+    const dfs = (grid, x, y) => {
+      visited[x][y] = true;
+      for (let i = 0; i < 4; i++) {
+        let newx = x + d[i][0];
+        let newy = y + d[i][1];
+        if (inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == '1') {
+          dfs(grid, newx, newy);
+        }
+      }
+      return
+    }
+
+
+    let res = 0;
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        if (board[i][j] == '1' && !visited[i][j]) {
+          res++;
+          dfs(board, i, j);
+        }
+      }
+    }
+
+    return res;
+  };
 </script>
