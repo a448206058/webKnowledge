@@ -9,42 +9,104 @@
   // X O O X
   // X X O X
   // X O X X
-  var solve = function (board) {
-    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
-    let m = board.length, n = board[0].length;
-    const visited = new Array(m);
-    for (let i = 0; i < visited.length; i++) {
-      visited[i] = new Array(n).fill(false);
+  const solve = (board) => {
+    const m = board.length;
+    if (m == 0) return [];
+    const n = board[0].length;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const bfs = (i, j) => {
+      const queue = [[i, j]];
+      board[i][j] = 'NO';                   // 入列的“root”染色一下
+      while (queue.length) {
+        const [curI, curJ] = queue.shift(); // 获取出列节点的i、j坐标
+        for (const [dx, dy] of dirs) {      // 四个方向
+          const x = curI + dx;              // 求出新坐标
+          const y = curJ + dy;
+          if (x < 0 || x == m || y < 0 || y == n) continue; // 越界了就忽略
+          if (board[x][y] == 'O') {         // 是O，染色成XO
+            board[x][y] = 'NO';
+            queue.push([x, y]);             // 染色成XO的节点入列
+          }
+        }
+      }
+    };
+    for (let i = 0; i < m; i++) {
+      for (let j = 0; j < n; j++) {
+        if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {
+          if (board[i][j] == 'O') bfs(i, j); // 从最外层的O，开始BFS
+        }
+      }
+    }
+    for (let i = 0; i < m; i++) {
+      for (let j = 0; j < n; j++) {
+        if (board[i][j] === 'NO') board[i][j] = 'O';
+        else if (board[i][j] === 'O') board[i][j] = 'X';
+      }
     }
 
+    return board;
+  };
+
+  const solve1 = (board) => {
+    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+    let m, n;
+    m = board.length;
+    if (m == 0) {
+      return []
+    }
+    n = board[0].length;
+    const visited = new Array(m);
+    for (let i = 0; i < visited.length; ++i) {
+      visited[i] = new Array(n).fill(false);
+    }
     const inArea = (x, y) => {
-      return x >= 0 && x < m && y >= 0 && y < n;
+      return x > 0 && x < m - 1 && y > 0 && y < n - 1;
     }
 
     const dfs = (grid, x, y) => {
       visited[x][y] = true;
-      for (let i = 0; i < 4;i++){
+      for (let i = 0; i < 4; i++) {
         let newx = x + d[i][0];
         let newy = y + d[i][1];
-        if(inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == 'O'){
-          dfs(grid, newx, newy)
+        if (inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == 'O') {
+          grid[newx][newy] = "0";
+          dfs(grid, newx, newy);
+        }else{
+          grid[newx][newy] = "X";
+        }
+      }
+      return
+    }
+
+
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        if (board[i][j] == 'O' && !visited[i][j] && !inArea(i, j)) {
+          board[i][j] = "O";
+          dfs(board, i, j);
+        }else{
+          board[i][j] = "X";
         }
       }
     }
 
-    const res = 0;
+    // for (let i = 0; i < board.length; i++){
+    //   for (let j = 0; j < board[i].length; j++){
+    //     if (board[i][j] === "NO"){
+    //       board[i][j] = "O"
+    //     }else{
+    //       board[i][j] = "X"
+    //     }
+    //   }
+    // }
 
-    for(let i = 0;i < board.length; i++){
-      for (let j = 0;j < board[i].length;j++){
-        if(board[i][j] === "O" && !visited[i][j]){
-          res++;
-        }
-      }
-    }
+    return board;
   };
 
   var board = [["X", "X", "X", "X"], ["X", "O", "O", "X"], ["X", "X", "O", "X"], ["X", "O", "X", "X"]];
-  console.log(solve(board));
+
+  // board = [["O", "O", "O"], ["O", "O", "O"], ["O", "O", "O"]];
+  console.log(solve1(board));
 
 
   var numIslands = function (board) {

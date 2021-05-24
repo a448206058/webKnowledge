@@ -187,3 +187,69 @@ JavaScript中的对象称为引用值，集中内置的引用类型可用于创�
 因此可用在任何消费可迭代对象的地方。生成器的独特之处在于支持 yield 关键字，这个关键字能够
 暂停执行生成器函数。使用 yield 关键字还可以通过 next()方法接收输入和产生输出。在加上星号之
 后，yield 关键字可以将跟在它后面的可迭代对象序列化为一连串值。
+
+## 对象、类与面向对象编程
+ECMA-262将对象定义
+### 理解对象
+属性的类型
+1. 数据属性
+数据属性包含一个保存数据值的位置
+[[Configurable]]: 表示属性是否可以修改、删除
+[[Enumerable]]: 表示属性是否可以通过for-in循环
+[[Writable]]: 表示属性的值是否可以被修改。
+[[Value]]: 包含属性实际的值
+
+2. 访问器属性
+[[Configurable]]:
+[[Enumerable]]
+[[Get]]: 获取函数，在读取属性时调用。默认值为undefined
+[[Set]]: 设置函数，在写入属性时调用。
+不能直接定义，必须使用Object.defineProperty()
+
+读取属性的特性
+Object.getOwnPropertyDescriptor()取得指定属性的属性描述符：属性所在的对象和要取得其描述符的属性名。
+
+合并对象
+把源对象所有的本地属性一起复制到目标对象上。有时候这种操作也称为“混如”(mixin)，因为目标对象通过混如源对象的属性得到了增强。
+Object.assign() 浅复制
+
+对象标识及相等判定
+ES6 Object.is(a, b)
+
+增强的对象语法
+1. 属性值简写
+let Person = {
+  name
+}
+
+2. 可计算属性
+```JavaScript
+const nameKey = 'name';
+
+function getUniqueKey(key) {
+  return `${key}_${uniqueToken++}`;
+}
+
+let person = {
+  [getUniqueKey(nameKey)]: 'Matt'
+}
+
+consoke.log(person); // {name_0: 'Matt'}
+```
+
+3. 简写方法名
+```JavaScript
+let person = {
+  sayName(name) {
+    console.log()
+  }
+}
+```
+
+对象解构
+{a, b} = object
+
+### 创建对象
+ES6开始正式支持类和继承。ES6的类仅仅是封装了ES5.1构造函数加原型继承的语法糖而已。
+
+工厂模式
