@@ -76,45 +76,118 @@
   // [[0, 4], [1, 3], [1, 4], [2, 2], [3, 0], [3, 1], [4, 0]]
 
   var pacificAtlantic = function (heights) {
-    const m = heights.length;
-    if (m == 0) return [];
-    const n = m[0].length;
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-
-    const visited = new Array(m);
-    const visited1 = new Array(m);
-    for (let i = 0; i < visited.length; ++i) {
-      visited[i] = new Array(n).fill(false);
-      visited1[i] = new Array(n).file(false);
+    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+    let m, n;
+    const res = [];
+    m = heights.length;
+    if (m == 0) {
+      return []
     }
-
+    n = heights[0].length;
+    // const visited = new Array(m);
+    // for (let i = 0; i < visited.length; ++i) {
+    //   visited[i] = new Array(n).fill(false);
+    // }
+    const set = new Map();
     const inArea = (x, y) => {
-      return x > 0 && x < m - 1 && y > 0 && y < n - 1;
+      return x >= 0 && x < m && y >= 0 && y < n;
     }
+
+    const isXHandler = (x, y) => {
+      return x === 0 || y === 0;
+    }
+
+    const isYHandler = (x, y) => {
+      return x === m - 1 || y === n - 1;
+    }
+
+    let isX = false, isY = false;
 
     const dfs = (grid, x, y) => {
-      visited[x][y] = true;
+      set.set(x + ',' + y);
+      // visited[x][y] = true;
+      if (isXHandler(x, y)) {
+        isX = true;
+      }
+      if (isYHandler(x, y)) {
+        isY = true;
+      }
+      if (isX && isY) {
+        return;
+      }
       for (let i = 0; i < 4; i++) {
         let newx = x + d[i][0];
         let newy = y + d[i][1];
-        if (inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == 'O') {
-          grid[newx][newy] = "0";
+        if (inArea(newx, newy) && !set.has(x + ',' + y) && grid[newx][newy] < grid[x][y]) {
           dfs(grid, newx, newy);
-        } else {
-          grid[newx][newy] = "X";
         }
       }
       return
     }
 
 
-    for (let i = 0; i < m; i++) {
-      for (let j = 0; j < n; j++) {
-        visited = visited1;
-        if(inArea(i, j)){
-          dfs(i, j);
+    for (let i = 0; i < heights.length; i++) {
+      for (let j = 0; j < heights[i].length; j++) {
+        isX = false, isY = false;
+        set.clear();
+        if (isXHandler(i, j)) {
+          isX = true;
+        }
+        if (isYHandler(i, j)) {
+          isY = true;
+        }
+        if (isX && isY) {
+          res.push([i, j]);
+        } else {
+          dfs(heights, i, j);
+          if (isX && isY) {
+            res.push([i, j]);
+          }
         }
       }
     }
+
+    return res;
   };
+
+  // const pacificAtlantic = matrix => {
+  //   if (!matrix.length || !matrix[0].length) return []
+  //   let m = matrix.length, n = matrix[0].length
+  //   const res = [], map = new Array(m).fill().map(_ => [])
+  //   axis = [[0, 1], [1, 0], [-1, 0], [0, -1]]
+  //   const dfs = (i, j, arr) => {
+  //     let curr = matrix[i][j], str = i + ',' + j
+  //     if (arr.has(str)) return
+  //     arr.add(str)
+  //     for (let k = 0; k < 4; k++) {
+  //       let x = i + axis[k][0], y = j + axis[k][1]
+  //       if (x < 0 || y < 0 || x >= m || y >= n) continue
+  //       if (map[x][y] || curr > matrix[x][y]) continue
+  //       map[x][y] = 1
+  //       dfs(x, y, arr)
+  //       map[x][y] = 0
+  //     }
+  //   }
+  //   let pacific = new Set(), atlantic = new Set()
+  //   for (let i = 0; i < n; i++) { // 太平洋边界
+  //     dfs(0, i, pacific)
+  //   }
+  //   for (let i = 1; i < m; i++) { // 太平洋边界
+  //     dfs(i, 0, pacific)
+  //   }
+  //   for (let i = 0; i < n; i++) { // 大西洋边界
+  //     dfs(m - 1, i, atlantic)
+  //   }
+  //   for (let i = 0; i < m - 1; i++) { // 大西洋边界
+  //     dfs(i, n - 1, atlantic)
+  //   }
+  //   for (let item of pacific) {
+  //     atlantic.has(item) && res.push(
+  //       item.split(',').map(num => num * 1)
+  //     )
+  //   }
+  //   return res
+  // }
+
+  console.log(pacificAtlantic([[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]))
 </script>
