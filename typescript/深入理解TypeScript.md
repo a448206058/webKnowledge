@@ -83,3 +83,114 @@ tsconfig
   }
 }
 ```
+
+### TypeScript类型系统
+* 基本注解
+在类型声明空间中可用的任何内容都可以用作类型注解
+
+* 原始类型
+string、number、boolean
+
+* 数组
+
+* 接口
+接口是TypeScript的一个核心知识，它能合并众多类型声明至一个类型声明：
+```JavaScript
+interface Name {
+  first: string;
+  second: string;
+}
+
+let name: Name;
+name = {
+  first: 'John',
+  second: 'Doe'
+};
+
+name = {
+  first: 'John'
+};
+
+name = {
+  first: 'John',
+  second: 1337
+}
+```
+
+* 内联类型注解
+与创建一个接口不同，你可以使用内联语法注解任何内容：
+```JavaScript
+let name: {
+  first: string;
+  second: string;
+}
+```
+
+* 特殊类型
+any、null、undefined和void
+
+void标注一个函数没有返回值
+
+* 泛型
+```JavaScript
+function reverse<T>(items: T[]): T[] {
+  const toreturn = [];
+  for (let i = items.length - 1; i >= 0; i--){
+    toreturn.push(items[i]);
+  }
+  return toreturn;
+}
+
+const sample = [1, 2, 3];
+let reversed = reverse(sample);
+
+console.log(reversed); // 3, 2, 1
+
+// Safety
+reversed[0] = '1'; // Error
+reversed = ['1', '2']; // Error
+
+reversed[0] = 1; // ok
+reversed = [1, 2]; // ok
+```
+
+.reverse
+```JavaScript
+interface Array<T> {
+  reverse(): T[];
+}
+```
+
+* 联合类型
+|
+
+* 交叉类型
+extend 获取所有
+```JavaScript
+function extend<T extends object, U extends object>(first: T, second: U): T & U {
+  const result = <T & U>{};
+  for (let id in first) {
+    (<T>result)[id] = first[id];
+  }
+  for (let id in second) {
+    if (!result.hasOwnProperty(id)) {
+      (<U>result)[id] = second[id];
+    }
+  }
+
+  return result;
+}
+
+const x = extend({a: 'hello'}, {b: 42});
+```
+
+* 元组类型
+[string, number]
+
+* 类型别名
+```JavaScript
+type Text = string | {text: string};
+type Coordinates = [number, number];
+type Callback = (data: string) => void;
+
+```

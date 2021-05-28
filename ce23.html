@@ -105,7 +105,6 @@
 
     const dfs = (grid, x, y) => {
       set.set(x + ',' + y);
-      // visited[x][y] = true;
       if (isXHandler(x, y)) {
         isX = true;
       }
@@ -118,9 +117,10 @@
       for (let i = 0; i < 4; i++) {
         let newx = x + d[i][0];
         let newy = y + d[i][1];
-        if (inArea(newx, newy) && !set.has(x + ',' + y) && grid[newx][newy] < grid[x][y]) {
-          dfs(grid, newx, newy);
+        if (!inArea(newx, newy) || set.has(newx + ',' + newy) || grid[newx][newy] > grid[x][y]) {
+          continue
         }
+        dfs(grid, newx, newy);
       }
       return
     }
@@ -189,5 +189,5 @@
   //   return res
   // }
 
-  console.log(pacificAtlantic([[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]))
+  console.log(pacificAtlantic([[1, 2, 2, 3, 5], [3, 2, 3, 4, 4], [2, 4, 5, 3, 1], [6, 7, 1, 4, 5], [5, 1, 1, 2, 4]]))
 </script>

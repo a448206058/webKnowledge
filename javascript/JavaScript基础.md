@@ -381,4 +381,16 @@ function fibImpl(a, b, n){
 
 * 特权方法可以使用构造函数或原型模式通过自定义类型中实现，也可以使用模块模式或模块增强在单例对象上实现。
 
-
+## 期约与异步函数
+睡眠
+```JavaScript
+async function sleep(delay) {
+ return new Promise((resolve) => setTimeout(resolve, delay));
+}
+async function foo() {
+ const t0 = Date.now();
+ await sleep(1500); // 暂停约 1500 毫秒
+ console.log(Date.now() - t0);
+}
+foo(); 
+```
