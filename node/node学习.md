@@ -53,3 +53,9 @@ nodejs
 
   产品发展速度快，流量可能会迅速增加
   如何通过扩展机器和服务拆分来承载大流量
+
+nodejs 处理 http 请求
+
+- get 请求和 querystring
+- post 请求和 postdata
+- 路由

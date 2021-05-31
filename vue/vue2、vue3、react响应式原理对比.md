@@ -1,30 +1,40 @@
-## 轮子哥说过，检验学习的最好办法就是造轮子，定个计划，造起来
-	本系列文章最主要的目的是为了巩固学习的vue源码知识，提高自身的开发水平，
-	加强开发思路，熟悉造轮子的过程
-	
-	vue2.x + webpack
-	
-	vue3.x + vite 2.0
-	
-			
+## 详解 vue2、vue3、react 响应式原理及其对比
+
+### 前言
+
+    本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
+    知识点：响应式、原型、ES5:Object.definePropert、ES6:Proxy
+
+### 概念解析
+
+- 响应式：
+
+  什么是响应式，在 vue 的官方文档中是这么介绍的：响应式原理的核心就是观测数据的变化，数据发生变化以后能通知到对应的观察者来执行相关的逻辑。
+
+- 原型：
+
+  什么是原型链，
+
+### vue2.x 中响应式的实现
+
 ## 造轮子系列： 响应式原理
+
 ### 什么是响应式？
-	响应式原理的核心就是观测数据的变化，数据发生变化以后能通知到对应的观察者来执行相关的逻辑。
-	核心就是Dep，它是连接数据和观察者的桥梁。
-	
-	data/props:	defineReactive
-	
-	computed: computed watcher 	
-				(depend)->		
-				(notify)->		Dep ➡️（depend) getter ➡（notify）setter️
-								⬇️（update) ⬇️（addDep)
-	watch: 						user watcher (run)-> user callback
-								⬇️（update) ⬇️（addDep)
-	mount: 						render watcher (run)-> updateComponent
-	
-    
-    
+
+    核心就是Dep，它是连接数据和观察者的桥梁。
+
+    data/props:	defineReactive
+
+    computed: computed watcher
+    			(depend)->
+    			(notify)->		Dep ➡️（depend) getter ➡（notify）setter️
+    							⬇️（update) ⬇️（addDep)
+    watch: 						user watcher (run)-> user callback
+    							⬇️（update) ⬇️（addDep)
+    mount: 						render watcher (run)-> updateComponent
+
 ### 怎么实现？
+
     数据劫持/数据代理
         主要是通过Object.defineProperty的get和set属性
             第一步：
@@ -41,18 +51,17 @@
             收集依赖需要为依赖找一个存储依赖的地方，Dep,它用来收集依赖、删除依赖和向依赖发送消息等。
             实现一个订阅者Dep类，用于解耦属性的依赖收集和派发更新操作，它的主要作用是用来存放Watcher观察者对象。我们可以把Watcher
             理解成一个中介的角色，数据发生变化时通知它，然后它再通知其他地方。
-			
+
     发布订阅模式
-    
+
     vue->observer数据劫持->dep发布者
                             |
     compiler解析指令->watcher观察者
-    
-    
+
 ```JavaScript
 	import Compiler from './Compiler'
 	import Observer from './Observer'
-	
+
 	export default class dVue {
 		constructor(options) {
 			// 1、保存vue实例传递过来的数据
@@ -63,7 +72,7 @@
 			// 2、把this.$data中的成员转换成getter 和setter ，并且注入到vue实例中，使vue实例中有data里面的属性
 			// 但是this.$data自身内部成员并没有实现在自身内部属性的gettter和setter，需要通过observer对象来实现
 			this._proxyData(this.$data)
-			
+
 			// this._proxyData(this.$data)
 			// 3、调用observer对象，监视data数据的变化
 			new Observer(this.$data)
@@ -71,7 +80,7 @@
 			// debugger
 			new Compiler(this) // this是vue实例对象
 		}
-	
+
 		_proxyData (data) {
 			// 遍历传递过来的data对象的数据，key是data对象中的属性名
 			Object.keys(data).forEach((key) => {
@@ -126,7 +135,8 @@ var dVues = new dVue({
 });
 ```
 
-接下来用Observer类来拆分循环判断
+接下来用 Observer 类来拆分循环判断
+
 ```JavaScript
 // 定义一个Observer.js
 import Dep from './Dep'
@@ -198,9 +208,10 @@ export default class Observer {
 }
 ```
 
-定义一个Dep
-Dep主要是干什么呢  主要用来进行依赖收集 也就是管理watch
+定义一个 Dep
+Dep 主要是干什么呢 主要用来进行依赖收集 也就是管理 watch
 需要哪些东西呢？
+
 ```JavaScript
 // Dep 的核心是 notify
 // 通过自定义数组subs进行控制
@@ -244,7 +255,8 @@ Dep.target = null;
 
 ```
 
-然后再用一个Watcher类去进行依赖收集,用Dep进行管理
+然后再用一个 Watcher 类去进行依赖收集,用 Dep 进行管理
+
 ```JavaScript
 import Dep from './Dep'
 /**
@@ -280,7 +292,8 @@ export default class Watcher {
 ```
 
 好了，简单的实现了响应式，但是如何把响应的数据动态的绑定到页面上去呢？
-通过Compiler.js
+通过 Compiler.js
+
 ```JavaScript
 import Watcher from './Watch'
 /**
@@ -437,16 +450,17 @@ export default class Compiler {
 }
 ```
 
-##造轮子系列：虚拟dom
+##造轮子系列：虚拟 dom
 
-render就是通过createVNode节点，再通过_mount,_update的过程，
-通过patch,diff的过程创建真实节点
+render 就是通过 createVNode 节点，再通过\_mount,\_update 的过程，
+通过 patch,diff 的过程创建真实节点
 
 ##造轮子系列：template
-template编译
-在$mount的过程中，如果是使用独立构建，则会在此过程中将template编译成render function。
+template 编译
+在$mount 的过程中，如果是使用独立构建，则会在此过程中将 template 编译成 render function。
 
-template是编译成render function的过程
+template 是编译成 render function 的过程
+
 ```JavaScript
 function baseCompile (
 	template: string,
@@ -465,7 +479,7 @@ function baseCompile (
 		/*根据ast树生成所需的code(内部包含render与staticRenderFns)*/
 		const code = generate(ast, options)
 		return {
-			ast, 
+			ast,
 			render: code.render,
 			staticRenderFns: code.staticRenderFns
 		}
@@ -474,85 +488,83 @@ function baseCompile (
 ```
 
 ### parse
-parse会用正则等方式解析template模版中的指令、class、style等数据，形成AST语法树
+
+parse 会用正则等方式解析 template 模版中的指令、class、style 等数据，形成 AST 语法树
 
 ### optimize
-optimize的主要作用是标记static静态节点，这是Vue在编译过程中的一处优化，后面当update
-更新界面时，会有一个patch的过程，diff算法会直接跳过静态节点，从而减少了比较的过程，
-优化了patch的性能。
+
+optimize 的主要作用是标记 static 静态节点，这是 Vue 在编译过程中的一处优化，后面当 update
+更新界面时，会有一个 patch 的过程，diff 算法会直接跳过静态节点，从而减少了比较的过程，
+优化了 patch 的性能。
 
 ### generate
-generate是将AST语法树转化成render function字符串的过程，得到结果是render的字符串
-以及staticRenderFns字符串。
 
+generate 是将 AST 语法树转化成 render function 字符串的过程，得到结果是 render 的字符串
+以及 staticRenderFns 字符串。
 
 [](https://juejin.cn/post/6844903895467032589)
 
 ##造轮子系列：compile
 
-## vue轮子系列一：双向绑定
+## vue 轮子系列一：双向绑定
+
 ## 开发的道是思想、思路，术是代码，所以造轮子之前，先想清楚思路
 
 首先我们要了解什么是双向绑定？
-	首先要了解什么MVVM?
-	MVVM是指，Model、View、ViewModel
-	而View的变更也会重新导致Model的修改
-	ViewModel是Model和View之间的桥梁
+首先要了解什么 MVVM?
+MVVM 是指，Model、View、ViewModel
+而 View 的变更也会重新导致 Model 的修改
+ViewModel 是 Model 和 View 之间的桥梁
 
-ViewModel是怎么实现这一过程的呢？
-	主要是通过Object.defineProperty 设置一个getter和一个setter
-	分俩步：
-		第一步是Model的变化重新渲染view,每次对数据进行修改的时候都会触发setter，从而导致页面重新渲染
-		第二步是View的变化导致Model的修改，通过watcher观察，重新修改Model
+ViewModel 是怎么实现这一过程的呢？
+主要是通过 Object.defineProperty 设置一个 getter 和一个 setter
+分俩步：
+第一步是 Model 的变化重新渲染 view,每次对数据进行修改的时候都会触发 setter，从而导致页面重新渲染
+第二步是 View 的变化导致 Model 的修改，通过 watcher 观察，重新修改 Model
 
 分析完了，开始造轮子的步骤。
-	如何实现步骤一呢？
-		首先了解下Object.defineProperty，不了解的同学可以通过MDN进行了解
-		通过Object.defineProperty劫持一个自定义的对象，设置自定义的setter和getter
-		Setter做哪些事情呢？
-			1.监听对象变化，变化的时候触发对应的修改函数
-			2.定义修改函数，修改DOM
-	如何实现步骤二呢？
-		对初始对象的getter进行observe watch
-	
-	如何造轮子？
-		我们最终目的是要发布到网上供自己或他人使用，所以需要使用node的npm包管理工具进行发布
-		通过npm init 初始化
-		定义目录结构
-			src
-				main.js
-				index.html
-		
-		main.js中如何定义
-			定义初始化对象
-			通过export导出
+如何实现步骤一呢？
+首先了解下 Object.defineProperty，不了解的同学可以通过 MDN 进行了解
+通过 Object.defineProperty 劫持一个自定义的对象，设置自定义的 setter 和 getter
+Setter 做哪些事情呢？ 1.监听对象变化，变化的时候触发对应的修改函数 2.定义修改函数，修改 DOM
+如何实现步骤二呢？
+对初始对象的 getter 进行 observe watch
+如何造轮子？
+我们最终目的是要发布到网上供自己或他人使用，所以需要使用 node 的 npm 包管理工具进行发布
+通过 npm init 初始化
+定义目录结构
+src
+main.js
+index.html
+main.js 中如何定义
+定义初始化对象
+通过 export 导出
 
 ## 造轮子系列： 数据渲染
-思路：通过虚拟节点VNode对节点进行构建，构建DOM Tree
-在通过遍历DOM Tree 通过createElement创建元素
+
+思路：通过虚拟节点 VNode 对节点进行构建，构建 DOM Tree
+在通过遍历 DOM Tree 通过 createElement 创建元素
 
 https://github.com/answershuto/learnVue
 
-Vue.js响应式原理
+Vue.js 响应式原理
 
-Vue.js依赖收集
+Vue.js 依赖收集
 
-从Vue.js源码角度再看数据绑定
+从 Vue.js 源码角度再看数据绑定
 
-Vue.js事件机制
+Vue.js 事件机制
 
-VNode节点(Vue.js实现)
+VNode 节点(Vue.js 实现)
 
-Virtual DOM与diff(Vue.js实现)
+Virtual DOM 与 diff(Vue.js 实现)
 
-聊聊Vue.js的template编译
+聊聊 Vue.js 的 template 编译
 
-Vue.js异步更新DOM策略及nextTick
+Vue.js 异步更新 DOM 策略及 nextTick
 
-从template到DOM（Vue.js源码角度看内部运行机制）
+从 template 到 DOM（Vue.js 源码角度看内部运行机制）
 
-Vuex源码解析
+Vuex 源码解析
 
-聊聊keep-alive组件的使用及其实现原理
-    
-		
+聊聊 keep-alive 组件的使用及其实现原理
