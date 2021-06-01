@@ -394,3 +394,9 @@ async function foo() {
 }
 foo(); 
 ```
+
+## BOM
+window对象
+一个是ECMAScript中的Global对象，另一个是浏览器窗口的JavaScript接口
+
+global作用域

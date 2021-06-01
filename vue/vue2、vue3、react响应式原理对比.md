@@ -3,7 +3,7 @@
 ### 前言
 
     本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
-    知识点：响应式、原型、ES5:Object.definePropert、ES6:Proxy
+    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、ES6:Proxy
 
 ### 概念解析
 
@@ -11,9 +11,46 @@
 
   什么是响应式，在 vue 的官方文档中是这么介绍的：响应式原理的核心就是观测数据的变化，数据发生变化以后能通知到对应的观察者来执行相关的逻辑。
 
+* 构造函数
+
+    在<JavaScript高级程序设计第四版>中是这么定义的：任何函数只要使用new操作符调用就是构造函数，而不使用new操作符调用的函数就是普通函数。
+
 - 原型：
 
-  什么是原型链，
+  什么是原型，在<JavaScript高级程序设计第四版>中是这么介绍的：每个函数都会创建一个**prototype**属性，这个属性是一个对象，包含应该由特定引用类型的实例共享的属性和方法。实际上，这个对象就是通过调用**构造函数**创建的对象的原型。使用原型对象的好处是，在它上面定义的属性和方法可以被对象实例共享。无论何时，只要创建一个函数，就会按照特定的规则为这个函数创建一个prototype属性（指向原型对象）。所有原型对象自动获得一个名为constructor的属性，指回与之关联的构造函数。Person.prototype.constructor指向Person。__proto__属性可以访问对象的原型
+  ```JavaScript
+    console.log(Person.prototype.constructor === Person); // true
+
+    console.log(Person.prototype.__proto__ === Object.prototype); // true
+    console.log(Person.prototype.__proto__.constructor === Object); // true
+  ```
+
+* 原型链：
+
+    <JavaScript高级程序设计第四版>：每个构造函数都有一个原型对象，原型有一个属性指向构造函数，而实例有一个内部指针指向原型。如果原型是另一个类型的实例，就意味着这个原型本身有一个内部指针指向另一个原型，相应地另一个原型也有一个指针指向另一个构造函数。这样就在实例和原型之间构造了一条原型链。
+
+* 继承：
+
+    实现继承是ECMAScript唯一支持的继承方式，而这主要是通过原型链实现的。
+
+* Object.defineProperty
+
+    Object.defineProperty的定义：在MDN中：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
+```JavaScript
+/**
+ *  @param obj: 在其上定义属性的对象  
+ *  @param prop: Symbol要定义或修改的属性的名称
+ *  @param descriptor: 正在定义或修改的属性的描述符
+ *  return： 传递给函数的对象
+ */
+// descriptor: 中着重注意get 和 set函数
+Object.defineProperty(obj, prop, descriptor)
+```
+
+* Proxy
+
+    MDN定义：Proxy对象使您能够为另一个对象创建代理，该代理可以拦截和重新定义该对象的基本操作。
+
 
 ### vue2.x 中响应式的实现
 

@@ -194,3 +194,29 @@ type Coordinates = [number, number];
 type Callback = (data: string) => void;
 
 ```
+
+### 接口
+```JavaScript
+declare const myPoint: {x: number; y: number};
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+declare const myPoint: Point;
+```
+
+* 类可以实现接口
+使用implements关键字来确保兼容性：
+```JavaScript
+interface Point {
+  x: number;
+  y: number;
+}
+
+class MyPoint implements Point {
+  x: number;
+  y: number;
+}
+```
