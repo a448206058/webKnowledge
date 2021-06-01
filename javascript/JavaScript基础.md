@@ -396,7 +396,8 @@ foo();
 ```
 
 ## BOM
-window对象
-一个是ECMAScript中的Global对象，另一个是浏览器窗口的JavaScript接口
-
-global作用域
+浏览器对象模型（BOM，Browser Object Model）是以window对象为基础的，这个对象代表了浏览器窗口和页面可见的区域。window对象也被复用为ECMAScript的Global独享，因此所有全局变量和函数都是它的属性，而且所有原生类型的构造函数和普通函数也都从一开始就存在于这个对象之上。
+* 要引用其他window对象，可以使用几个不同的窗口指针。
+* 通过location对象可以以编程方式曹总浏览器的导航系统。通过设置这个对象上的属性，可以改变浏览器URL中的某一部分或全部。
+* 使用replace()方法可以替换浏览器历史记录中当前显示的页面，并导航到新URL
+* navigator对象提供关于浏览器的信息。

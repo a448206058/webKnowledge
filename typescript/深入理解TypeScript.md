@@ -220,3 +220,47 @@ class MyPoint implements Point {
   y: number;
 }
 ```
+
+### 枚举
+枚举是组织收集有关联变量的一种方式
+```JavaScript
+enum CardSuit {
+  Clubs,
+  Diamonds,
+  Hearts,
+  Spades
+}
+
+// 简单的使用枚举类型
+let Card = CardSuit.Clubs;
+
+```
+
+### 函数
+函数类型在TypeScript类型系统中扮演着非常重要的角色，它们是可组合系统的核心构建块。
+
+* 参数注解
+```JavaScript
+interface Foo {
+  foo: string;
+}
+
+function foo(sample: Foo): Foo {
+  return sample;
+}
+```
+
+* 函数声明
+```JavaScript
+type LongHandAllowsOverloadDeclarations = {
+  (a: number): number;
+  (a: string): string;
+}
+```
+
+### 可调用的
+```JavaScript
+interface ReturnString {
+  (): string;
+}
+```
