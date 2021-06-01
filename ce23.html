@@ -10,70 +10,21 @@
   // X X O X
   // X O X X
 
-  const solve1 = (board) => {
-    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
-    let m, n;
-    m = board.length;
-    if (m == 0) {
-      return []
-    }
-    n = board[0].length;
-    const visited = new Array(m);
-    for (let i = 0; i < visited.length; ++i) {
-      visited[i] = new Array(n).fill(false);
-    }
-    const inArea = (x, y) => {
-      return x > 0 && x < m - 1 && y > 0 && y < n - 1;
+  var solveNQueens = function (n) {
+    let value = new Array(n);
+
+    for(let i = 0; i < value.length; i++){
+      value[i] = new Array(n).fill(".").join("");
     }
 
-    const dfs = (grid, x, y) => {
-      visited[x][y] = true;
-      for (let i = 0; i < 4; i++) {
-        let newx = x + d[i][0];
-        let newy = y + d[i][1];
-        if (inArea(newx, newy) && !visited[newx][newy] && grid[newx][newy] == 'O') {
-          grid[newx][newy] = "0";
-          dfs(grid, newx, newy);
-        } else {
-          grid[newx][newy] = "X";
-        }
-      }
-      return
-    }
+    
 
 
-    for (let i = 0; i < board.length; i++) {
-      for (let j = 0; j < board[i].length; j++) {
-        if (board[i][j] == 'O' && !visited[i][j] && !inArea(i, j)) {
-          board[i][j] = "O";
-          dfs(board, i, j);
-        } else {
-          board[i][j] = "X";
-        }
-      }
-    }
-
-    // for (let i = 0; i < board.length; i++){
-    //   for (let j = 0; j < board[i].length; j++){
-    //     if (board[i][j] === "NO"){
-    //       board[i][j] = "O"
-    //     }else{
-    //       board[i][j] = "X"
-    //     }
-    //   }
-    // }
-
-    return board;
+    return value;
+    
   };
 
-
-  // 1 2 2 3 5
-  // 3 2 3 4 4
-  // 2 4 5 3 1
-  // 6 7 1 4 5
-  // 5 1 1 2 4
-
-  // [[0, 4], [1, 3], [1, 4], [2, 2], [3, 0], [3, 1], [4, 0]]
+  console.log(solveNQueens(4))
 
   var pacificAtlantic = function (heights) {
     let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
@@ -149,45 +100,6 @@
 
     return res;
   };
-
-  // const pacificAtlantic = matrix => {
-  //   if (!matrix.length || !matrix[0].length) return []
-  //   let m = matrix.length, n = matrix[0].length
-  //   const res = [], map = new Array(m).fill().map(_ => [])
-  //   axis = [[0, 1], [1, 0], [-1, 0], [0, -1]]
-  //   const dfs = (i, j, arr) => {
-  //     let curr = matrix[i][j], str = i + ',' + j
-  //     if (arr.has(str)) return
-  //     arr.add(str)
-  //     for (let k = 0; k < 4; k++) {
-  //       let x = i + axis[k][0], y = j + axis[k][1]
-  //       if (x < 0 || y < 0 || x >= m || y >= n) continue
-  //       if (map[x][y] || curr > matrix[x][y]) continue
-  //       map[x][y] = 1
-  //       dfs(x, y, arr)
-  //       map[x][y] = 0
-  //     }
-  //   }
-  //   let pacific = new Set(), atlantic = new Set()
-  //   for (let i = 0; i < n; i++) { // 太平洋边界
-  //     dfs(0, i, pacific)
-  //   }
-  //   for (let i = 1; i < m; i++) { // 太平洋边界
-  //     dfs(i, 0, pacific)
-  //   }
-  //   for (let i = 0; i < n; i++) { // 大西洋边界
-  //     dfs(m - 1, i, atlantic)
-  //   }
-  //   for (let i = 0; i < m - 1; i++) { // 大西洋边界
-  //     dfs(i, n - 1, atlantic)
-  //   }
-  //   for (let item of pacific) {
-  //     atlantic.has(item) && res.push(
-  //       item.split(',').map(num => num * 1)
-  //     )
-  //   }
-  //   return res
-  // }
 
   console.log(pacificAtlantic([[1, 2, 2, 3, 5], [3, 2, 3, 4, 4], [2, 4, 5, 3, 1], [6, 7, 1, 4, 5], [5, 1, 1, 2, 4]]))
 </script>
