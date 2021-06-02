@@ -11,95 +11,159 @@
   // X O X X
 
   var solveNQueens = function (n) {
-    let value = new Array(n);
+    let board = new Array(n);
 
-    for(let i = 0; i < value.length; i++){
-      value[i] = new Array(n).fill(".").join("");
+    for (let i = 0; i < n; i++) {
+      board[i] = new Array(n).fill(".");
     }
 
-    
-
-
-    return value;
-    
-  };
-
-  console.log(solveNQueens(4))
-
-  var pacificAtlantic = function (heights) {
-    let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
-    let m, n;
+    const cols = new Set(); // 列集，记录出现过皇后的列
+    const diag1 = new Set(); // 正对角线集
+    const diag2 = new Set(); // 反对角线集
     const res = [];
-    m = heights.length;
-    if (m == 0) {
-      return []
-    }
-    n = heights[0].length;
-    // const visited = new Array(m);
-    // for (let i = 0; i < visited.length; ++i) {
-    //   visited[i] = new Array(n).fill(false);
-    // }
-    const set = new Map();
-    const inArea = (x, y) => {
-      return x >= 0 && x < m && y >= 0 && y < n;
-    }
 
-    const isXHandler = (x, y) => {
-      return x === 0 || y === 0;
-    }
-
-    const isYHandler = (x, y) => {
-      return x === m - 1 || y === n - 1;
-    }
-
-    let isX = false, isY = false;
-
-    const dfs = (grid, x, y) => {
-      set.set(x + ',' + y);
-      if (isXHandler(x, y)) {
-        isX = true;
-      }
-      if (isYHandler(x, y)) {
-        isY = true;
-      }
-      if (isX && isY) {
+    const helper = (row) =>{
+      if (row == n) {
+        const stringsBoard = board.slice();
+        for (let i = 0; i < n; i++) {
+          stringsBoard[i] = stringsBoard[i].join('');
+        }
+        res.push(stringsBoard);
         return;
       }
-      for (let i = 0; i < 4; i++) {
-        let newx = x + d[i][0];
-        let newy = y + d[i][1];
-        if (!inArea(newx, newy) || set.has(newx + ',' + newy) || grid[newx][newy] > grid[x][y]) {
-          continue
-        }
-        dfs(grid, newx, newy);
-      }
-      return
-    }
-
-
-    for (let i = 0; i < heights.length; i++) {
-      for (let j = 0; j < heights[i].length; j++) {
-        isX = false, isY = false;
-        set.clear();
-        if (isXHandler(i, j)) {
-          isX = true;
-        }
-        if (isYHandler(i, j)) {
-          isY = true;
-        }
-        if (isX && isY) {
-          res.push([i, j]);
-        } else {
-          dfs(heights, i, j);
-          if (isX && isY) {
-            res.push([i, j]);
-          }
+      for (let col = 0; col < n; col++){
+        if (!cols.has(col) && !diag1.has(row + col) && !diag2.has(row - col)){
+          board[row][col] = 'Q'; // 放置皇后
+          cols.add(col);
+          diag1.add(row + col);
+          diag2.add(row - col);
+          helper(row + 1);
+          board[row][col] = ".";
+          cols.delete(col);
+          diag1.delete(row + col);
+          diag2.delete(row - col);
         }
       }
     }
-
+    helper(0);
     return res;
   };
 
-  console.log(pacificAtlantic([[1, 2, 2, 3, 5], [3, 2, 3, 4, 4], [2, 4, 5, 3, 1], [6, 7, 1, 4, 5], [5, 1, 1, 2, 4]]))
+  // const solveNQueens = (n) => {
+  //   const board = new Array(n);
+  //   for (let i = 0; i < n; i++) {
+  //     board[i] = new Array(n).fill('.');
+  //   }
+
+  //   const cols = new Set();  // 列集，记录出现过皇后的列
+  //   const diag1 = new Set(); // 正对角线集
+  //   const diag2 = new Set(); // 反对角线集
+  //   const res = [];
+
+  //   const helper = (row) => {
+  //     if (row == n) {
+  //       const stringsBoard = board.slice();
+  //       for (let i = 0; i < n; i++) {
+  //         stringsBoard[i] = stringsBoard[i].join('');
+  //       }
+  //       res.push(stringsBoard);
+  //       return;
+  //     }
+  //     for (let col = 0; col < n; col++) {
+  //       // 如果当前点的所在的列，所在的对角线都没有皇后，即可选择，否则，跳过
+  //       if (!cols.has(col) && !diag1.has(row + col) && !diag2.has(row - col)) {
+  //         board[row][col] = 'Q';  // 放置皇后
+  //         cols.add(col);          // 记录放了皇后的列
+  //         diag1.add(row + col);   // 记录放了皇后的正对角线
+  //         diag2.add(row - col);   // 记录放了皇后的负对角线
+  //         helper(row + 1);
+  //         board[row][col] = '.';  // 撤销该点的皇后
+  //         cols.delete(col);       // 对应的记录也删一下
+  //         diag1.delete(row + col);
+  //         diag2.delete(row - col);
+  //       }
+  //     }
+  //   };
+  //   helper(0);
+  //   return res;
+  // };
+
+  console.log(solveNQueens(8))
+
+  // var pacificAtlantic = function (heights) {
+  //   let d = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+  //   let m, n;
+  //   const res = [];
+  //   m = heights.length;
+  //   if (m == 0) {
+  //     return []
+  //   }
+  //   n = heights[0].length;
+  //   // const visited = new Array(m);
+  //   // for (let i = 0; i < visited.length; ++i) {
+  //   //   visited[i] = new Array(n).fill(false);
+  //   // }
+  //   const set = new Map();
+  //   const inArea = (x, y) => {
+  //     return x >= 0 && x < m && y >= 0 && y < n;
+  //   }
+
+  //   const isXHandler = (x, y) => {
+  //     return x === 0 || y === 0;
+  //   }
+
+  //   const isYHandler = (x, y) => {
+  //     return x === m - 1 || y === n - 1;
+  //   }
+
+  //   let isX = false, isY = false;
+
+  //   const dfs = (grid, x, y) => {
+  //     set.set(x + ',' + y);
+  //     if (isXHandler(x, y)) {
+  //       isX = true;
+  //     }
+  //     if (isYHandler(x, y)) {
+  //       isY = true;
+  //     }
+  //     if (isX && isY) {
+  //       return;
+  //     }
+  //     for (let i = 0; i < 4; i++) {
+  //       let newx = x + d[i][0];
+  //       let newy = y + d[i][1];
+  //       if (!inArea(newx, newy) || set.has(newx + ',' + newy) || grid[newx][newy] > grid[x][y]) {
+  //         continue
+  //       }
+  //       dfs(grid, newx, newy);
+  //     }
+  //     return
+  //   }
+
+
+  //   for (let i = 0; i < heights.length; i++) {
+  //     for (let j = 0; j < heights[i].length; j++) {
+  //       isX = false, isY = false;
+  //       set.clear();
+  //       if (isXHandler(i, j)) {
+  //         isX = true;
+  //       }
+  //       if (isYHandler(i, j)) {
+  //         isY = true;
+  //       }
+  //       if (isX && isY) {
+  //         res.push([i, j]);
+  //       } else {
+  //         dfs(heights, i, j);
+  //         if (isX && isY) {
+  //           res.push([i, j]);
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   return res;
+  // };
+
+  // console.log(pacificAtlantic([[1, 2, 2, 3, 5], [3, 2, 3, 4, 4], [2, 4, 5, 3, 1], [6, 7, 1, 4, 5], [5, 1, 1, 2, 4]]))
 </script>
