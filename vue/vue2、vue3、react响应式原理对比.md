@@ -55,7 +55,95 @@ Object.defineProperty(obj, prop, descriptor)
 从定义出发可以拆分为俩步：
 1. 观测数据的变化
     
-    vue中实例都是通过 new Vue()构造函数生成的，
+    vue中实例都是通过 new Vue()构造函数生成的
+```JavaScript
+// src/core/instance/index.js
+function Vue(options) {
+    if (process.env.NODE_ENV !== 'production' &&
+    !(this instanceof Vue)
+  ) {
+    warn('Vue is a constructor and should be called with the `new` keyword')
+  }
+  this._init(options)
+}
+```
+
+通过原型上挂载_init函数进行方法绑定
+```JavaScript
+// src/core/instance/init.js
+export function initMixin(Vue: Class<component>) {
+    Vue.protototype._init = function (options?: Object){
+        const vm: Component = this
+        // ...
+        initState(vm)
+    }
+}
+```
+通过initState函数进行数据劫持与代理
+```JavaScript
+// src/core/instance/state.js
+export function initState(vm: Component) {
+    vm._watchers = []
+    const opts = vm.$options
+    if (opts.props) initProps(vm, opts.props)
+    if (opts.methods) initMethods(vm, opts.methods)
+    if (opts.data) {
+        initData(vm)
+    } else {
+        observe(vm._data = {}, true /* asRootData */)
+    }
+    if (opts.computed) initComputed(vm, opts.computed)
+    if (opts.watch && opts.watch !== nativeWatch){
+        initWatch(vm, opts.watch);
+    }
+}
+
+function initData(vm: Component) {
+    let data = vm.$options.data;
+    data = vm._data = typeof data === 'function'
+        ? getData(data, vm)
+        : data || {}
+    // ...
+    // proxy data on instance
+    const keys = Object.keys(data)
+    let i = keys.length
+    while(i--){
+        const key = keys[i]
+        // 看值的第一个字符串是否为_或$
+        if (!isReserved(key)){
+            proxy(vm, `_data`, key)
+        }
+    }
+    // observe data
+    observe(data, true, /* asRootData */)
+}
+
+const sharedPropertyDefinition = {
+    enumerable: true,
+    configurable: true,
+    get: noop,
+    set: noop
+}
+
+// 代理
+export function proxy (target: Object, sourceKey: string, key: string){
+    sharedPropertyDefinition.get = function proxyGetter () {
+        return this[sourceKey][key]
+    }
+    sharedPropertyDefinition.set = function proxySetter (val) {
+        return this[souceKey][key] = val
+    }
+}
+```
+
+```JavaScript
+// src/core/observe/index.js
+export class Observer {
+    value: any;
+    dep: Dep;
+    
+}
+```
 
 2. 数据发生变化以后能通知到对应的观察者来执行相关的逻辑
 

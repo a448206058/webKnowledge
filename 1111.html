@@ -1,41 +1,43 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<title></title>
-	</head>
-	<body>
-		<script>
-			console.log(2111)
-			var numSquares = function(n) {
-			    let queue = [];
-			    let level = 0;
-				for(let i = 1; i*i < n; i++){
-					queue.push(i*i);
-				}
-				let control = [n];
-				while(control.length > 0){
-					let temp = [];
-					level += 1;
-					for(let i = 0; i < control.length; i++){
-						for(let j = 0; j < queue.length; j++){
-							let cc = control[i] - queue[j];
-							if(temp.indexOf(cc) > -1){
-								return level
-							}
-							temp.push(cc);
-						}
-					}
-					console.log(temp)
-					control = temp;
-				}
-			    return level;
-			};
-			console.log(222)
-			console.log(111)
-			console.time()
-			console.log(numSquares(12))
-			console.timeEnd()
-		</script>
-	</body>
+
+<head>
+	<meta charset="utf-8">
+	<title></title>
+</head>
+
+<body>
+	<div>
+		<!-- <iframe></iframe> -->
+	</div>
+
+	<span id="outHTML"></span>
+	<IE:Download ID="ieDownload" STYLE="behavior:url(#default#download)" />
+	<script>
+		function onDownloadDone(downDate) {
+			outHTML.innerHTML = downDate
+		}
+		ieDownload.startDownload('http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29', onDownloadDone)
+
+	</script>
+
+	<!-- <iframe
+		src="http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29"></iframe> -->
+	<!-- <div><script src="http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29" type="text/javascript"></script></div> -->
+	<!-- <a href="http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29"  /> -->
+	<script>
+		// window.onload = function () {
+		// 	let loadUrl = 'http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29';
+		// 	// window.frameElement.src = 'http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29';
+		// 	// window.frameElement.src = loadUrl + "?aid=" + aid + "&aidName=" + encodeURIComponent(encodeURIComponent(aidName)) + "&assetTypeCode=" + assetTypeCode + "&pageNo=" + pageNo;
+		// 	console.log(111)
+		// 	console.log(window.frameElement)
+		// 	window.frameElement.outerHTML = window.frameElement.outerHTML;
+		// }
+
+
+
+	</script>
+</body>
+
 </html>
