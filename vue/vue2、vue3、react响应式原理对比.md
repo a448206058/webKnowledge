@@ -3,7 +3,7 @@
 ### 前言
 
     本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
-    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、ES6:Proxy
+    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Class
 
 ### 概念解析
 
@@ -258,13 +258,204 @@ export class Observer {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
-            
+            const value = getter ? getter.call(obj) : val
+            if (Dep.target) {
+                dep.depend()
+                if (childObj) {
+                    childObj.dep.depend()
+                    if (Array.isArray(value)) {
+                        dependArray(value)
+                    }
+                }
+            }
+            return value
+        },
+        set: function reactiveSetter (newVal) {
+            const value = getter ? getter.call(obj) : val
+            /* eslint-disable no-self-compare */
+            if (newVal === value || (newVal !== newVal && value !== value)) {
+                return
+            }
+            /* eslint-enable no-self-compare */
+            if (process.env.NODE_ENV !== 'production' && customSetter) {
+                customSetter()
+            }
+            // #7981: for accessor properties without setter
+            if (getter && setter) return
+            if (setter) {
+                setter.call(obj, newVal)
+            } else {
+                val = newVal
+            }
+            childOb = !shallow && observe(newVal)
+            dep.notify()
         }
     })
  }
 ```
 
 2. 数据发生变化以后能通知到对应的观察者来执行相关的逻辑
+   
+当对值进行修改时，会触发setter方法，从而调用dep.notify()
+
+定义一个Dep进行依赖收集
+
+Dep 的核心是 notify
+通过自定义数组subs进行控制
+主要实现 addSub removeSub 循环遍历subs 去通知watch 更新
+```JavaScript
+// src/core/observe/dep.js
+let uid;
+/**
+ * A dep is an observable that can have multiple
+ * directives subscribing to it.
+ */
+export function class Dep {
+    static target: ?Watcher;
+    id: number;
+    subs: Array<Watcher>;
+
+    constructor () {
+        this.id = uid++
+        this.subs = []
+    }
+
+    addSub (sub: Watcher) {
+        this.subs.push(sub)
+    }
+
+    removeSub (sub: Watcher){
+        remove(this.subs, sub)
+    }
+
+    depend () {
+        if (Dep.target) {
+            Dep.target.addDep(this)
+        }
+    }
+
+    notify () {
+        // stabilize the subscriber list first
+        const subs = this.subs.slice()
+        if (process.env.NODE_ENV !== 'production' && !config.async) {
+            // subs aren't sorted in scheduler if not running async
+            // we need to sort them now to make sure they fire in correct
+            // order
+            subs.sort((a, b) => a.id - b.id)
+        }
+        for (let i = 0, l = subs.length; i < l; i++) {
+            subs[i].update()
+        }
+    }
+}
+```
+
+看看watch的定义
+```JavaScript
+// src/core/observe/watcher.js
+let uid = 0
+
+/**
+ * A watcher parses an expression, collects dependencies,
+ * and fires callback when the expression value changes.
+ * This is used for both the $watch() api and directives.
+ */
+export default class Watcher {
+    vm: Component;
+    expression: string;
+    cb: Function;
+    id: number;
+    deep: boolean;
+    user: boolean;
+    lazy: boolean;
+    sync: boolean;
+    dirty: boolean;
+    active: boolean;
+    deps: Array<Dep>;
+    newDeps: Array<Dep>;
+    depIds: SimpleSet;
+    newDepIds: SimpleSet;
+    before: ?Function;
+    getter: Function;
+    value: any;
+
+    constructor(
+        vm: Component,
+        expOrFn: string | Function,
+        cb: Function,
+        options?: ?Object,
+        isRenderWatcher?: boolean
+    ) {
+        this.vm = vm
+        if (isRenderWatcher) {
+            vm._watcher = this
+        }
+        vm._watcher.push(this)
+        // options
+        if (options) {
+            this.deep = !!options.deep
+            this.user = !!options.user
+            this.lazy = !!options.lazy
+            this.sync = !!options.sync
+            this.before = options.before
+        } else {
+            this.deep = this.user = this.lazy = this.sync = false
+        }
+        this.cb = cb
+        this.id = ++uid // uid for batching
+        this.active = true
+        this.dirty = this.lazy // for lazy watchers
+        this.deps = []
+        // ...
+        this.value = this.lazy
+            ? undefined
+            : this.get()
+
+    }
+
+    update () {
+        if (this.lazy) {
+            this.dirty = true
+        } else if (this.sync) {
+            this.run()
+        } else {
+            queueWatcher(this)
+        }
+    }
+
+    /**
+     * Scheduler job interface.
+     * Will be called by the scheduler.
+     */
+    run () {
+        if (this.active) {
+            const value = this.get()
+            if(
+            value !== this.value ||
+            // Deep watchers and watchers on Object/Arrays 
+            isObject(value) ||
+            this.deep
+            ) {
+                // set new value
+                const oldValue = this.value
+                this.value = value
+                if (this.user) {
+                    try {
+                        // 调用回调函数，传新值和旧值
+                        this.cb.call(this.vm, value, oldValue)
+                    } catch(e) {
+                        handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+                    }
+                } else {
+                     // 调用回调函数，传新值和旧值
+                    this.cb.call(this.vm, value, oldValue)
+                }
+            }
+        } 
+    }
+}
+
+```
 
 
 

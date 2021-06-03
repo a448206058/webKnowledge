@@ -403,3 +403,13 @@ foo();
 * navigator对象提供关于浏览器的信息。
 
 ## 客户端检测
+获取坐标必须https
+```JavaScript
+	navigator.geolocation.getCurrentPosition(
+				() => { },
+				(e) => {
+					console.log(e.code); // 1
+					console.log(e.message); // Only secure origins are allowed
+				}
+			);
+```
