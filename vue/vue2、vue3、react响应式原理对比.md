@@ -83,19 +83,21 @@ export function initMixin(Vue: Class<component>) {
 ```JavaScript
 // src/core/instance/state.js
 export function initState(vm: Component) {
-    vm._watchers = []
-    const opts = vm.$options
-    if (opts.props) initProps(vm, opts.props)
-    if (opts.methods) initMethods(vm, opts.methods)
+    // vm._watchers = []
+    // const opts = vm.$options
+    // if (opts.props) initProps(vm, opts.props)
+    // if (opts.methods) initMethods(vm, opts.methods)
+    //...
     if (opts.data) {
         initData(vm)
     } else {
         observe(vm._data = {}, true /* asRootData */)
     }
-    if (opts.computed) initComputed(vm, opts.computed)
-    if (opts.watch && opts.watch !== nativeWatch){
-        initWatch(vm, opts.watch);
-    }
+    // ...
+    // if (opts.computed) initComputed(vm, opts.computed)
+    // if (opts.watch && opts.watch !== nativeWatch){
+    //     initWatch(vm, opts.watch);
+    // }
 }
 
 function initData(vm: Component) {
@@ -136,13 +138,130 @@ export function proxy (target: Object, sourceKey: string, key: string){
 }
 ```
 
+判断是否是数组进行递归定义defineProperty
 ```JavaScript
 // src/core/observe/index.js
+/**
+ * Attempt to create an observer instance for a value,
+ * returns the new observer if successfully observed,
+ * or the existing observer if the value already has one.
+ * 尝试为值创建观察者实例，
+ * 如果观察成功返回新的观察者，
+ * 或者现有的观察器（如果值已经有一个观察器）。
+ */
+
+export function observe (value: any, asRootData: ?boolean): Observer | void {
+    // 如果不是对象或者值为虚拟节点则直接返回
+    if (!isObject(value) || value instanceof VNode){
+        return
+    }
+    let ob: Observer | void
+    if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+        ob = value.__ob__
+    } else if (
+        shouldObserve &&
+        !isServerRendering() &&
+        (Array.isArray(value) || isPlainObject(value)) &&
+        Object.isExtensible(value) &&
+        !value._isVue
+    ) {
+        ob = new Observer(value)
+    }
+    return ob
+}
+/* 
+ * Observer class that is attached to each observed
+ * object. Once attached, the observer converts the target
+ * object's property keys into getter/setters that
+ * collect dependencies and dispatch updates.
+ * 每个观察到的观察者类
+ * 对象。连接后，观察者将转换目标
+ * 对象的属性键插入getter/setters
+ * 收集依赖项并发送更新。
+ */
 export class Observer {
     value: any;
     dep: Dep;
+    vmCount: number; // number of vms that have this object as root $data
+    //将此对象作为根$data的虚拟数
     
+    constructor(value: any){
+        this.value = value
+        this.dep = new Dep()
+        this.vmCount = 0
+        def(value, '__ob__', this)
+        if (Array.isArray(value)){
+            if (hasProto){
+                protoAugument(value, arrayMethods)
+            } else {
+                copyAugment(value, arrayMethods, arrayKeys)
+            }
+            this.observeArray(value)
+        } else {
+            this.walk(value)
+        }
+    }
+
+    /**
+     * Walk through all properties and convert them into 
+     * getter/setters.This method should only be called when
+     * value type is Object.
+     * 浏览所有属性并将其转换为
+     * getter/setters。只有在
+     * 值类型为Object。
+     */
+    walk (obj: Object) {
+        const keys = Object.keys(obj)
+        for (let i = 0; i < keys.length; i++){
+            defineReactive(obj, keys[i])
+        }
+    }
+
+    /**
+     * Observe a list of Array items.
+     * 观察数组项列表。
+     */
+    observeArray (items: Array<any>) {
+        for (let i = 0, l = items.length; i < l; i++){
+            observe(items[i])
+        }
+    }
 }
+
+/**
+ * Define a reactive property on an Object.
+ * 在对象上定义被动属性。
+ */
+ export function defineReactive (
+     obj: Object,
+     key: string,
+     val: any,
+     customSetter?: ?Function,
+     shallow?: boolean 
+ ) {
+    const dep = new Dep()
+
+    const property = Object.getOwnPropertyDescriptor(obj, key)
+    if (property && property.configurable === false) {
+        return
+    }
+
+    // cater for pre-defined getter/setters
+    const getter = property && property.get
+    const setter = property && property.set
+    if((!getter | setter) && arguments.length === 2){
+        val = obj[key]
+    } 
+
+    let childOb = !shallow && observe(val)
+    Object.defineProperty(obj, key, {
+        enumerable: true,
+        configurable: true,
+        get: function reactiveGetter() {
+            
+        }
+    })
+ }
 ```
 
 2. 数据发生变化以后能通知到对应的观察者来执行相关的逻辑
