@@ -386,3 +386,18 @@ type Foo = {
 let foo: 'Hello';
 
 ```
+
+### readonly
+TypeScript 类型系统允许你在一个接口里使用readonly来标记属性。它能让你以一种更安全的方式工作
+```JavaScript
+function foo(config: {readonly bar: number, readonly bars: number}) {
+  
+}
+```
+
+### 泛型
+设计泛型的关键目的是在成员之间提供有意义的约束
+
+* 动机和示例
+
+### Never
