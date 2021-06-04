@@ -3,7 +3,7 @@
 ### 前言
 
     本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
-    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Class
+    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Class、Reflect
 
 ### 概念解析
 
@@ -35,7 +35,14 @@
 
 * Object.defineProperty
 
-    Object.defineProperty的定义：在MDN中：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
+    MDN定义：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
+
+* call
+    
+    MDN定义:call()方法使用给定的this值和单独提供的参数调用函数
+    call()提供了一个新的值为函数/方法。使用call(),你可以编写一个方法，然后再另一个对象中继承它，而不必为新对象重写方法。
+    Parameters： 
+
 ```JavaScript
 /**
  *  @param obj: 在其上定义属性的对象  
@@ -247,6 +254,7 @@ export class Observer {
     }
 
     // cater for pre-defined getter/setters
+    满足预定义的getter/setter
     const getter = property && property.get
     const setter = property && property.set
     if((!getter | setter) && arguments.length === 2){
@@ -273,14 +281,17 @@ export class Observer {
         set: function reactiveSetter (newVal) {
             const value = getter ? getter.call(obj) : val
             /* eslint-disable no-self-compare */
+            /* eslint禁用无自比较 */
             if (newVal === value || (newVal !== newVal && value !== value)) {
                 return
             }
             /* eslint-enable no-self-compare */
+            /* eslint启用无自比较 */
             if (process.env.NODE_ENV !== 'production' && customSetter) {
                 customSetter()
             }
             // #7981: for accessor properties without setter
+            // 对于没有setter的访问器属性
             if (getter && setter) return
             if (setter) {
                 setter.call(obj, newVal)
@@ -309,6 +320,7 @@ let uid;
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
+ * dep是一个可观察的对象，可以有多个指令订阅它。
  */
 export function class Dep {
     static target: ?Watcher;
@@ -336,11 +348,14 @@ export function class Dep {
 
     notify () {
         // stabilize the subscriber list first
+        // 局部浅拷贝这个数组
         const subs = this.subs.slice()
         if (process.env.NODE_ENV !== 'production' && !config.async) {
             // subs aren't sorted in scheduler if not running async
             // we need to sort them now to make sure they fire in correct
             // order
+            // 如果未运行异步，则不会在调度程序中对sub进行排序
+            // 我们现在需要对它们进行分类，以确保它们正确按顺序运行
             subs.sort((a, b) => a.id - b.id)
         }
         for (let i = 0, l = subs.length; i < l; i++) {
@@ -359,6 +374,9 @@ let uid = 0
  * A watcher parses an expression, collects dependencies,
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
+ * 观察者解析表达式，收集依赖项，
+ * 并在表达式值更改时激发回调。
+ * 这用于$watch（）api和指令。
  */
 export default class Watcher {
     vm: Component;
@@ -426,6 +444,8 @@ export default class Watcher {
     /**
      * Scheduler job interface.
      * Will be called by the scheduler.
+     * 调度任务接口。
+     * 将会被调度程序调用
      */
     run () {
         if (this.active) {
@@ -433,10 +453,12 @@ export default class Watcher {
             if(
             value !== this.value ||
             // Deep watchers and watchers on Object/Arrays 
+            //深度观察者和对象/数组上的观察者
             isObject(value) ||
             this.deep
             ) {
                 // set new value
+                //设置新值
                 const oldValue = this.value
                 this.value = value
                 if (this.user) {
@@ -453,8 +475,271 @@ export default class Watcher {
             }
         } 
     }
+
+    /**
+     * Evaluate the getter, and re-collect dependencies.
+     * 评估getter，并重新收集依赖项。
+     */
+    get() {
+        pushTarget(this)
+        let value
+        const vm = this.vm
+        try {
+            value = this.getter.call(vm, vm)
+        } catch (e) {
+            if (this.user) {
+                handleError(e, vm, `getter for watcher "${this.expression}"`)
+            } else {
+                throw e
+        } finally {
+            // "touch" every property so they are all tracked as
+            // dependencies for deep watching
+            // “触摸”每一处财产，以便它们都能被跟踪
+            // 深度观察的依赖性
+            // 对dep数组进行删除操作
+            if (this.deep) {
+                traverse(value)
+            }
+            popTarget()
+            this.cleanupDeps()
+        }
+        return value
+    }
 }
 
+```
+
+### vue3
+vue3响应式主要是应用了ES6的Proxy代替了ES5的Object.defineProperty来实现
+```JavaScript
+// packages/reactivity/src/reactive.ts
+export function reactive(target: object) {
+    // if trying to observe a readonly proxy, return the readonly version.
+    if (target && (target as Target)[ReactiveFlags.IS_READONLY]) {
+        return target
+    }
+    return createReactiveObject(
+        target,
+        false,
+        mutableHandlers,
+        mutableCollectionHandlers,
+        reactiveMap
+    )
+}
+
+function createReactiveObject(
+    target: Target,
+    isReadonly: boolean,
+    baseHandlers: ProxyHandler<any>,
+    collectionHandlers: ProxyHandler<any>,
+    proxyMap: WeakMap<Target, any>
+) {
+    if (!isObject(target)) {
+        if (__DEV__) {
+            console.warn(`value cannot be made reactive: ${String(target)}`)
+        }
+        return target
+    }
+    // target is already a Proxy, return it.
+    // exception: calling readonly() on a reactive object
+    if (
+        target[ReactiveFlags.RAN] &&
+        !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
+    ) {
+        return target
+    }
+    // target already has corresponding Proxy
+    const existingProxy = proxyMap.get(target)
+    if (existingProxy) {
+        return existingProxy
+    }
+    // only a whitelist of value types can be observed
+    const target = getTargetType(target)
+    if (targetType === TargetType.INVALID) {
+        return target
+    } 
+    const proxy = new Proxy(
+        target,
+        targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers
+    )
+    proxyMap.set(target, proxy)
+    return proxy
+}
+
+export function toRaw<T>(observed: T): T {
+  return (
+    (observed && toRaw((observed as Target)[ReactiveFlags.RAW])) || observed
+  )
+}
+```
+
+mutableHandlers
+```JavaScript
+// packages/reactivity/src/baseHandlers.ts
+export const mutableHandlers: ProxyHandler<object> = {
+    get,
+    set,
+    deleteProperty,
+    has,
+    ownKeys
+}
+
+const get = /*#__PURE__*/ createGetter();
+
+function createGetter(isReadonly = false, shallow = false) {
+    return function get(target: Target, key: string | symbol, receiver: Object) {
+        if (key === ReactiveFlags.IS_READONLY) {
+            return !Readonly
+        } else if (key === ReactiveFlags.IS_READONLY) {
+            return isReadonly
+        } else if (
+            key === ReactiveFlags.RAW &&
+            receiver ===
+                (isReadonly
+                    ? shallow
+                        ? shallowReadonlyMap
+                        : readonlyMap
+                    : shallow
+                        ? shallowReactiveMap
+                        : reactiveMap
+                ).get(target)
+            
+        ) {
+            return target
+        }
+
+        const targetIsArray = isArray(target)
+
+        if (!Readonly && targetIsArray && hasOwn(arrayInstrumentations, key)) {
+            return Reflect.get(arrayInstrumentations, key, receiver)
+        }
+
+        const res = Reflect.get(target, key, receiver)
+
+        if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
+            return res
+        }
+
+        if (!isReadonly) {
+            track(target, TrackOpTypes.GET, key)
+        }
+
+        if (shallow) {
+            return res
+        }
+
+        if (isRef(res)) {
+            // ref unwrapping - does not apply for Array + integer key.
+            const shouldUnwrap = !targetIsArray || !isIntegerKey(key)
+            return shouldUnwrap ? res.value : res
+        }
+
+        if (isObject(res)) {
+            // Convert returned value into a proxy as well. we do the isObject check
+            // here to avoid invalid value warning. Also need to lazy access readonly
+            // and reactive here to avoid circular dependency.
+            return isReadonly ? readonly(res) : reactive(res)
+        }
+
+        return res
+    }
+}
+```
+
+mutableCollectionHandlers
+```JavaScript
+// packages/reactivity/src/collectionHandlers.ts
+export const mutableCollectionHandlers: ProxyHandler<CollectionTypes> = {
+  get: createInstrumentationGetter(false, false)
+}
+
+function createInstrumentationGetter(isReadonly: boolean, shallow: boolean) {
+  const instrumentations = shallow
+    ? isReadonly
+      ? shallowReadonlyInstrumentations
+      : shallowInstrumentations
+    : isReadonly
+      ? readonlyInstrumentations
+      : mutableInstrumentations
+
+  return (
+    target: CollectionTypes,
+    key: string | symbol,
+    receiver: CollectionTypes
+  ) => {
+    if (key === ReactiveFlags.IS_REACTIVE) {
+      return !isReadonly
+    } else if (key === ReactiveFlags.IS_READONLY) {
+      return isReadonly
+    } else if (key === ReactiveFlags.RAW) {
+      return target
+    }
+
+    return Reflect.get(
+      hasOwn(instrumentations, key) && key in target
+        ? instrumentations
+        : target,
+      key,
+      receiver
+    )
+  }
+}
+
+const mutableInstrumentations: Record<string, Function> = {
+  get(this: MapTypes, key: unknown) {
+    return get(this, key)
+  },
+  get size() {
+    return size((this as unknown) as IterableCollections)
+  },
+  has,
+  add,
+  set,
+  delete: deleteEntry,
+  clear,
+  forEach: createForEach(false, false)
+}
+
+
+function deleteEntry(this: CollectionTypes, key: unknown) {
+  const target = toRaw(this)
+  const { has, get } = getProto(target)
+  let hadKey = has.call(target, key)
+  if (!hadKey) {
+    key = toRaw(key)
+    hadKey = has.call(target, key)
+  } else if (__DEV__) {
+    checkIdentityKeys(target, has, key)
+  }
+
+  const oldValue = get ? get.call(target, key) : undefined
+  // forward the operation before queueing reactions
+  const result = target.delete(key)
+  if (hadKey) {
+    trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue)
+  }
+  return result
+}
+
+function createForEach(isReadonly: boolean, isShallow: boolean) {
+  return function forEach(
+    this: IterableCollections,
+    callback: Function,
+    thisArg?: unknown
+  ) {
+    const observed = this as any
+    const target = observed[ReactiveFlags.RAW]
+    const rawTarget = toRaw(target)
+    const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
+    !isReadonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY)
+    return target.forEach((value: unknown, key: unknown) => {
+      // important: make sure the callback is
+      // 1. invoked with the reactive map as `this` and 3rd arg
+      // 2. the value received should be a corresponding reactive/readonly.
+      return callback.call(thisArg, wrap(value), wrap(key), observed)
+    })
+  }
+}
 ```
 
 
