@@ -264,3 +264,140 @@ interface ReturnString {
   (): string;
 }
 ```
+
+### 类型断言
+TypeScript允许你覆盖它的推断，并且能以你任何你想要的方式分析它，这种机制被称为【类型断言】。
+```JavaScript
+interface Foo {
+  bar: number;
+  bas: string;
+}
+
+const foo = {} as Foo;
+foo.bar = 123;
+foo.bas = 'hello';
+```
+
+* 类型断言被认为是有害的
+* 双重断言
+```JavaScript
+function handler(event: Event) {
+  const element = (event as any) as HTMLElement; // ok
+}
+```
+当S类型是T类型的子集，或者T类型是S类型的子集时，S能被成功断言成T。这是为了在进行类型断言时提供额外的安全性，完全毫无根据的断言是危险的，如果你想这么做，你可以使用any。
+
+### Freshness
+被称为更严格的对象字面量检查用来确保对象字面量在结构上类型兼容
+```JavaScript
+function logName(something: { name: string }) {
+  console.log(something.name);
+}
+
+const person = {name: 'matt', job: 'being awesome' };
+const randow = {not: '1'}
+
+logName(person) // ok
+log(randow) // error
+```
+
+### 类型保护
+类型保护允许你使用更小范围下的对象类型
+
+* typeof
+```JavaScript
+function doSome(x: number | string) {
+  if (typeof x === 'string') {
+    // 在这个块中，TypeScript知道 `x` 的类型必须是 `string`
+    console.log(x.subtr(1)); // Error
+    console.log(x.substr(1)); // ok
+  }
+
+  x.substr(1); // Error: 无法保证 `x` 是 `string` 类型
+}
+```
+
+* instanceof 
+```JavaScript
+class Foo {
+  foo = 123;
+  common = '123';
+}
+
+class Bar {
+  bar = 123;
+  common = '123';
+}
+
+function doStuff(arg: Foo | Bar) {
+  if (arg instanceof Foo) {
+    console.log(arg.foo); // ok
+    console.log(arg.bar); // Error
+  } else {
+    // 这个块中，一定是 'Bar'
+    console.log(arg.foo); // Error
+    console.log(arg.bar); // ok
+  }
+  if (arg instanceof Bar) {
+    console.log(arg.foo); // Error
+    console.log(arg.bar); // ok
+  }
+}
+
+doStuff(new Foo());
+doStuff(new Bar());
+```
+
+* in
+in 操作符可以安全的检查一个对象上是否存在一个属性，它通常也被作为类型保护使用
+```JavaScript
+interface A {
+  x: number;
+}
+
+interface B {
+  y: string;
+}
+
+function doStuff(q: A | B) {
+  if ('x' in q) {
+    // q: A
+  } else {
+    // q: B
+  }
+}
+```
+
+* 字面量类型保护
+```JavaScript
+type Foo = {
+  kind: 'foo'; // 字面量类型
+  foo: number;
+}
+```
+
+* 使用定义的类型保护
+
+### 字面量类型
+字面量是JavaScript本身提供的一个准确变量
+* 字符串字面量
+```JavaScript
+// 仅接收一个字面量为Hello的变量
+let foo: 'Hello';
+
+```
+
+### readonly
+TypeScript 类型系统允许你在一个接口里使用readonly来标记属性。它能让你以一种更安全的方式工作
+```JavaScript
+function foo(config: {readonly bar: number, readonly bars: number}) {
+  
+}
+```
+
+### 泛型
+设计泛型的关键目的是在成员之间提供有意义的约束
+
+* 动机和示例
+
+### Never

@@ -9,17 +9,23 @@
 <body>
 	<div>
 		<!-- <iframe></iframe> -->
+		<!-- <iframe style="width: 1000px;height: 1000px;"
+			src="http://web-external.test.csbilin.com/yqjfindexSetList/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29" /> -->
+			<iframe style="width: 1000px;height: 1000px;"
+			src="http://points-system-web.test.csbilin.com/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29" />
+			
 	</div>
 
-	<span id="outHTML"></span>
-	<IE:Download ID="ieDownload" STYLE="behavior:url(#default#download)" />
-	<script>
+
+	<!-- <span id="outHTML"></span>
+	<IE:Download ID="ieDownload" STYLE="behavior:url(#default#download)" /> -->
+	<!-- <script>
 		function onDownloadDone(downDate) {
 			outHTML.innerHTML = downDate
 		}
 		ieDownload.startDownload('http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29', onDownloadDone)
 
-	</script>
+	</script> -->
 
 	<!-- <iframe
 		src="http://web-external.test.csbilin.com/pointSmall/yqjfAccessData?token=65772999-9fd8-48e4-9745-bded64d63e29"></iframe> -->
@@ -34,8 +40,28 @@
 		// 	console.log(window.frameElement)
 		// 	window.frameElement.outerHTML = window.frameElement.outerHTML;
 		// }
+		window.onload = function () {
+			var p = "2";
+			navigator.geolocation.getCurrentPosition((position) => {
+				console.log(2222)
+				p = position
 
-
+				console.log(p)
+			});
+			navigator.geolocation.getCurrentPosition(
+				() => {console.log(3322) },
+				(e) => {
+					console.log(e.code); // 1
+					console.log(e.message); // Only secure origins are allowed
+				}
+			);
+			setTimeout(function () {
+				console.log(3333)
+				console.log(p)
+				console.log(p.coords.latitude, p.coords.longitude);
+			}, 2000)
+			console.log(11)
+		}
 
 	</script>
 </body>

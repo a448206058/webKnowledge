@@ -3,7 +3,7 @@
 ### 前言
 
     本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
-    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、ES6:Proxy
+    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Class、Reflect
 
 ### 概念解析
 
@@ -35,7 +35,14 @@
 
 * Object.defineProperty
 
-    Object.defineProperty的定义：在MDN中：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
+    MDN定义：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
+
+* call
+    
+    MDN定义:call()方法使用给定的this值和单独提供的参数调用函数
+    call()提供了一个新的值为函数/方法。使用call(),你可以编写一个方法，然后再另一个对象中继承它，而不必为新对象重写方法。
+    Parameters： 
+
 ```JavaScript
 /**
  *  @param obj: 在其上定义属性的对象  
@@ -83,19 +90,21 @@ export function initMixin(Vue: Class<component>) {
 ```JavaScript
 // src/core/instance/state.js
 export function initState(vm: Component) {
-    vm._watchers = []
-    const opts = vm.$options
-    if (opts.props) initProps(vm, opts.props)
-    if (opts.methods) initMethods(vm, opts.methods)
+    // vm._watchers = []
+    // const opts = vm.$options
+    // if (opts.props) initProps(vm, opts.props)
+    // if (opts.methods) initMethods(vm, opts.methods)
+    //...
     if (opts.data) {
         initData(vm)
     } else {
         observe(vm._data = {}, true /* asRootData */)
     }
-    if (opts.computed) initComputed(vm, opts.computed)
-    if (opts.watch && opts.watch !== nativeWatch){
-        initWatch(vm, opts.watch);
-    }
+    // ...
+    // if (opts.computed) initComputed(vm, opts.computed)
+    // if (opts.watch && opts.watch !== nativeWatch){
+    //     initWatch(vm, opts.watch);
+    // }
 }
 
 function initData(vm: Component) {
@@ -136,16 +145,602 @@ export function proxy (target: Object, sourceKey: string, key: string){
 }
 ```
 
+判断是否是数组进行递归定义defineProperty
 ```JavaScript
 // src/core/observe/index.js
+/**
+ * Attempt to create an observer instance for a value,
+ * returns the new observer if successfully observed,
+ * or the existing observer if the value already has one.
+ * 尝试为值创建观察者实例，
+ * 如果观察成功返回新的观察者，
+ * 或者现有的观察器（如果值已经有一个观察器）。
+ */
+
+export function observe (value: any, asRootData: ?boolean): Observer | void {
+    // 如果不是对象或者值为虚拟节点则直接返回
+    if (!isObject(value) || value instanceof VNode){
+        return
+    }
+    let ob: Observer | void
+    if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+        ob = value.__ob__
+    } else if (
+        shouldObserve &&
+        !isServerRendering() &&
+        (Array.isArray(value) || isPlainObject(value)) &&
+        Object.isExtensible(value) &&
+        !value._isVue
+    ) {
+        ob = new Observer(value)
+    }
+    return ob
+}
+/* 
+ * Observer class that is attached to each observed
+ * object. Once attached, the observer converts the target
+ * object's property keys into getter/setters that
+ * collect dependencies and dispatch updates.
+ * 每个观察到的观察者类
+ * 对象。连接后，观察者将转换目标
+ * 对象的属性键插入getter/setters
+ * 收集依赖项并发送更新。
+ */
 export class Observer {
     value: any;
     dep: Dep;
+    vmCount: number; // number of vms that have this object as root $data
+    //将此对象作为根$data的虚拟数
     
+    constructor(value: any){
+        this.value = value
+        this.dep = new Dep()
+        this.vmCount = 0
+        def(value, '__ob__', this)
+        if (Array.isArray(value)){
+            if (hasProto){
+                protoAugument(value, arrayMethods)
+            } else {
+                copyAugment(value, arrayMethods, arrayKeys)
+            }
+            this.observeArray(value)
+        } else {
+            this.walk(value)
+        }
+    }
+
+    /**
+     * Walk through all properties and convert them into 
+     * getter/setters.This method should only be called when
+     * value type is Object.
+     * 浏览所有属性并将其转换为
+     * getter/setters。只有在
+     * 值类型为Object。
+     */
+    walk (obj: Object) {
+        const keys = Object.keys(obj)
+        for (let i = 0; i < keys.length; i++){
+            defineReactive(obj, keys[i])
+        }
+    }
+
+    /**
+     * Observe a list of Array items.
+     * 观察数组项列表。
+     */
+    observeArray (items: Array<any>) {
+        for (let i = 0, l = items.length; i < l; i++){
+            observe(items[i])
+        }
+    }
 }
+
+/**
+ * Define a reactive property on an Object.
+ * 在对象上定义被动属性。
+ */
+ export function defineReactive (
+     obj: Object,
+     key: string,
+     val: any,
+     customSetter?: ?Function,
+     shallow?: boolean 
+ ) {
+    const dep = new Dep()
+
+    const property = Object.getOwnPropertyDescriptor(obj, key)
+    if (property && property.configurable === false) {
+        return
+    }
+
+    // cater for pre-defined getter/setters
+    满足预定义的getter/setter
+    const getter = property && property.get
+    const setter = property && property.set
+    if((!getter | setter) && arguments.length === 2){
+        val = obj[key]
+    } 
+
+    let childOb = !shallow && observe(val)
+    Object.defineProperty(obj, key, {
+        enumerable: true,
+        configurable: true,
+        get: function reactiveGetter() {
+            const value = getter ? getter.call(obj) : val
+            if (Dep.target) {
+                dep.depend()
+                if (childObj) {
+                    childObj.dep.depend()
+                    if (Array.isArray(value)) {
+                        dependArray(value)
+                    }
+                }
+            }
+            return value
+        },
+        set: function reactiveSetter (newVal) {
+            const value = getter ? getter.call(obj) : val
+            /* eslint-disable no-self-compare */
+            /* eslint禁用无自比较 */
+            if (newVal === value || (newVal !== newVal && value !== value)) {
+                return
+            }
+            /* eslint-enable no-self-compare */
+            /* eslint启用无自比较 */
+            if (process.env.NODE_ENV !== 'production' && customSetter) {
+                customSetter()
+            }
+            // #7981: for accessor properties without setter
+            // 对于没有setter的访问器属性
+            if (getter && setter) return
+            if (setter) {
+                setter.call(obj, newVal)
+            } else {
+                val = newVal
+            }
+            childOb = !shallow && observe(newVal)
+            dep.notify()
+        }
+    })
+ }
 ```
 
 2. 数据发生变化以后能通知到对应的观察者来执行相关的逻辑
+   
+当对值进行修改时，会触发setter方法，从而调用dep.notify()
+
+定义一个Dep进行依赖收集
+
+Dep 的核心是 notify
+通过自定义数组subs进行控制
+主要实现 addSub removeSub 循环遍历subs 去通知watch 更新
+```JavaScript
+// src/core/observe/dep.js
+let uid;
+/**
+ * A dep is an observable that can have multiple
+ * directives subscribing to it.
+ * dep是一个可观察的对象，可以有多个指令订阅它。
+ */
+export function class Dep {
+    static target: ?Watcher;
+    id: number;
+    subs: Array<Watcher>;
+
+    constructor () {
+        this.id = uid++
+        this.subs = []
+    }
+
+    addSub (sub: Watcher) {
+        this.subs.push(sub)
+    }
+
+    removeSub (sub: Watcher){
+        remove(this.subs, sub)
+    }
+
+    depend () {
+        if (Dep.target) {
+            Dep.target.addDep(this)
+        }
+    }
+
+    notify () {
+        // stabilize the subscriber list first
+        // 局部浅拷贝这个数组
+        const subs = this.subs.slice()
+        if (process.env.NODE_ENV !== 'production' && !config.async) {
+            // subs aren't sorted in scheduler if not running async
+            // we need to sort them now to make sure they fire in correct
+            // order
+            // 如果未运行异步，则不会在调度程序中对sub进行排序
+            // 我们现在需要对它们进行分类，以确保它们正确按顺序运行
+            subs.sort((a, b) => a.id - b.id)
+        }
+        for (let i = 0, l = subs.length; i < l; i++) {
+            subs[i].update()
+        }
+    }
+}
+```
+
+看看watch的定义
+```JavaScript
+// src/core/observe/watcher.js
+let uid = 0
+
+/**
+ * A watcher parses an expression, collects dependencies,
+ * and fires callback when the expression value changes.
+ * This is used for both the $watch() api and directives.
+ * 观察者解析表达式，收集依赖项，
+ * 并在表达式值更改时激发回调。
+ * 这用于$watch（）api和指令。
+ */
+export default class Watcher {
+    vm: Component;
+    expression: string;
+    cb: Function;
+    id: number;
+    deep: boolean;
+    user: boolean;
+    lazy: boolean;
+    sync: boolean;
+    dirty: boolean;
+    active: boolean;
+    deps: Array<Dep>;
+    newDeps: Array<Dep>;
+    depIds: SimpleSet;
+    newDepIds: SimpleSet;
+    before: ?Function;
+    getter: Function;
+    value: any;
+
+    constructor(
+        vm: Component,
+        expOrFn: string | Function,
+        cb: Function,
+        options?: ?Object,
+        isRenderWatcher?: boolean
+    ) {
+        this.vm = vm
+        if (isRenderWatcher) {
+            vm._watcher = this
+        }
+        vm._watcher.push(this)
+        // options
+        if (options) {
+            this.deep = !!options.deep
+            this.user = !!options.user
+            this.lazy = !!options.lazy
+            this.sync = !!options.sync
+            this.before = options.before
+        } else {
+            this.deep = this.user = this.lazy = this.sync = false
+        }
+        this.cb = cb
+        this.id = ++uid // uid for batching
+        this.active = true
+        this.dirty = this.lazy // for lazy watchers
+        this.deps = []
+        // ...
+        this.value = this.lazy
+            ? undefined
+            : this.get()
+
+    }
+
+    update () {
+        if (this.lazy) {
+            this.dirty = true
+        } else if (this.sync) {
+            this.run()
+        } else {
+            queueWatcher(this)
+        }
+    }
+
+    /**
+     * Scheduler job interface.
+     * Will be called by the scheduler.
+     * 调度任务接口。
+     * 将会被调度程序调用
+     */
+    run () {
+        if (this.active) {
+            const value = this.get()
+            if(
+            value !== this.value ||
+            // Deep watchers and watchers on Object/Arrays 
+            //深度观察者和对象/数组上的观察者
+            isObject(value) ||
+            this.deep
+            ) {
+                // set new value
+                //设置新值
+                const oldValue = this.value
+                this.value = value
+                if (this.user) {
+                    try {
+                        // 调用回调函数，传新值和旧值
+                        this.cb.call(this.vm, value, oldValue)
+                    } catch(e) {
+                        handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+                    }
+                } else {
+                     // 调用回调函数，传新值和旧值
+                    this.cb.call(this.vm, value, oldValue)
+                }
+            }
+        } 
+    }
+
+    /**
+     * Evaluate the getter, and re-collect dependencies.
+     * 评估getter，并重新收集依赖项。
+     */
+    get() {
+        pushTarget(this)
+        let value
+        const vm = this.vm
+        try {
+            value = this.getter.call(vm, vm)
+        } catch (e) {
+            if (this.user) {
+                handleError(e, vm, `getter for watcher "${this.expression}"`)
+            } else {
+                throw e
+        } finally {
+            // "touch" every property so they are all tracked as
+            // dependencies for deep watching
+            // “触摸”每一处财产，以便它们都能被跟踪
+            // 深度观察的依赖性
+            // 对dep数组进行删除操作
+            if (this.deep) {
+                traverse(value)
+            }
+            popTarget()
+            this.cleanupDeps()
+        }
+        return value
+    }
+}
+
+```
+
+### vue3
+vue3响应式主要是应用了ES6的Proxy代替了ES5的Object.defineProperty来实现
+```JavaScript
+// packages/reactivity/src/reactive.ts
+export function reactive(target: object) {
+    // if trying to observe a readonly proxy, return the readonly version.
+    if (target && (target as Target)[ReactiveFlags.IS_READONLY]) {
+        return target
+    }
+    return createReactiveObject(
+        target,
+        false,
+        mutableHandlers,
+        mutableCollectionHandlers,
+        reactiveMap
+    )
+}
+
+function createReactiveObject(
+    target: Target,
+    isReadonly: boolean,
+    baseHandlers: ProxyHandler<any>,
+    collectionHandlers: ProxyHandler<any>,
+    proxyMap: WeakMap<Target, any>
+) {
+    if (!isObject(target)) {
+        if (__DEV__) {
+            console.warn(`value cannot be made reactive: ${String(target)}`)
+        }
+        return target
+    }
+    // target is already a Proxy, return it.
+    // exception: calling readonly() on a reactive object
+    if (
+        target[ReactiveFlags.RAN] &&
+        !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
+    ) {
+        return target
+    }
+    // target already has corresponding Proxy
+    const existingProxy = proxyMap.get(target)
+    if (existingProxy) {
+        return existingProxy
+    }
+    // only a whitelist of value types can be observed
+    const target = getTargetType(target)
+    if (targetType === TargetType.INVALID) {
+        return target
+    } 
+    const proxy = new Proxy(
+        target,
+        targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers
+    )
+    proxyMap.set(target, proxy)
+    return proxy
+}
+
+export function toRaw<T>(observed: T): T {
+  return (
+    (observed && toRaw((observed as Target)[ReactiveFlags.RAW])) || observed
+  )
+}
+```
+
+mutableHandlers
+```JavaScript
+// packages/reactivity/src/baseHandlers.ts
+export const mutableHandlers: ProxyHandler<object> = {
+    get,
+    set,
+    deleteProperty,
+    has,
+    ownKeys
+}
+
+const get = /*#__PURE__*/ createGetter();
+
+function createGetter(isReadonly = false, shallow = false) {
+    return function get(target: Target, key: string | symbol, receiver: Object) {
+        if (key === ReactiveFlags.IS_READONLY) {
+            return !Readonly
+        } else if (key === ReactiveFlags.IS_READONLY) {
+            return isReadonly
+        } else if (
+            key === ReactiveFlags.RAW &&
+            receiver ===
+                (isReadonly
+                    ? shallow
+                        ? shallowReadonlyMap
+                        : readonlyMap
+                    : shallow
+                        ? shallowReactiveMap
+                        : reactiveMap
+                ).get(target)
+            
+        ) {
+            return target
+        }
+
+        const targetIsArray = isArray(target)
+
+        if (!Readonly && targetIsArray && hasOwn(arrayInstrumentations, key)) {
+            return Reflect.get(arrayInstrumentations, key, receiver)
+        }
+
+        const res = Reflect.get(target, key, receiver)
+
+        if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
+            return res
+        }
+
+        if (!isReadonly) {
+            track(target, TrackOpTypes.GET, key)
+        }
+
+        if (shallow) {
+            return res
+        }
+
+        if (isRef(res)) {
+            // ref unwrapping - does not apply for Array + integer key.
+            const shouldUnwrap = !targetIsArray || !isIntegerKey(key)
+            return shouldUnwrap ? res.value : res
+        }
+
+        if (isObject(res)) {
+            // Convert returned value into a proxy as well. we do the isObject check
+            // here to avoid invalid value warning. Also need to lazy access readonly
+            // and reactive here to avoid circular dependency.
+            return isReadonly ? readonly(res) : reactive(res)
+        }
+
+        return res
+    }
+}
+```
+
+mutableCollectionHandlers
+```JavaScript
+// packages/reactivity/src/collectionHandlers.ts
+export const mutableCollectionHandlers: ProxyHandler<CollectionTypes> = {
+  get: createInstrumentationGetter(false, false)
+}
+
+function createInstrumentationGetter(isReadonly: boolean, shallow: boolean) {
+  const instrumentations = shallow
+    ? isReadonly
+      ? shallowReadonlyInstrumentations
+      : shallowInstrumentations
+    : isReadonly
+      ? readonlyInstrumentations
+      : mutableInstrumentations
+
+  return (
+    target: CollectionTypes,
+    key: string | symbol,
+    receiver: CollectionTypes
+  ) => {
+    if (key === ReactiveFlags.IS_REACTIVE) {
+      return !isReadonly
+    } else if (key === ReactiveFlags.IS_READONLY) {
+      return isReadonly
+    } else if (key === ReactiveFlags.RAW) {
+      return target
+    }
+
+    return Reflect.get(
+      hasOwn(instrumentations, key) && key in target
+        ? instrumentations
+        : target,
+      key,
+      receiver
+    )
+  }
+}
+
+const mutableInstrumentations: Record<string, Function> = {
+  get(this: MapTypes, key: unknown) {
+    return get(this, key)
+  },
+  get size() {
+    return size((this as unknown) as IterableCollections)
+  },
+  has,
+  add,
+  set,
+  delete: deleteEntry,
+  clear,
+  forEach: createForEach(false, false)
+}
+
+
+function deleteEntry(this: CollectionTypes, key: unknown) {
+  const target = toRaw(this)
+  const { has, get } = getProto(target)
+  let hadKey = has.call(target, key)
+  if (!hadKey) {
+    key = toRaw(key)
+    hadKey = has.call(target, key)
+  } else if (__DEV__) {
+    checkIdentityKeys(target, has, key)
+  }
+
+  const oldValue = get ? get.call(target, key) : undefined
+  // forward the operation before queueing reactions
+  const result = target.delete(key)
+  if (hadKey) {
+    trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue)
+  }
+  return result
+}
+
+function createForEach(isReadonly: boolean, isShallow: boolean) {
+  return function forEach(
+    this: IterableCollections,
+    callback: Function,
+    thisArg?: unknown
+  ) {
+    const observed = this as any
+    const target = observed[ReactiveFlags.RAW]
+    const rawTarget = toRaw(target)
+    const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
+    !isReadonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY)
+    return target.forEach((value: unknown, key: unknown) => {
+      // important: make sure the callback is
+      // 1. invoked with the reactive map as `this` and 3rd arg
+      // 2. the value received should be a corresponding reactive/readonly.
+      return callback.call(thisArg, wrap(value), wrap(key), observed)
+    })
+  }
+}
+```
 
 
 

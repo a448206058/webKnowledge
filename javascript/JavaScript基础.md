@@ -401,3 +401,25 @@ foo();
 * 通过location对象可以以编程方式曹总浏览器的导航系统。通过设置这个对象上的属性，可以改变浏览器URL中的某一部分或全部。
 * 使用replace()方法可以替换浏览器历史记录中当前显示的页面，并导航到新URL
 * navigator对象提供关于浏览器的信息。
+
+## 客户端检测
+获取坐标必须https
+```JavaScript
+	navigator.geolocation.getCurrentPosition(
+				() => { },
+				(e) => {
+					console.log(e.code); // 1
+					console.log(e.message); // Only secure origins are allowed
+				}
+			);
+```
+
+## DOM
+文档对象模型（DOM,Document Object Model）是语言中立的HTML和XML文档的API。DOM Level 1 将HTML 和 XML文档定义为一个节点的多层次结构，并暴露出JavaScript接口以操作文档的底层结构和外观。
+
+* Node是基准节点类型，是文档一个部分的抽象表示，所有其他类型都继承Node。
+* Document类型表示整个文档，对应树形结构的根节点。在JavaScript中，document对象是Document的实例，拥有查询和获取节点的很多方法
+* Element节点表示文档中所有HTML或XML元素，可以用来操作它们的内容和属性
+* 其他节点类型分别表示文本内容、注释、文档类型、CDATA区块和文档片段
+
+MutationObserver是为代替性能不好的MutationEvent而问世。使用它可以有效精准地监控DOM变化，而且API也相对简单。
