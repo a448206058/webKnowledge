@@ -1274,6 +1274,7 @@ export function trigger(
     if (type === TriggerOpTypes.CLEAR) {
         // collection being cleared
         // trigger all effects for target
+        // 清除集合将触发目标的所有效果
         depsMap.forEach(add)
     } else if (key === 'length' && isArray(target)) {
         depsMap.forEach((dep, key) => {
