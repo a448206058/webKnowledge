@@ -423,3 +423,14 @@ foo();
 * 其他节点类型分别表示文本内容、注释、文档类型、CDATA区块和文档片段
 
 MutationObserver是为代替性能不好的MutationEvent而问世。使用它可以有效精准地监控DOM变化，而且API也相对简单。
+
+## DOM2和DOM3
+DOM2 Style模块定义了如何操作元素的样式信息
+* 每个元素都有一个关联的style对象，可用于确定和修改元素特定的样式
+* 要确定元素的计算样式，包括应用到元素身上的所有CSS规则，可以使用getComputedStyle()方法
+* 通过document.styleSheets集合可以访问文档上所有的样式表
+  DOM2 Traversal and Range模块定义了与DOM结构交互的不同方式
+* NodeIterator和TreeWalker可以对DOM树执行深度优先的遍历
+* NodeIterator支持在DOM结构的所有方向移动，包括父节点、同胞节点和子节点
+* 范围是选择DOM结构中特定部分并进行操作的一种方式
+* 通过范围的选择可以在保持文档结构完好的同时从文档中移除内容，也可复制文档中相应的部分。
