@@ -3,7 +3,7 @@
 ### 前言
 
     本文是对vue2、vue3、react的响应式原理进行一个理解和对比，希望能帮助自己和大家更深入的了解框架背后的实现。
-    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Class、Reflect
+    知识点：响应式、构造函数、原型、原型链、继承、ES5:Object.defineProperty、call、ES6:Proxy、Reflect、Class
 
 ### 概念解析
 
@@ -37,14 +37,6 @@
 
     MDN定义：静态方法Object.defineProperty()直接在对象上定义一个新的属性，或者修改一个对象上已有的属性，并返回该对象。
 
-* call
-    
-    MDN定义:call()方法使用给定的this值和单独提供的参数调用函数
-    call()提供了一个新的值为函数/方法。使用call(),你可以编写一个方法，然后再另一个对象中继承它，而不必为新对象重写方法。
-
-* reflect
-  ES6 中将 Object 的一些明显属于语言内部的方法移植到了 Reflect 对象上（当前某些方法会同时存在于 Object 和 Reflect 对象上），未来的新方法会只部署在 Reflect 对象上。 
-
 ```JavaScript
 /**
  *  @param obj: 在其上定义属性的对象  
@@ -56,11 +48,21 @@
 Object.defineProperty(obj, prop, descriptor)
 ```
 
+* call
+    
+    w3c:call([thisObj[,arg1[, arg2[, [,.argN]]]]]) 定义：调用一个对象的一个方法，以另一个对象替换当前对象。 说明： call 方法可以用来代替另一个对象调用一个方法。call 方法可将一个函数的对象上下文从初始的上下文改变为由 thisObj 指定的新对象。 如果没有提供 thisObj 参数，那么 Global 对象被用作 thisObj。
+
 * Proxy
 
     w3c定义：一个 Proxy 对象由两个部分组成： target 、 handler 。在通过 Proxy 构造函数生成实例对象时，需要提供这两个参数。 target 即目标对象， handler 是一个对象，声明了代理 target 的指定行为。
 
+* reflect
+  
+    ES6 中将 Object 的一些明显属于语言内部的方法移植到了 Reflect 对象上（当前某些方法会同时存在于 Object 和 Reflect 对象上），未来的新方法会只部署在 Reflect 对象上。 Reflect对象的方法与 Proxy对象的方法一一对应，只要是 Proxy 对象的方法，就能在 Reflect 对象上找到对应的方法
+
 * Class
+
+    MDN定义：在类声明创建与使用基于原型的继承给定名称的新类。
 
 ### vue2.x 中响应式的实现
 从定义出发可以拆分为俩步：

@@ -401,3 +401,34 @@ function foo(config: {readonly bar: number, readonly bars: number}) {
 * 动机和示例
 
 ### Never
+
+### 索引签名
+可以用字符串访问JavaScript中的对象（TypeScript中也一样），用来保存对其他对象的引用。
+
+### 流动的类型
+* 复制类型和值
+使用import关键字，如果你在使用namespace或者modules，使用import是你唯一能用的方式
+* 捕获变量的类型
+你可以通过typeof操作符在类型注解中使用的变量。这允许你告诉编译器，一个变量的类型与其他类型相同
+```JavaScript
+let foo = 123;
+let bar: typeof foo;
+```
+* 捕获类成员的类型
+与捕获变量的类型相似，你仅仅是需要声明一个变量用来捕获到的类型：
+
+### 异常处理
+JavaScript有一个Error类，用来处理异常。你可以通过throw关键字来抛出一个错误。然后通过try/catch块来捕获此错误:
+
+* 错误子类型
+RangeError 当数字类型变量或者参数超出其有效范围时，出现RangeError
+ReferenceError 当引用无效时，会出现ReferenceError的错误提示
+SyntaxError 当解析无效JavaScript代码时，会出现SyntaxError的错误提示
+TypeError 变量或者参数不是有效类型时，会出现TypeError的错误提示
+URIError 当传入无效参数至encodeURI() 和 decodeURI() 时，会出现URIError的错误提示
+
+* 使用Error
+除非你想用以非常通用（try/catch）的方式处理错误，否则不要抛出错误
+
+
+参考资料：https://jkchao.github.io/typescript-book-chinese/typings/discrominatedUnion.html#redux
