@@ -430,5 +430,38 @@ URIError 当传入无效参数至encodeURI() 和 decodeURI() 时，会出现URIE
 * 使用Error
 除非你想用以非常通用（try/catch）的方式处理错误，否则不要抛出错误
 
+### 混合
+TypeScript（和JavaScript）类只能严格的单继承
+
+从可重用组件构建类的另一种方式是通过基类来构建它们，这种方式称为混合。
+
+采用函数B接受一个类A，并且返回一个带有新功能的类的方式来替代A类扩展B来获取B上的功能，前者中的B即是混合。
+
+* 创建一个构造函数
+混合接受一个类，并且使用新功能扩展它
+```JavaScript
+type Constructor<T = {}> = new (...args: any[]) => T;
+```
+
+* 扩展一个类并且返回它
+```JavaScript
+// 添加属性的混合例子
+function TimesTamped<TBase extends Constructor>(Base: TBase) {
+  return class extends Base {
+    timestamp = Date.now()
+  }
+}
+```
+
+### ThisType
+通过ThisType我们可以在对象字面量中键入this，并提供通过上下文类型控制this类型的便捷方式。它只有在-- noImplicitThis的选项下才有效
+
+* 如果这个方法显式指定了this参数，那么this具有该参数的类型
+* 否则，如果方法由带this参数的签名进行上下文键入，那么this具有该参数的类型
+* 否则，如果 -- noImplicitThis 选项已经启用，并且对象字面量中包含由 ThisType<T> 键入的上下文类型，那么this的类型为T
+* 否则，如果 -- noImplicitThis选项已经启用，并且对象字面量中不包含由ThisType<T> 键入的上下文类型，那么this的类型为该上下文类型
+* 否则，如果 -- noImplicitThis选项已经启用，this具有该对象字面量的类型
+* 否则，this的类型为any
+
 
 参考资料：https://jkchao.github.io/typescript-book-chinese/typings/discrominatedUnion.html#redux
