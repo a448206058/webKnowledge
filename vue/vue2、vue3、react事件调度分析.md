@@ -22,7 +22,7 @@
 
 * scheduler
   
-  
+
 
 * nextTick
 
@@ -30,6 +30,7 @@
 
 
 ### vue2.x 中事件调度
+![avatar](https://ibb.co/GVpWVfk)
 如果不是同步，会插入到队列中
 ```JavaScript
 // src/core/observe/watcher.js
@@ -343,6 +344,9 @@ function queueFlush() {
 // Use binary-search to find a suitable position in the queue,
 // so that the queue maintains the increasing order of job's id,
 // which can prevent the job from being skipped and also can avoid repeated patching.
+// 使用二进制搜索在队列中找到合适的位置，
+// 使队列保持作业id的递增顺序，
+// 这样可以防止作业被跳过，也可以避免重复修补。
 function findInsertionIndex(job: SchedulerJob) {
   // the start index should be `flushIndex + 1`
   let start = flushIndex + 1
@@ -367,40 +371,52 @@ const getId = (job: SchedulerJob | SchedulerCb) =>
 
 ```JavaScript
 function flushJobs(seen?: CountMap) {
-    isFlushPending = false
-    isFlushing = true
-    let jon
-    if (__DEV__) {
-        seen = seen || new Map()
-    }
+  isFlushPending = false
+  isFlushing = true
+  if (__DEV__) {
+    seen = seen || new Map()
+  }
 
-    // Sort queue before flush.
-    // This ensures that:
-    // 1. Components are updated from parent to child.(because parent is a created before the child so its render effect will have smaller priority number)
-    // 2. If a component is unmounted during a parent component's update,
+  flushPreFlushCbs(seen)
+
+  // Sort queue before flush.
+  // This ensures that:
+  // 1. Components are updated from parent to child. (because parent is always
+  //    created before the child so its render effect will have smaller
+  //    priority number)
+  // 2. If a component is unmounted during a parent component's update,
   //    its update can be skipped.
-  // Jobs can never be null before flush starts, since they are only invalidated
-  // during execution of another flushed job.
-    queue.sort((a, b) => getId(a!) - getId(b!))
+  queue.sort((a, b) => getId(a) - getId(b))
 
-    while ((job = queue.shift()) !== undefined) {
-        if (job === null) {
-            continue
+  try {
+    for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
+      const job = queue[flushIndex]
+      if (job && job.active !== false) {
+        if (__DEV__ && checkRecursiveUpdates(seen!, job)) {
+          continue
         }
-        if (__DEV__) {
-            checkRecursiveUpdates(seen!, job)
-        }
-        callWithErrorHanding(jon, null, ErrorCodes.SCHEDULER)
+        callWithErrorHandling(job, null, ErrorCodes.SCHEDULER)
+      }
     }
+  } finally {
+    flushIndex = 0
+    queue.length = 0
+
     flushPostFlushCbs(seen)
-    isFlushing = false
-    // some postFlushCb queue jobs!
-    // keep flushing until it drans
-    if (queue.length || postFlushCbs.length) {
-        flushJobs(seen)
-    }
-}
 
+    isFlushing = false
+    currentFlushPromise = null
+    // some postFlushCb queued jobs!
+    // keep flushing until it drains.
+    if (
+      queue.length ||
+      pendingPreFlushCbs.length ||
+      pendingPostFlushCbs.length
+    ) {
+      flushJobs(seen)
+    }
+  }
+}
 
 export function flushPreFlushCbs(
   seen?: CountMap,
