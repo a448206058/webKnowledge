@@ -463,5 +463,67 @@ function TimesTamped<TBase extends Constructor>(Base: TBase) {
 * 否则，如果 -- noImplicitThis选项已经启用，this具有该对象字面量的类型
 * 否则，this的类型为any
 
+### 支持JSX
+TypeScript支持JSX转换和代码分析
+
+* React JSX
+React不但能渲染HTML标签（strings）也能渲染React组件（classes）。
+JavaScript触发这些的原理是不同的，确定使用哪一种方式取决于首字母的大小写，foo被认为是HTML标签，Foo被认为是一个组件。
+
+* HTML标签
+```JavaScript
+declare namespace JSX {
+  interface IntrinsicElements {
+    a: React.HTMLAttributes;
+    abbr: React.HTMLAttributes;
+    div: React.HTMLAttributes;
+    span: React.HTMLAttributes;
+
+    // 其他
+  }
+}
+```
+
+* 函数式组件
+你可以使用React.FunctionComponent 接口定义函数组件
+```JavaScript
+type Props = {
+  foo: string;
+}
+
+const MyComponent: React.FunctionComponent<Props> = props => {
+  return <span>{props.foo}</span>
+}
+
+<MyComponent foo="bar" />;
+```
+
+* 类组件
+根据组件的props属性对组件进行类型检查。
+
+* React JSX Tip:接受组件的实例
+react类型声明文件提供了React.ReactElement<T>，它可以让你通过传入<T/>，来注解类组件的实例化结果。
+```JavaScript
+class MyAwesomeComponent extends React.Component {
+  render() {
+    return <div>Hello</div>;
+  }
+}
+
+const foo: React.ReactElement<MyAwesomeComponent> = <MyAwesomeComponent />;
+```
+
+* React JSX Tip:接受一个可以在Props起作用，并使用JSX渲染的组件
+类型React.Component<Props> 是 React.ComponentClass<P>与React.StatelessComponent<P>的组合，所以你可以接受一些可以用作Props类型和使用JSX渲染的组件
+```JavaScript
+const X: React.Component<Props> = foo;
+
+<X {...props} />
+
+```
+
+* React JSX Tip: 可渲染的接口
+
+
 
 参考资料：https://jkchao.github.io/typescript-book-chinese/typings/discrominatedUnion.html#redux
