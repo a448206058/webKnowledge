@@ -523,6 +523,29 @@ const X: React.Component<Props> = foo;
 ```
 
 * React JSX Tip: 可渲染的接口
+React可以渲染一些像JSX或者是string的内容，这些被合并到类型React.ReactNode中，因此，当你接收可渲染的内容时，你可以使用它：
+```JavaScript
+type Props = {
+  header: React.ReactNode;
+  body: React.ReactNode;
+}
+
+class MyComponent extends React.Component<Props, {}> {
+  render() {
+    return (
+      <div>
+        {this.props.header}
+        {this.props.body}
+      </div>
+    )
+  }
+}
+
+<MyComponent header={<h1>Header</h1>} body={<i>body</i>} />
+```
+
+* React JSX tip: 接收组件的接口
+React声明
 
 
 
