@@ -545,7 +545,64 @@ class MyComponent extends React.Component<Props, {}> {
 ```
 
 * React JSX tip: 接收组件的接口
-React声明
+React声明文件提供React.ReactElement<T>的接口，可以让你注解一个类组件实例化的返回值<T />
+```JavaScript
+class MyAwesomeComponent extends React.Component {
+  render() {
+    return <div>Hello</div>;
+  }
+}
+
+const foo: React.ReactElement<MyAwesomeComponent> = <MyAwesomeComponent />;
+```
+
+* React JSX tip: 接收可以作为props的组件，并且使用JSX渲染它
+类型 React.Component<Props> 合并了 React.ComponentClass<P> 和 React.statelessComponent<P>，因此，你可以接收一些使用Prop类型的组件
+```JavaScript
+const X: React.Component<Props> = foo
+
+<X {...props} />
+```
+
+* React JSX tip: 泛型组件
+```JavaScript
+// 一个泛型组件
+type SelectProps<T> = {items: T[] };
+class Select<T> extends React.Component<SelectProps<T>, any> {}
+
+// 使用
+const Form = () => <Select<string> items={['a', 'b']} />
+
+```
+
+* 泛型函数
+```JavaScript
+function foo<T>(x: T): T {
+  return x;
+}
+```
+
+* React Tip: 强类型的Refs
+基本上你在初始化一个变量时，使用ref和null的联合类型，并且在回调函数中初始化
+```JavaScript
+class Example extends React.Component {
+  example() {
+
+  }
+
+  render() {
+    return <div>Foo</div>;
+  }
+}
+
+class Use {
+  exampleRef: Example | null = null;
+
+  render() {
+    return <Example ref={exampleRef => (this.exampleRef = exampleRef)} />;
+  }
+}
+```
 
 
 
