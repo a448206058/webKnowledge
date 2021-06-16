@@ -524,3 +524,8 @@ WebGL支持比2D上下文更强大的绘图能力
 * Timing API 提供了一组度量数据进出浏览器时间的可靠工具
 * Web Components API为元素重用和封装技术向前迈进提供了有力支撑
 * Web Cryptography API让生成随机数、加密和签名消息成为一类特性。
+
+## 错误处理与调试
+以下方法可用于阻止浏览器对JavaScript错误作出反应
+* 使用 try/catch语句，可以通过更合适的方式对错误做出处理，避免浏览器处理
+* 定义 window.onerror事件处理程序，所有没有通过try/catch处理的错误都会被该事件处理程序接收到
