@@ -531,3 +531,8 @@ WebGL支持比2D上下文更强大的绘图能力
 * 定义 window.onerror事件处理程序，所有没有通过try/catch处理的错误都会被该事件处理程序接收到
 
 ## 处理XML
+* DOMParser类型是简单的对象，可以将XML字符串解析为DOM文档
+* XMLSerializer类型执行相反操作，将DOM文档序列化为XML字符串
+
+## JSON
+JSON.stringify() 和 JSON.parse()方法分别用于实现这俩种
