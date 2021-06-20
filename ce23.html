@@ -1,11 +1,9 @@
 <script>
-
   // 10
   // 5 5        25
   // 3 3 4      36
   // 2 2 2 3 1  24
   // 2 2 2 2 2  32
-
 
   // 1 1  1 1  1 1  1 1  1 1         1
 
@@ -18,61 +16,101 @@
   // o o
   // o o
   /**
- * @param {number} m
- * @param {number} n
- * @return {number}
- */
+   * @param {number} m
+   * @param {number} n
+   * @return {number}
+   */
+
+  var rob = function (nums) {
+    let n = nums.length;
+    if (n == 0) return 0;
+
+    let memo = new Array(n).fill(-1);
+    memo[n - 1] = nums[n - 1];
+    for (let i = n - 2; i >= 0; i--) {
+      for (let j = i; j < n; j++) {
+        if (i == 0) {
+          continue;
+        }
+        memo[i] = Math.max(memo[i], nums[j] + (j + 2 < n ? memo[j + 2] : 0));
+      }
+    }
+    return memo[0];
+  };
+
+  var rob = function (nums) {
+    const length = nums.length;
+    if (length === 1) {
+      return nums[0];
+    } else if (length === 2) {
+      return Math.max(nums[0], nums[1]);
+    }
+    return Math.max(
+      robRange(nums, 0, length - 2),
+      robRange(nums, 1, length - 1)
+    );
+  };
+
+  const robRange = (nums, start, end) => {
+    let first = nums[start],
+      second = Math.max(nums[start], nums[start + 1]);
+    for (let i = start + 2; i <= end; i++) {
+      const temp = second;
+      second = Math.max(first + nums[i], second);
+      first = temp;
+    }
+    return second;
+  };
 
   var uniquePathsWithObstacles = function (obstacleGrid) {
-    if (obstacleGrid[0][0] == 1) return 0; // 出发点就被障碍堵住 
+    if (obstacleGrid[0][0] == 1) return 0; // 出发点就被障碍堵住
     const m = obstacleGrid.length;
     const n = obstacleGrid[0].length;
     // dp数组初始化
     const dp = new Array(m);
     for (let i = 0; i < m; i++) dp[i] = new Array(n);
-    dp[0][0] = 1;                 // 终点就是出发点
-    for (let i = 1; i < m; i++) { // 第一列其余的case
+    dp[0][0] = 1; // 终点就是出发点
+    for (let i = 1; i < m; i++) {
+      // 第一列其余的case
       dp[i][0] = obstacleGrid[i][0] == 1 || dp[i - 1][0] == 0 ? 0 : 1;
     }
-    for (let i = 1; i < n; i++) { // 第一行其余的case
+    for (let i = 1; i < n; i++) {
+      // 第一行其余的case
       dp[0][i] = obstacleGrid[0][i] == 1 || dp[0][i - 1] == 0 ? 0 : 1;
     }
     for (let i = 1; i < m; i++) {
       for (let j = 1; j < n; j++) {
-        dp[i][j] = obstacleGrid[i][j] == 1 ?
-          0 :
-          dp[i - 1][j] + dp[i][j - 1];
+        dp[i][j] = obstacleGrid[i][j] == 1 ? 0 : dp[i - 1][j] + dp[i][j - 1];
       }
     }
-    return dp[m - 1][n - 1]
+    return dp[m - 1][n - 1];
 
-    if (obstacleGrid[0][0] == 1) return 0; // 出发点就被障碍堵住 
+    if (obstacleGrid[0][0] == 1) return 0; // 出发点就被障碍堵住
     const m = obstacleGrid.length;
     const n = obstacleGrid[0].length;
     // dp数组初始化
     const dp = new Array(m);
     for (let i = 0; i < m; i++) dp[i] = new Array(n);
     // base case
-    dp[0][0] = 1;                 // 终点就是出发点
-    for (let i = 1; i < m; i++) { // 第一列其余的case
+    dp[0][0] = 1; // 终点就是出发点
+    for (let i = 1; i < m; i++) {
+      // 第一列其余的case
       dp[i][0] = obstacleGrid[i][0] == 1 || dp[i - 1][0] == 0 ? 0 : 1;
     }
-    for (let i = 1; i < n; i++) { // 第一行其余的case
+    for (let i = 1; i < n; i++) {
+      // 第一行其余的case
       dp[0][i] = obstacleGrid[0][i] == 1 || dp[0][i - 1] == 0 ? 0 : 1;
     }
     // 迭代
     for (let i = 1; i < m; i++) {
       for (let j = 1; j < n; j++) {
-        dp[i][j] = obstacleGrid[i][j] == 1 ?
-          0 :
-          dp[i - 1][j] + dp[i][j - 1];
+        dp[i][j] = obstacleGrid[i][j] == 1 ? 0 : dp[i - 1][j] + dp[i][j - 1];
       }
     }
     return dp[m - 1][n - 1]; // 到达(m-1,n-1)的路径数
   };
 
   var uniquePaths = function (m, n) {
-
     let dp = new Array(m);
 
     for (let i = 0; i < dp.length; i++) {
@@ -94,14 +132,18 @@
     const value = new Array(n + 1).fill(0);
     value[0] = 1;
     for (let i = 1; i <= n; ++i) {
-      if (s[i] != '0') {
-        value[i] += value[i - 1]
+      if (s[i] != "0") {
+        value[i] += value[i - 1];
       }
-      if (i > 1 && s[i - 2] != '0' && ((s[i - 2] - '0') * 10 + (s[i - 1] - '0') <= 26)) {
-        value[i] += value[i - 2]
+      if (
+        i > 1 &&
+        s[i - 2] != "0" &&
+        (s[i - 2] - "0") * 10 + (s[i - 1] - "0") <= 26
+      ) {
+        value[i] += value[i - 2];
       }
     }
-    return value[n]
+    return value[n];
   };
 
   // var integerBreak = function (n) {
@@ -128,7 +170,7 @@
   // let s = "1234"
   // let value = [[0, 1], [0, 0]]
   // let value = [[0,0,0],[0,1,0],[0,0,0]]
-  let value = [[0]]
+  let value = [[0]];
   // let value = [[1, 0]]
-  console.log(uniquePathsWithObstacles(value))
+  console.log(uniquePathsWithObstacles(value));
 </script>
