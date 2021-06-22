@@ -64,13 +64,11 @@ Node： [链接地址](./版本管理/Git提交信息.md)
 
 虚拟节点转换为 render（template）：[链接地址](./vue/dvue/src/template.md)
 
-编译过程（render）：[链接地址](./vue/dvue/src/render.md)
-
 组件（component）：[链接地址](./vue/dvue/src/component.md)
 
 双向绑定（v-model）：[链接地址](./vue/dvue/src/v-model.md)
 
-计算属性和监听属性（computed、watch）：[链接地址](./vue/dvue/src/v-model.md)
+计算属性和监听属性（computed、watch）：[链接地址](./vue/dvue/src/computed-watch.md)
 
 事件（event）：[链接地址](./vue/dvue/src/event.md)
 
