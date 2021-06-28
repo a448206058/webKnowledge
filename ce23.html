@@ -28,22 +28,15 @@
   // 1, 2, 3, 0, 2
   // 1 3
 
-  const maxProfit = (prices) => {
-    const n = prices.length;   // n天
-    if (n == 0) return 0
-    let hold = new Array(n);   // 第i天持有股票的最大收益
-    let unhold = new Array(n); // 第i天不持有股票的最大收益
-    hold[0] = -prices[0];      // 第0天 买了股票的收益
-    unhold[0] = 0
-    for (let i = 1; i < n; i++) {
-      if (i == 1) {            // base case
-        hold[i] = Math.max(hold[i - 1], -prices[1]);
-      } else {
-        hold[i] = Math.max(hold[i - 1], unhold[i - 2] - prices[i]);
-      }
-      unhold[i] = Math.max(unhold[i - 1], hold[i - 1] + prices[i]);
-    }
-    return unhold[n - 1];
+  var wiggleMaxLength = function (nums) {
+    if (nums.length < 2) return nums.length
+    let up = 1, down = 1
+    for (let i = 1; i < nums.length; i++) 
+        if (nums[i] > nums[i - 1]) 
+            up = Math.max(up, down + 1)
+        else if (nums[i] < nums[i - 1]) 
+            down = Math.max(down, up + 1)
+    return Math.max(up, down)
   };
 
   var maxProfit = function (prices) {
@@ -60,90 +53,90 @@
     return Math.max(rest, sold);
   };
 
-  const rob = (root) => {
+  // const rob = (root) => {
 
-    const helper = (root) => {
-      if (root == null) return [0, 0];
+  //   const helper = (root) => {
+  //     if (root == null) return [0, 0];
 
-      const left = helper(root.left);
-      const right = helper(root.right);
+  //     const left = helper(root.left);
+  //     const right = helper(root.right);
 
-      robExcludeRoot = Math.max(left[0], left[1]) + Math.max(right[0], right[1]);
-      robIncludeRoot = root.val + left[0] + right[0];
+  //     robExcludeRoot = Math.max(left[0], left[1]) + Math.max(right[0], right[1]);
+  //     robIncludeRoot = root.val + left[0] + right[0];
 
-      return [robExcludeRoot, robIncludeRoot];
-    };
+  //     return [robExcludeRoot, robIncludeRoot];
+  //   };
 
-    const res = helper(root);
+  //   const res = helper(root);
 
-    return Math.max(res[0], res[1]);
-  };
+  //   return Math.max(res[0], res[1]);
+  // };
 
-  const rob = (root) => {
-    const dp = new Map();
-    // 辅助函数返回打劫以root为根节点的子树的收益
-    const helper = (root) => {
-      // 递归的出口，遍历到null节点，两种状态下收益都是0
-      if (root == null) return [0, 0];
-      // 递归调用左右子树
-      const left = helper(root.left);
-      const right = helper(root.right);
-      // 之前没遍历过当前节点
-      if (!dp.has(root)) {
-        // 在map中添加当前节点，和对应的res数组
-        dp.set(root, [0, 0]);
-      }
-      // 获取当前节点对应的res数组
-      const res = dp.get(root);
-      // 将当前子树的两个状态记录到map中
-      res[0] = Math.max(left[0], left[1]) + Math.max(right[0], right[1]);
-      res[1] = root.val + left[0] + right[0];
-      // 返回出这两个状态
-      return res;
-    };
-    // 递归的入口
-    const res = helper(root);
-    // 两种状态下的最优解，取其大
-    return Math.max(res[0], res[1]);
-  };
+  // const rob = (root) => {
+  //   const dp = new Map();
+  //   // 辅助函数返回打劫以root为根节点的子树的收益
+  //   const helper = (root) => {
+  //     // 递归的出口，遍历到null节点，两种状态下收益都是0
+  //     if (root == null) return [0, 0];
+  //     // 递归调用左右子树
+  //     const left = helper(root.left);
+  //     const right = helper(root.right);
+  //     // 之前没遍历过当前节点
+  //     if (!dp.has(root)) {
+  //       // 在map中添加当前节点，和对应的res数组
+  //       dp.set(root, [0, 0]);
+  //     }
+  //     // 获取当前节点对应的res数组
+  //     const res = dp.get(root);
+  //     // 将当前子树的两个状态记录到map中
+  //     res[0] = Math.max(left[0], left[1]) + Math.max(right[0], right[1]);
+  //     res[1] = root.val + left[0] + right[0];
+  //     // 返回出这两个状态
+  //     return res;
+  //   };
+  //   // 递归的入口
+  //   const res = helper(root);
+  //   // 两种状态下的最优解，取其大
+  //   return Math.max(res[0], res[1]);
+  // };
 
-  const dfs = (node) => {
-    if (node === null) {
-      return [0, 0];
-    }
-    const l = dfs(node.left);
-    const r = dfs(node.right);
-    const selected = node.val + l[1] + r[1];
-    const notSelected = Math.max(l[0], l[1]) + Math.max(r[0], r[1]);
-    return [selected, notSelected];
-  }
+  // const dfs = (node) => {
+  //   if (node === null) {
+  //     return [0, 0];
+  //   }
+  //   const l = dfs(node.left);
+  //   const r = dfs(node.right);
+  //   const selected = node.val + l[1] + r[1];
+  //   const notSelected = Math.max(l[0], l[1]) + Math.max(r[0], r[1]);
+  //   return [selected, notSelected];
+  // }
 
-  const rootStatus = dfs(root);
-  return Math.max(rootStatus[0], rootStatus[1]);
+  // const rootStatus = dfs(root);
+  // return Math.max(rootStatus[0], rootStatus[1]);
 
-  var rob = function (nums) {
-    const length = nums.length;
-    if (length === 1) {
-      return nums[0];
-    } else if (length === 2) {
-      return Math.max(nums[0], nums[1]);
-    }
+  // var rob = function (nums) {
+  //   const length = nums.length;
+  //   if (length === 1) {
+  //     return nums[0];
+  //   } else if (length === 2) {
+  //     return Math.max(nums[0], nums[1]);
+  //   }
 
-    const robRange = (nums, start, end) => {
-      let first = nums[start],
-        second = Math.max(nums[start], nums[start + 1]);
-      for (let i = start + 2; i <= end; i++) {
-        const temp = second;
-        second = Math.max(first + nums[i], second);
-        first = temp;
-      }
-      return second;
-    }
-    return Math.max(
-      robRange(nums, 0, length - 2),
-      robRange(nums, 1, length - 1)
-    )
-  };
+  //   const robRange = (nums, start, end) => {
+  //     let first = nums[start],
+  //       second = Math.max(nums[start], nums[start + 1]);
+  //     for (let i = start + 2; i <= end; i++) {
+  //       const temp = second;
+  //       second = Math.max(first + nums[i], second);
+  //       first = temp;
+  //     }
+  //     return second;
+  //   }
+  //   return Math.max(
+  //     robRange(nums, 0, length - 2),
+  //     robRange(nums, 1, length - 1)
+  //   )
+  // };
 
   var rob = function (nums) {
     let n = nums.length;
@@ -248,5 +241,5 @@
   // let value = [[0,0,0],[0,1,0],[0,0,0]]
   let value = [[0]];
   // let value = [[1, 0]]
-  console.log(maxProfit([1, 2, 3, 0, 2]));
+  console.log(wiggleMaxLength([1, 7, 4, 9, 2, 5]));
 </script>

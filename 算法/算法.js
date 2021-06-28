@@ -439,7 +439,7 @@ shellSort([22,3,2,5,6,7,1,44,23,12,34])
 198 - 1 213 - 1 337 - 1 309 - 1
 
 //
-300  376
+300 -1  376 -1
 var pathSum = function(root, sum) {
     let res = [];
     help(root, sum, res, []);
