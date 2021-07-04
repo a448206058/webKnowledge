@@ -347,3 +347,5 @@ class jQuery {
 ### this
 
 this 取什么值是在函数执行的时候确定的，不是在函数定义的时候确定的
+
+https://yuchengkai.cn/docs/frontend/#%E5%86%85%E7%BD%AE%E7%B1%BB%E5%9E%8B
