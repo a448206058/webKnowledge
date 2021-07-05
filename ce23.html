@@ -31,33 +31,45 @@
   // nums = [1,2,3], target = 4
   // f(n) = f(n-1) + 1
 
+  //strs = ["10", "0001", "111001", "1", "0"], m = 5, n = 3
+  var findMaxForm = function (strs, m, n) {
+    const map = {};
+    for (let str of strs) {
+      let ones = 0;
+      for (let ch of str) {
+        if (ch === '1') ones++;
+      }
+      map[str] = [str.length - ones, ones];
+    }
+  };
+
   var combinationSum4 = function (nums, target) {
     const dp = new Array(target + 1).fill(0);
     dp[0] = 1;
     for (let i = 1; i <= target; i++) {
-        for (const num of nums) {
-            if (num <= i) {
-                dp[i] += dp[i - num];
-            }
+      for (const num of nums) {
+        if (num <= i) {
+          dp[i] += dp[i - num];
         }
+      }
     }
     return dp[target];
   };
 
-  var coinChange = function(coins, amount) {
+  var coinChange = function (coins, amount) {
     let dp = new Array(amount + 1).fill(Infinity);
     dp[0] = 0;
 
     for (let i = 1; i <= amount; i++) {
-        for (let coin of coins) {
-            if (i - coin >= 0) {
-                dp[i] = Math.min(dp[i], dp[i - coin] + 1);
-            }
+      for (let coin of coins) {
+        if (i - coin >= 0) {
+          dp[i] = Math.min(dp[i], dp[i - coin] + 1);
         }
+      }
     }
 
     return dp[amount] === Infinity ? -1 : dp[amount];
-};
+  };
 
   var wiggleMaxLength = function (nums) {
     if (nums.length < 2) return nums.length
@@ -273,6 +285,6 @@
   let value = [[0]];
   // let value = [[1, 0]]
 
-  let nums = [1,2,3], target = 4
+  let nums = [1, 2, 3], target = 4
   console.log(combinationSum4(nums, target));
 </script>
