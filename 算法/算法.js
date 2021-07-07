@@ -444,6 +444,9 @@ shellSort([22, 3, 2, 5, 6, 7, 1, 44, 23, 12, 34])
 //
 416 - 1  322 -1 377 -1 474 139 494
 
+// 贪心算法
+455  392
+
 //coins = [1, 2, 5], amount = 11
 
 var coinChange = function (coins, amount) {
