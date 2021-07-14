@@ -91,3 +91,74 @@ this.props.children slot
 * shouldComponentUpdate(SCU)
 * PureComponent和React.memo
 * 不可变值 immutable.js
+
+### SCU使用总结
+* SCU默认返回true,即React默认重新渲染所有子组件
+* 必须配合“不可变值”一起使用
+* 可先不用SCU，有性能问题时再考虑使用
+
+### PureComponent和React.memo
+* PureComponent(纯组件），SCU中实现来浅比较
+* memo,函数组件中的PureComponent
+* 浅比较已使用大部分情况（尽量不要做深度比较）
+
+### immutable.js
+* 彻底拥抱“不可变值”
+* 基于共享数据（不是深拷贝），速度好
+* 有一定学习和迁移成本，按需使用
+```JavaScript
+const map1 = Immutable.Map({ a: 1, b: 2, c: 3})
+const map2 = map1.set('b', 50)
+map1.get('b')
+map2.get('b')
+```
+
+### 关于组件公共逻辑的抽离
+* mixin，已被React弃用
+* 高阶组件 HOC
+* Render Props
+
+```JavaScript
+// 高阶组件不是一种功能，而是一种模式
+const HOCFactory = (Component) => {
+    class HOC extends React.Component {
+        // 在此定义多个组件的公共逻辑
+        render() {
+            return <Component {...this.props} /> // 返回拼装的结果
+        }
+    }
+    return HOC
+}
+const EnhancedComponent1 = HOCFactory(WrappedComponent1)
+const EnhancedComponent2 = HOCFactory(WrappedComponent2)
+
+```
+
+redux connect 是高阶组件
+```JavaScript
+import {connect} from 'react-redux'
+
+// connect 是高阶组件
+const Vi
+
+```
+
+### Render Props
+```JavaScript
+// Render Props的核心思想
+// 通过一个函数将class组件的state作为props传递给纯函数组件
+class Factory extends React.Component {
+    constructor() {
+        this.state = {
+
+        }
+    }
+    render() {
+        return <div>{this.props.render(this.state)}</div>
+    }
+}
+```
+
+### HOC VS Render Props
+* HOC: 模式简单，但会增加组件层级
+* Render Props: 代码简洁，学习成本较高
