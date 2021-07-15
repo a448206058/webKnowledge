@@ -162,3 +162,26 @@ class Factory extends React.Component {
 ### HOC VS Render Props
 * HOC: 模式简单，但会增加组件层级
 * Render Props: 代码简洁，学习成本较高
+
+### redux使用
+* 基本概念
+* 单项数据流
+    dispatch(action)
+    reducer -> newState
+    subscribe 触发通知
+* react-redux
+    <Provider> connect
+    connect
+    mapStateToProps mapDispatchToProps
+* 异步action
+* 中间件
+
+### React-router 使用
+* 路由模式（hash、H5 history),同vue-router
+* 路由配置（动态路由、懒加载），同vue-router
+```JavaScript
+lazy(() => import)
+
+<Suspense>
+</Suspense>
+```
