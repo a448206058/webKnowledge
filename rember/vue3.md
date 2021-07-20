@@ -41,14 +41,51 @@
         * 针对一个响应式对象（reactive封装)的prop
         * 创建一个ref，具有响应式
         * 俩者保持引用关系
-        
+
+    toRefs
+        * 将响应式对象（reactive封装）转换为普通对象
+        * 对象的每个prop都是对应ref
+        * 俩者保持引用关系
 
 * 最佳使用方式
+    * 用reactive做对象的响应式，用ref做值类型响应式
+    * setup中返回toRefs(state)，或者toRef(state, 'xxx')
+    * ref的变量命名都用xxxRef
+    * 合成函数返回响应式对象时，使用toRefs
+
 * 进阶，深入理解  
+* 为何需要ref?
+    * 返回值类型，会丢失响应式
+    * 如在setup、computed、合成函数，都有可能返回值类型
+    * Vue如不定义ref，用户将自造ref,反而混乱
+
+* 为何需要.value?
+    * ref是一个对象（不丢失响应式），value存储值
+    * 通过.value属性的get和set实现响应式
+    * 用于模版、reactive时，不需要.value，其他情况都需要
+
+* 为何需要toRef toRefs?
+    * 初衷：不丢失响应式的情况下，把对象数据 分解/扩散
+    * 前提：针对的是响应式对象（reactive封装的）非普通对象
+    * 注意：不创造响应式，而是延续响应式
 
 ### Vue3升级类哪些重要的功能？
-
+    * createApp
+    * emits属性
+    * 生命周期
+    * 多事件
+    * Fragment
+    * 移除.sync
+    * 异步组件的写法
+    * 移除filter
+    * Teleport
+    * Suspense
+    * Composition API
 ### Composition API如何实现代码逻辑复用？
+* 抽离逻辑代码到一个函数
+* 函数命名约定为useXxxx格式（React Hooks也是）
+* 在setup中引用usexxx函数
+
 
 ### Vue3如何实现响应式？
 
