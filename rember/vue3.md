@@ -88,10 +88,21 @@
 
 
 ### Vue3如何实现响应式？
-
+* 基本使用
+* Reflect
+    和proxy能力一一对应
+    规范化、标准化、函数式
+    代替object工具函数
+* 实现响应式
 ### watch和watchEffect的区别是什么？
+* 俩者都可监听data属性变化
+* watch需要明确监听哪个属性
+* watchEffect会根据其中的属性，自动监听其变化
 
 ### setup中如何获取组件实例？
+* 在setup 和其他CompositionAPI中没有this
+* 可通过getCurrentInstance获取当前实例
+* 若使用Options API可照常使用this
 
 ### Vue3为何比Vue2快？
 
