@@ -105,7 +105,36 @@
 * 若使用Options API可照常使用this
 
 ### Vue3为何比Vue2快？
+* Proxy响应式
+* PatchFlag
+    * 编译模版时，动态节点做标记
+    * 标记，分为不同的类型，如TEXT PROPS
+    * diff算法时，可以区分静态节点，以及不同类型的动态节点
+* hoistStatic
+    * 将静态节点的定义，提升到父作用域，缓存起来
+    * 多个相邻的静态节点，会被合并起来
+    * 典型的拿空间换时间的优化策略
+
+* cacheHandler
+    * 缓存事件
+
+* SSR优化
+    * 静态节点直接输出，绕过了vdom
+    * 动态节点，还是需要动态渲染
+
+* tree-shaking
 
 ### Vite是什么？
+* 一个前端打包工具，vue作者发起的项目
+* 借助vue的影响力，发展较快，和webpack竞争
+* 优势：开发环境下无需打包，启动快
+
+### vite为何启动快？
+* 开发环境使用ES6 Module，无需打包 - 非常快
+* 生产环境使用rollup，并不会快很多
 
 ### Composition API和 React Hooks的对比
+* 前者setup只会被调用一次，而后者函数会被多次调用
+* 前者无需useMemo useCallback,因为setup值调用一次
+* 前者无需顾虑调用顺序，而后者需要保证hooks的顺序一致
+* 前者reactive + ref比后者useState, 要难理解
