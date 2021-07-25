@@ -185,3 +185,100 @@ lazy(() => import)
 <Suspense>
 </Suspense>
 ```
+
+### react原理
+* 函数式编程
+* vdom 和 diff
+* JSX本质
+* 合成事件
+* setState batchUpdate
+* 组件渲染过程
+
+### 函数式编程
+* 一种编程范式，概念比较多
+* 纯函数
+* 不可变值
+
+### 回顾vdom和diff
+* h函数
+* vnode数据结构
+* patch函数
+
+* 只比较同一层级，不跨级比较
+* tag不相同，则直接删掉重建，不再深度比较
+* tag和key，俩者都相同，则认为是相同节点，不再深度比较
+
+* vue2.x vur3.0 React三者实现vdom细节都不同
+* 核心概念和实现思路，都一样
+* 面试主要考察后者，不用全部掌握细节
+
+### JSX本质
+* JSX等同于vue模版
+* vue模版不是html
+* JSX也不是JS
+
+* jsx即createElement函数
+* 执行生成vnode
+* patch(elem, vnode) 和 patch(vnode, newVnode)
+
+
+### 合成事件
+* 所有事件挂载到document上
+* event不是原生的，是SyntheticEvent合成事件对象
+* 和Vue事件不同，和DOM事件也不同
+
+### 为何要合成事件机制？
+* 更好的兼容性和跨平台
+* 挂载到document,减少内存消耗，避免频繁解绑
+* 方便事件的统一管理（如事务机制）
+
+react17事件绑定到root组件上
+有利于多个react版本并存，例如微前端
+
+### setState 和 batchUpdate
+* 有时异步（普通使用），有时同步（setTimeout、DOM事件）
+* 有时合并（对象形式），有时不合并（函数形式）
+* 后者比较好理解（像Object.assign），主要讲解前者
+
+* setState主流程
+* batchUpdate机制
+* transaction(事务)机制
+
+### setState异步还是同步？
+* setState无所谓异步还是同步
+* 看是否能命中batchUpdate机制
+* 判断isBatchingUpdates
+
+### 哪些能命中batchUpdate机制
+* 生命周期（和它调用的函数）
+* React中注册的事件（和它调用的函数）
+* React可以“管理”的入口
+
+### 哪些不能命中batchUpdate机制
+* setTimeout setInterval等（和它调用的函数）
+* 自定义的DOM事件（和它调用的函数）
+* React"管不到“的入口
+
+### transaction 事务机制
+
+### 组件渲染和更新过程
+* props state
+* render() 生成 vnode
+* patch(elem, vnode)
+
+### 组件更新过程
+* setState(newState) --> dirtyComponents(可能有子组件)
+* render()生成newVnode
+* patch(vnode, newVnode)分为俩个阶段
+* 第一阶段reconciliation 阶段 - 执行 diff算法，纯JS计算
+* commit阶段 - 将diff结果渲染dom
+
+### 可能会有性能问题
+* js是单线程，且和dom渲染共用一个线程
+* 当组件足够复杂，组件更新时计算和渲染都压力大
+* 同时再有DOM操作需求（动画，鼠标拖拽等），将卡顿
+
+### 解决方案 fiber
+* 将reconciliation阶段进行任务拆分（commit无法拆分）
+* dom需要渲染时暂停，空闲时恢复
+* window.requestIdleCallback
