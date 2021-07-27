@@ -48,3 +48,19 @@ webpack中最耗时的就是loader的转换过程，转换的流程很长。happ
         减少网络流量及服务器成本
       使用prepack
         编译代码时提前计算结果放到编译后的结果中，而不是在代码运行才求值
+
+### 前端代码为何要进行构建和打包？
+
+### module chunk bundle分别什么意思，有何区别？
+
+### loader 和 plugin的区别？
+
+### webpack如何实现懒加载？
+
+### webpack常见性能优化
+
+### babel-runtime 和 babel-polyfill的区别
+
+### webpack基本配置
+* 拆分配置和merge
+* 启动本地服务
