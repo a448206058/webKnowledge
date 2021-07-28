@@ -64,3 +64,41 @@ webpack中最耗时的就是loader的转换过程，转换的流程很长。happ
 ### webpack基本配置
 * 拆分配置和merge
 * 启动本地服务
+* 处理es6
+* 处理样式
+
+### webpack 高级配置
+* 多入口
+* 抽离CSS文件
+* 抽离公共代码
+* 懒加载
+* 处理JSX
+* 处理Vue
+
+### module chunk bundle的区别
+* module - 各个源码文件，webpack中一切皆模块
+* chunk - 多模块合并成的，如entry import() splitChunk
+* bundle - 最终的输出文件
+
+### webpack 性能优化
+* 优化打包构建速度 - 开发体验和效率
+* 优化产出代码 - 产品性能
+
+### 构建速度
+* 优化 babel-loader
+```JavaScript
+{
+  test: /\.js$/,
+  use: ['babel-loader?cacheDirectory'], // 开启缓存
+  include: path.resolve(__dirname, 'src'), // 明确范围
+  // // 排除范围，include 和 exclude 俩者选一个即可
+  // exclude: path.resolve(__dirname, 'node_modules')
+}
+```
+* IgnorePlugin
+* noParse 
+* happyPack
+* ParallelUglifyPlugin
+* 自动刷新
+* 热更新
+* DllPlugin
