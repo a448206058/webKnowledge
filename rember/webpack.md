@@ -41,11 +41,13 @@ webpack中最耗时的就是loader的转换过程，转换的流程很长。happ
         开启多进程压缩代码，并行执行
       使用CDN加速
         静态资源放到cdn服务器上面
+        externals
       tree shaking
         删除无用的代码
       提取公共代码
         防止相同资源重复加载
         减少网络流量及服务器成本
+        CommonsChunkPlugin
       使用prepack
         编译代码时提前计算结果放到编译后的结果中，而不是在代码运行才求值
 
