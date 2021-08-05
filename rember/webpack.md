@@ -126,3 +126,38 @@ webpack中最耗时的就是loader的转换过程，转换的流程很长。happ
 * 自动刷新：整个网页全部刷新，状态会丢失
 * 热更新：新代码生效，网页不刷新，状态不丢失
 
+### webpack优化构建速度
+* 优化 babel-loader
+  1.缓存
+  2.明确范围 排除范围
+* IgnorePlugin
+* noParse 引用时避免
+* happyPack
+* ParallelUglifyPlugin
+
+(不用于生产环境)
+* 自动刷新
+* 热更新
+* DllPlugin
+
+### webpack 性能优化 - 产出代码
+* 体积更小
+* 合理分包，不重复加载
+* 速度更快、内存使用更少
+
+* 小图片 base64编码
+  避免了网路请求
+* bundle + hash
+  文件更新后 缓存失效 代码刷新
+* 懒加载
+* 提取公共代码
+  通过splitChunks
+* IngorePlugin
+* 使用CDN加速
+  output
+    publicPath
+  打包的结果上传到cdn上去
+* 使用production
+* Scope Hosting
+
+### 使用production
